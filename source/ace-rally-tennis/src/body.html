@@ -1,0 +1,243 @@
+<div id="app">
+  <canvas id="gl"></canvas>
+  <video id="camVideo" playsinline muted autoplay></video>
+  <div id="ui">
+
+    <!-- in-match HUD -->
+    <div id="hud" hidden>
+      <div id="sb" class="sb" role="status" aria-label="Scoreboard">
+        <div class="sb-row" id="sbRow0"><i class="sb-stripe" id="sbStripe0"></i><i class="sb-serve"></i><span class="sb-name" id="sbName0">PLAYER</span><span class="sb-sets" id="sbSets0"></span><span class="sb-games" id="sbGames0">0</span><span class="sb-pts" id="sbPts0">0</span></div>
+        <div class="sb-row" id="sbRow1"><i class="sb-stripe" id="sbStripe1"></i><i class="sb-serve"></i><span class="sb-name" id="sbName1">KAI</span><span class="sb-sets" id="sbSets1"></span><span class="sb-games" id="sbGames1">0</span><span class="sb-pts" id="sbPts1">0</span></div>
+        <div class="sb-tag" id="sbTag" hidden>BREAK POINT</div>
+      </div>
+      <div id="rallyBox" class="rally" hidden><span>Rally</span><b id="rallyNow">0</b><i class="sep"></i><span>Best</span><b id="rallyBest">0</b></div>
+      <div class="hud-btns">
+        <button class="ibtn" id="btnSound" type="button" aria-label="Mute sound">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path id="icoSound" fill="currentColor" d="M4 9h4l5-4v14l-5-4H4z"/><path id="icoWaves" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M16 9.5a3.5 3.5 0 0 1 0 5M18.5 7a7 7 0 0 1 0 10"/><path id="icoMute" hidden fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M16.5 9.5l5 5M21.5 9.5l-5 5"/></svg>
+        </button>
+        <button class="ibtn" id="btnPause" type="button" aria-label="Pause">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14" rx="1.6" fill="currentColor"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.6" fill="currentColor"/></svg>
+        </button>
+      </div>
+      <div id="speed" class="speed" hidden><small>SERVE</small><b id="speedVal">0</b><small>KM/H</small></div>
+      <div id="prompt" class="prompt" hidden></div>
+      <div id="keysHint" class="keys" hidden>
+        <span><i class="kbd">SPACE</i> swing</span>
+        <span><i class="kbd">&#8592;</i><i class="kbd">&#8594;</i> aim</span>
+        <span><i class="kbd">&#8593;</i> lob</span>
+        <span><i class="kbd">&#8595;</i> drop shot</span>
+        <span><i class="kbd">P</i> pause</span>
+      </div>
+    </div>
+
+    <div id="banner" class="banner" aria-live="assertive"></div>
+    <div id="sub" class="sub"></div>
+    <div id="pops"></div>
+
+    <div id="touch" class="touch" hidden>
+      <div class="grp">
+        <button class="tbtn" id="tAimL" type="button" aria-label="Aim left">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 4.5 7 12l8.5 7.5z"/></svg>
+        </button>
+        <button class="tbtn" id="tAimR" type="button" aria-label="Aim right">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.5 4.5 17 12l-8.5 7.5z"/></svg>
+        </button>
+      </div>
+      <div class="grp">
+        <div class="t-col">
+          <button class="tbtn" id="tDrop" type="button">DROP</button>
+          <button class="tbtn" id="tLob" type="button">LOB</button>
+        </div>
+        <button class="tbtn big" id="tSwing" type="button">SWING</button>
+      </div>
+    </div>
+
+    <div id="camMini" class="cam-mini" hidden><canvas id="camMiniView" width="192" height="144"></canvas></div>
+
+    <!-- title -->
+    <section id="scrTitle" class="screen title" hidden>
+      <div class="title-wrap">
+        <div class="logo">
+          <div class="logo-row">
+            <span class="logo-ball"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M18 22c18 14 18 42 0 56M82 22c-18 14-18 42 0 56" fill="none" stroke="#fbfff0" stroke-width="6" stroke-linecap="round"/></svg></span>
+            <span class="logo-word">ACE RALLY</span>
+          </div>
+          <span class="logo-tag">TENNIS</span>
+        </div>
+        <p class="tagline">Swing with your webcam, keyboard or touch screen.</p>
+        <nav class="menu" aria-label="Main menu">
+          <button class="btn primary big" id="bPlay" type="button">Play a match</button>
+          <button class="btn" id="bPractice" type="button">Rally practice</button>
+          <div class="menu-row">
+            <button class="btn" id="bHow" type="button">How to play</button>
+            <button class="btn" id="bSettings" type="button">Settings</button>
+          </div>
+        </nav>
+        <p class="record" id="record"></p>
+      </div>
+    </section>
+
+    <!-- match setup -->
+    <section id="scrSetup" class="screen" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <h2 id="setupTitle">Match setup</h2>
+          <button class="btn ghost" type="button" data-back>Back</button>
+        </div>
+        <div class="field"><span class="label" id="lblMode">Mode</span><div class="opts" id="optMode" role="group" aria-labelledby="lblMode"></div></div>
+        <div class="field"><span class="label" id="lblControls">Controls</span><div class="opts" id="optControls" role="group" aria-labelledby="lblControls"></div><p class="hint" id="ctrlHint"></p></div>
+        <div class="field" id="fieldLevel"><span class="label" id="lblLevel">Opponent</span><div class="opts" id="optLevel" role="group" aria-labelledby="lblLevel"></div></div>
+        <div class="field" id="fieldFormat"><span class="label" id="lblFormat">Match length</span><div class="opts" id="optFormat" role="group" aria-labelledby="lblFormat"></div></div>
+        <div class="field"><span class="label" id="lblSurface">Court</span><div class="opts" id="optSurface" role="group" aria-labelledby="lblSurface"></div></div>
+        <div class="field">
+          <span class="label">Your player</span>
+          <div class="me">
+            <input type="text" id="inName" maxlength="10" autocomplete="off" spellcheck="false" aria-label="Player name">
+            <div class="swatches" id="optShirt" role="group" aria-label="Shirt colour"></div>
+            <div class="swatches" id="optSkin" role="group" aria-label="Skin tone"></div>
+          </div>
+        </div>
+        <div class="actions"><button class="btn primary big" id="bStart" type="button">Start match</button></div>
+      </div>
+    </section>
+
+    <!-- webcam setup -->
+    <section id="scrCam" class="screen" hidden>
+      <div class="panel wide">
+        <div class="panel-head"><h2>Webcam setup</h2><button class="btn ghost" type="button" id="bCamBack">Back</button></div>
+        <div class="cam-layout">
+          <div class="stack">
+            <div class="cam-stage"><canvas id="camView" width="480" height="360"></canvas><div class="cam-badge" id="camBadge"><i></i><span id="camBadgeText">Starting camera</span></div></div>
+            <div class="slider"><label for="camSens">Sensitivity</label><input type="range" id="camSens" min="0" max="100"></div>
+          </div>
+          <div class="stack">
+            <ol class="steps">
+              <li>Stand 1.5 to 2 metres back so your head and shoulders fit inside the frame, with your head in the middle circle.</li>
+              <li>Keep your hands down for a second while the game reads the room.</li>
+              <li>Raise a hand into a side box to swing. Right hand aims right, left hand aims left, both hands play a lob.</li>
+              <li>To serve, raise a hand to toss. Raise again at the top to hit, or wait and the serve goes in on its own.</li>
+            </ol>
+            <p class="counter">Swings detected: <b id="camCount">0</b></p>
+            <div class="blocked" id="camBlocked" hidden>
+              <p id="camBlockedText">This viewer does not allow camera access, so webcam swings cannot run here.</p>
+              <p class="note" id="camBlockedHow">Save the game file, then open it in Chrome, Edge or Safari on your computer and pick Webcam. Everything else works right here.</p>
+              <div class="actions">
+                <button class="btn primary" id="bSaveFile" type="button" hidden>Save game file</button>
+                <button class="btn" id="bCamKeys" type="button">Play with keyboard</button>
+                <button class="btn" id="bCamTouch" type="button">Play with touch</button>
+              </div>
+              <p class="note" id="saveStatus" role="status"></p>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn" id="bCamRecal" type="button">Recalibrate</button>
+          <button class="btn primary big" id="bCamGo" type="button">Start match</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- how to play -->
+    <section id="scrHow" class="screen" hidden>
+      <div class="panel wide">
+        <div class="panel-head"><h2>How to play</h2><button class="btn ghost" type="button" data-back>Back</button></div>
+        <div class="how">
+          <section>
+            <h3>Your only job is the swing</h3>
+            <ul>
+              <li>Your player runs to the ball on their own. You decide when to swing.</li>
+              <li>Swing a touch early to pull the ball across your body, a touch late to push it the other way. Nail the timing for a PERFECT strike with extra pace.</li>
+              <li>Serving: swing once to toss, then swing again at the top of the toss for the fastest serve.</li>
+              <li>Balls heading out are yours to leave. Do not swing and you win the point.</li>
+            </ul>
+          </section>
+          <section>
+            <h3>Webcam</h3>
+            <ul>
+              <li>Stand back so your head and shoulders are visible. Raise a hand above your shoulder to swing.</li>
+              <li>Right hand aims right, left hand aims left, both hands together play a lob.</li>
+              <li>Good, even light in front of you works best. Keep busy backgrounds out of the side boxes.</li>
+            </ul>
+          </section>
+          <section>
+            <h3>Keyboard and mouse</h3>
+            <ul>
+              <li><i class="kbd">SPACE</i> or <i class="kbd">ENTER</i> or a mouse click to swing.</li>
+              <li>Hold <i class="kbd">&#8592;</i> or <i class="kbd">&#8594;</i> (or <i class="kbd">A</i> <i class="kbd">D</i>) while swinging to aim.</li>
+              <li>Hold <i class="kbd">&#8593;</i> for a lob, <i class="kbd">&#8595;</i> for a drop shot. <i class="kbd">P</i> pauses, <i class="kbd">M</i> mutes.</li>
+            </ul>
+          </section>
+          <section>
+            <h3>Touch</h3>
+            <ul>
+              <li>Tap SWING. Hold an arrow with your other thumb to aim.</li>
+              <li>LOB and DROP play those shots directly. Tapping the court also swings.</li>
+            </ul>
+          </section>
+          <section>
+            <h3>Scoring</h3>
+            <ul>
+              <li>Points go Love, 15, 30, 40, then game. At 40 all it is Deuce, and you need two points in a row: Advantage, then Game.</li>
+              <li>Sets go to six games, won by two. At six games all a tiebreak to seven points decides it.</li>
+              <li>Two serves per point. Miss both and it is a double fault. A serve that clips the net and lands in is a let and is played again.</li>
+            </ul>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- settings -->
+    <section id="scrSettings" class="screen" hidden>
+      <div class="panel">
+        <div class="panel-head"><h2>Settings</h2><button class="btn ghost" type="button" data-back>Done</button></div>
+        <div class="rows">
+          <div class="row"><div class="txt"><b>Sound effects</b><span>Racket, ball, crowd</span></div><label class="switch"><input type="checkbox" id="setSfx" aria-label="Sound effects"><span></span></label></div>
+          <div class="row"><div class="txt"><b>Music</b><span>Menu soundtrack</span></div><label class="switch"><input type="checkbox" id="setMusic" aria-label="Music"><span></span></label></div>
+          <div class="row"><div class="txt"><b>Umpire voice</b><span>Spoken score calls</span></div><label class="switch"><input type="checkbox" id="setVoice" aria-label="Umpire voice"><span></span></label></div>
+          <div class="row"><div class="txt"><b>Camera shake</b><span>On smashes</span></div><label class="switch"><input type="checkbox" id="setShake" aria-label="Camera shake"><span></span></label></div>
+          <div class="row"><div class="txt"><b>Shot guides</b><span>Landing spot and swing timing ring. Auto turns them on for Rookie, practice and webcam.</span></div><div class="mini-opts" id="optGuides"></div></div>
+          <div class="row"><div class="txt"><b>Graphics</b><span>Lower it if the game stutters</span></div><div class="mini-opts" id="optQuality"></div></div>
+          <div class="row"><div class="txt"><b>Webcam preview</b><span>Small camera view during play</span></div><label class="switch"><input type="checkbox" id="setPreview" aria-label="Webcam preview"><span></span></label></div>
+          <div class="row"><div class="txt"><b>Hand aims the shot</b><span>Webcam: right hand aims right, left hand aims left</span></div><label class="switch"><input type="checkbox" id="setCamAim" aria-label="Hand aims the shot"><span></span></label></div>
+          <div class="row" id="rowSave" hidden><div class="txt"><b>Webcam outside this viewer</b><span>Save the game file and open it in your browser to use your camera.</span></div><button class="btn" id="bSaveFile2" type="button">Save file</button></div>
+        </div>
+        <p class="note" id="saveStatus2" role="status"></p>
+      </div>
+    </section>
+
+    <!-- pause -->
+    <section id="scrPause" class="screen" hidden>
+      <div class="panel narrow">
+        <h2>Paused</h2>
+        <div class="pause-score" id="pauseScore"></div>
+        <div class="stack">
+          <button class="btn primary big" id="bResume" type="button">Resume</button>
+          <button class="btn" id="bRestart" type="button">Restart match</button>
+          <button class="btn" id="bPauseSettings" type="button">Settings</button>
+          <button class="btn" id="bPauseHow" type="button">How to play</button>
+          <button class="btn" id="bQuit" type="button">Quit to title</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- results -->
+    <section id="scrResults" class="screen" hidden>
+      <div class="panel">
+        <div class="result-head">
+          <span class="eyebrow" id="resEyebrow">Final score</span>
+          <h2 id="resTitle">You win!</h2>
+          <div class="setline" id="resSets"></div>
+        </div>
+        <div class="stats-wrap"><table class="stats" id="resStats"></table></div>
+        <div class="actions">
+          <button class="btn" id="bResTitle" type="button">Title</button>
+          <button class="btn" id="bResSetup" type="button">New match</button>
+          <button class="btn primary" id="bRematch" type="button">Rematch</button>
+        </div>
+      </div>
+    </section>
+
+    <div id="loading" class="loading"><div class="inner"><div class="ball"></div><span>Rolling out the court</span></div></div>
+    <div id="fatal" class="fatal" hidden><div class="panel narrow"><h2>The court could not load</h2><p id="fatalText">The 3D engine did not start. Check your internet connection and reload the page.</p></div></div>
+  </div>
+</div>

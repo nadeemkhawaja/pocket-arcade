@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pocket Arcade</title>
+<meta name="description" content="Two free browser arcade games for phones and computers: Dagger Raid, a side-scrolling commando knife fighter, and Ace Rally Tennis, with webcam, keyboard and touch swings.">
+<meta property="og:title" content="Pocket Arcade">
+<meta property="og:description" content="Two free browser arcade games: Dagger Raid and Ace Rally Tennis. No download, no sign up.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0b0e17">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&family=Press+Start+2P&display=swap">
+<style>
+/* Layout: an arcade marquee over two "cabinets" (screen bezel + game card) that stack on phones.
+   One deliberate look: a dark arcade hall, so the palette is fixed rather than theme-switched. */
+:root {
+  --bg: #0b0e17;
+  --hall: #10141f;
+  --bezel: #070910;
+  --panel: #131a2a;
+  --line: #243049;
+  --ink: #e9eef7;
+  --dim: #8d98b1;
+  --red: #ff4b3a;
+  --red-deep: #9e2118;
+  --optic: #d9f23f;
+  --optic-deep: #7f9214;
+  --f-pix: "Press Start 2P", ui-monospace, "Courier New", monospace;
+  --f-body: "Chakra Petch", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(255, 75, 58, 0.16), rgba(11, 14, 23, 0) 55%),
+    radial-gradient(ellipse at 50% 110%, rgba(217, 242, 63, 0.08), rgba(11, 14, 23, 0) 50%),
+    var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body); font-size: 17px; line-height: 1.15;
+  min-height: 100vh; -webkit-font-smoothing: antialiased;
+}
+body::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px);
+}
+a { color: inherit; }
+.wrap {
+  max-width: 1120px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: max(28px, env(safe-area-inset-top, 0px)) max(28px, env(safe-area-inset-bottom, 0px));
+  display: grid; gap: 34px;
+}
+
+/* ---- marquee ---- */
+.marquee { text-align: center; display: grid; gap: 14px; justify-items: center; padding-top: 12px; }
+.freeplay { margin: 0; font-family: var(--f-pix); font-size: 11px; letter-spacing: 4px; color: var(--optic); animation: blink 1.6s linear infinite; }
+h1 {
+  margin: 0; font-family: var(--f-pix); font-weight: 400; line-height: 1.15;
+  font-size: clamp(26px, 6.2vw, 58px); letter-spacing: 2px; text-wrap: balance;
+  text-shadow: 0 4px 0 #000, 0 0 24px rgba(255, 75, 58, 0.35);
+}
+h1 span { color: var(--red); }
+.lede { margin: 0; max-width: 34ch; color: var(--dim); font-size: 19px; text-wrap: balance; }
+
+/* ---- cabinets ---- */
+.cabinets { display: grid; gap: 26px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); }
+.cab {
+  --acc: var(--red); --acc-deep: var(--red-deep); --acc-ink: #fff;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
+  padding: 14px; display: grid; grid-template-rows: auto 1fr; gap: 16px; min-width: 0;
+}
+.cab--tennis { --acc: var(--optic); --acc-deep: var(--optic-deep); --acc-ink: #1a2200; }
+.screen {
+  display: block; position: relative; border-radius: 10px; overflow: hidden;
+  background: var(--bezel); padding: 10px; border: 1px solid #1b2234;
+  box-shadow: inset 0 0 0 2px #000, 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+.screen img {
+  display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover;
+  border-radius: 4px; image-rendering: pixelated;
+  box-shadow: 0 0 28px color-mix(in srgb, var(--acc) 30%, transparent);
+  transition: transform 0.25s ease, filter 0.25s ease;
+}
+.cab--tennis .screen img { image-rendering: auto; }
+.screen:hover img, .screen:focus-visible img { transform: scale(1.015); filter: brightness(1.08); }
+.screen::after {
+  content: "PLAY"; position: absolute; right: 18px; bottom: 18px;
+  font-family: var(--f-pix); font-size: 10px; letter-spacing: 2px; padding: 8px 10px; border-radius: 6px;
+  background: rgba(7, 9, 16, 0.82); color: var(--acc); border: 1px solid color-mix(in srgb, var(--acc) 55%, transparent);
+}
+.card { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 0 6px 6px; min-width: 0; }
+.card h2 { margin: 0; font-family: var(--f-pix); font-weight: 400; font-size: clamp(16px, 2.6vw, 21px); line-height: 1.15; color: var(--acc); letter-spacing: 1px; }
+.card p { margin: 0; color: var(--ink); max-width: 60ch; }
+.facts { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px; }
+.facts li { font-size: 14px; color: var(--dim); border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; }
+.keys { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--dim); font-size: 15px; }
+.keys li { display: flex; align-items: center; gap: 6px; }
+kbd {
+  font-family: var(--f-pix); font-size: 9px; line-height: 1.15; color: var(--ink);
+  background: #0c1120; border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 6px; padding: 5px 7px;
+}
+kbd.arrow { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 14px; font-weight: 700; padding: 1px 7px 2px; }
+.play {
+  margin-top: auto; text-decoration: none; font-family: var(--f-pix); font-size: 13px; letter-spacing: 1px; line-height: 1.15;
+  color: var(--acc-ink); background: var(--acc); border-radius: 12px; padding: 15px 22px;
+  box-shadow: 0 5px 0 var(--acc-deep); transition: transform 60ms linear, box-shadow 60ms linear, filter 0.15s ease;
+}
+.play:hover { filter: brightness(1.1); }
+.play:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--acc-deep); }
+a:focus-visible { outline: 3px solid var(--optic); outline-offset: 4px; border-radius: 12px; }
+
+/* ---- footer ---- */
+footer { display: grid; gap: 8px; justify-items: center; text-align: center; color: var(--dim); font-size: 15px; padding-bottom: 8px; }
+footer p { margin: 0; max-width: 62ch; }
+
+@keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) {
+  .freeplay { animation: none; }
+  .screen img, .play { transition: none; }
+}
+@media (max-width: 520px) {
+  body { font-size: 16px; }
+  .cab { padding: 10px; border-radius: 14px; }
+  .screen { padding: 7px; }
+  .card { align-items: stretch; }
+  .play { text-align: center; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="marquee">
+    <p class="freeplay">FREE PLAY</p>
+    <h1>POCKET <span>ARCADE</span></h1>
+    <p class="lede">Two original arcade games that run right in your browser, on a phone or a computer.</p>
+  </header>
+
+  <section class="cabinets" aria-label="Games">
+    <article class="cab cab--dagger">
+      <a class="screen" href="dagger-raid/" aria-label="Play Dagger Raid">
+        <img src="assets/dagger-raid.webp" width="1152" height="648" alt="Dagger Raid gameplay: the commando on a desert refinery catwalk at sunset, with enemy soldiers and a caged captive">
+      </a>
+      <div class="card">
+        <h2>DAGGER RAID</h2>
+        <p>A side-scrolling commando raid. Fight through four stages with a combat knife, climb ladders, free captives, grab special weapons and take down four bosses.</p>
+        <ul class="facts" aria-label="Ways to play">
+          <li>Keyboard</li><li>Gamepad</li><li>Phone touch pad</li><li>Arcade or Modern mode</li>
+        </ul>
+        <ul class="keys" aria-label="Keyboard controls">
+          <li><kbd class="arrow">&#8592;</kbd><kbd class="arrow">&#8594;</kbd> move</li>
+          <li><kbd>Z</kbd> knife</li>
+          <li><kbd>X</kbd> jump</li>
+          <li><kbd>C</kbd> special</li>
+          <li><kbd>P</kbd> pause</li>
+        </ul>
+        <a class="play" href="dagger-raid/">PLAY DAGGER RAID</a>
+      </div>
+    </article>
+
+    <article class="cab cab--tennis">
+      <a class="screen" href="tennis/" aria-label="Play Ace Rally Tennis">
+        <img src="assets/ace-rally-tennis.webp" width="1280" height="720" alt="Ace Rally Tennis gameplay: a player hits a forehand on a blue stadium court in front of a full crowd">
+      </a>
+      <div class="card">
+        <h2>ACE RALLY TENNIS</h2>
+        <p>Bright stadium tennis with real scoring. Raise your hand at the webcam to swing, or play with the keyboard or touch screen against computer players.</p>
+        <ul class="facts" aria-label="Ways to play">
+          <li>Webcam swings</li><li>Keyboard</li><li>Phone touch</li>
+        </ul>
+        <ul class="keys" aria-label="Keyboard controls">
+          <li><kbd>SPACE</kbd> swing</li>
+          <li><kbd class="arrow">&#8592;</kbd><kbd class="arrow">&#8594;</kbd> aim</li>
+          <li><kbd class="arrow">&#8593;</kbd> lob</li>
+          <li><kbd class="arrow">&#8595;</kbd> drop shot</li>
+        </ul>
+        <a class="play" href="tennis/">PLAY TENNIS</a>
+      </div>
+    </article>
+  </section>
+
+  <footer>
+    <p>Sound starts after your first tap or key press. Scores and settings are saved on your own device.</p>
+  </footer>
+</main>
+</body>
+</html>
