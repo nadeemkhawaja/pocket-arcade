@@ -2,11 +2,13 @@
 
 Two original arcade games that run in the browser on phones and computers. No install, no account.
 
-**Play online:** https://nadeemkhawaja.github.io/pocket-arcade/
+**Play online:** https://pocket-arcade-rouge.vercel.app/
+
+Direct links: [Dagger Raid](https://pocket-arcade-rouge.vercel.app/dagger-raid) and [Ace Rally Tennis](https://pocket-arcade-rouge.vercel.app/tennis)
 
 | Dagger Raid | Ace Rally Tennis |
 | --- | --- |
-| [![Dagger Raid gameplay](assets/dagger-raid.webp)](https://nadeemkhawaja.github.io/pocket-arcade/dagger-raid/) | [![Ace Rally Tennis gameplay](assets/ace-rally-tennis.webp)](https://nadeemkhawaja.github.io/pocket-arcade/tennis/) |
+| [![Dagger Raid gameplay](assets/dagger-raid.webp)](https://pocket-arcade-rouge.vercel.app/dagger-raid) | [![Ace Rally Tennis gameplay](assets/ace-rally-tennis.webp)](https://pocket-arcade-rouge.vercel.app/tennis) |
 | Side-scrolling commando raid with a combat knife | Stadium tennis you can swing with your webcam |
 
 ## Dagger Raid
@@ -41,7 +43,7 @@ Bright stadium tennis with full tennis scoring. Your player runs to the ball on 
 
 Keyboard: Space, Enter or a click swings. Hold Left or Right while swinging to aim, Up for a lob, Down for a drop shot. P pauses, M mutes.
 
-The webcam mode needs a secure page (HTTPS), which GitHub Pages and Vercel both provide. The browser asks for camera permission the first time.
+The webcam mode needs a secure page (HTTPS), which the live site provides. The browser asks for camera permission the first time.
 
 ## Project layout
 
@@ -67,8 +69,10 @@ Then open http://localhost:8000.
 
 ## Hosting
 
+The live site runs on Vercel at https://pocket-arcade-rouge.vercel.app/ and is connected to this repository, so every push to `main` publishes a new version automatically.
+
+- **Vercel (another copy):** Add New Project, import this repository, keep the framework preset as Other, then Deploy.
 - **GitHub Pages:** Settings, Pages, deploy from the `main` branch and the `/ (root)` folder.
-- **Vercel:** Add New Project, import this repository, keep the framework preset as Other, then Deploy. Every push to `main` publishes a new version.
 
 ## Changing a game
 
