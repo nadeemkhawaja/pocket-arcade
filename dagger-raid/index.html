@@ -215,7 +215,7 @@ const store = {
   set(k, v) { try { localStorage.setItem('daggerRaid.' + k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } }
 };
 
-const settings = Object.assign({ music: 0.7, sfx: 0.85, crt: true, shake: !reducedMotion, mode: 'arcade', touch: 'auto' }, store.get('settings', {}));
+const settings = Object.assign({ music: 0.7, sfx: 0.85, crt: true, shake: !reducedMotion, mode: 'modern', touch: 'auto' }, store.get('settings', {}));
 function saveSettings() { store.set('settings', settings); }
 
 const DEFAULT_SCORES = [
@@ -2259,6 +2259,7 @@ function updateHero(h, dt, I, P) {
     h.act = { type, t: 0, dur: type === 'jstab' ? 0.24 : 0.2, hits: [] };
     if (h.ground && type !== 'jstab') h.vx = 0;
     chip.sfx('knife');
+    game.fx.push({ k: 'slash', h, type, x: h.x, y: h.y, t: 0, life: 0.14 });
   }
   if (h.sbuf > 0 && !h.act && !h.climb && h.hurtT <= 0) {
     h.sbuf = 0;
@@ -2303,9 +2304,12 @@ function hurtHero(h, dirX, src) {
     if (!h.climb) { h.vx = (dirX || -h.face) * 70; h.vy = -120; h.ground = false; }
     chip.sfx('hurt'); addShake(4);
     game.stageStats.hits++;
+    game.hurtT = 0.45;
+    pop(h.x, h.y - 40, h.hp === 1 ? 'LAST HEART!' : 'OUCH', '#ff6a5a');
     return;
   }
   h.hp = 0;
+  game.hurtT = 0.6;
   killHero(h, dirX);
 }
 
@@ -2991,9 +2995,67 @@ function drawFx(g, cx) {
         break;
       }
       case 'flash': disc(g, x, y, 3, '#fff2a0'); rect(g, x - 1, y - 1, 3, 3, '#ffffff'); break;
+      case 'slash': drawSlash(g, f, cx); break;
       case 'boom': drawBoom(g, x, y, f.r, f.t); break;
       default: break;
     }
+  }
+}
+
+/** Bright crescent that trails the knife so every stab reads clearly, even on a small screen. */
+function drawSlash(g, f, cx) {
+  const h = f.h;
+  if (!h || h.dead || h.climb) return;
+  const k = f.t / f.life;
+  const face = h.face;
+  const ox = Math.round(h.x - cx), oy = Math.round(h.y);
+  let cy, r, a0, a1;
+  if (f.type === 'cstab') { cy = oy - 9; r = 14; a0 = -0.9; a1 = 0.5; }
+  else if (f.type === 'jstab') { cy = oy - 16; r = 15; a0 = -1.1; a1 = 1.0; }
+  else { cy = oy - 18; r = 15; a0 = -1.0; a1 = 0.55; }
+  const cxp = ox + face * 3;
+  const sweep = Math.min(1, k * 2.2);
+  const steps = 14;
+  g.globalAlpha = Math.max(0, 1 - k) * 0.95;
+  for (let i = 0; i <= steps * sweep; i++) {
+    const u = i / steps;
+    const a = lerp(a0, a1, u);
+    const px = cxp + Math.cos(a) * r * face, py = cy + Math.sin(a) * r;
+    const thick = u > 0.25 && u < 0.85 ? 2 : 1;
+    rect(g, px, py, thick, thick, '#ffffff');
+    const ix = cxp + Math.cos(a) * (r - 3) * face, iy = cy + Math.sin(a) * (r - 3);
+    rect(g, ix, iy, 1, 1, '#9fe8ff');
+  }
+  g.globalAlpha = 1;
+}
+
+/** Soft oval shadow on the surface under an actor; shrinks as the actor rises. */
+function drawShadowAt(g, x, footY, floorY, w) {
+  const lift = Math.max(0, floorY - footY);
+  if (lift > 90) return;
+  const s = 1 - Math.min(0.6, lift / 120);
+  const ww = Math.max(4, Math.round(w * s));
+  g.globalAlpha = 0.32 * s;
+  g.fillStyle = '#000000';
+  g.fillRect(Math.round(x - ww / 2), Math.round(floorY - 1), ww, 2);
+  g.fillRect(Math.round(x - ww / 2 + 2), Math.round(floorY), Math.max(1, ww - 4), 1);
+  g.globalAlpha = 1;
+}
+
+function floorBelow(x, y) {
+  const ly = landY(x, y - 0.5, GROUND_Y + 1, null);
+  return ly === null ? GROUND_Y : ly;
+}
+
+function drawActorShadows(g, cx) {
+  const h = game.hero;
+  if (h && !game.hideHero && !h.climb && !(h.dead && h.deadT > 0.4)) {
+    drawShadowAt(g, h.x - cx, h.y, h.ground ? h.y : floorBelow(h.x, h.y), 14);
+  }
+  for (const e of game.foes) {
+    if (e.st === 'dead' || e.st === 'para' || e.climb) continue;
+    const w = e.kind === 'dog' ? 16 : 13;
+    drawShadowAt(g, e.x - cx, e.y, e.ground === false ? floorBelow(e.x, e.y) : e.y, w);
   }
 }
 
@@ -3725,6 +3787,7 @@ function updateGame(dt, I, P) {
   game.flashT = Math.max(0, game.flashT - dt);
   game.fadeT = Math.max(0, (game.fadeT || 0) - dt);
   game.readyT = Math.max(0, (game.readyT || 0) - dt);
+  if (game.state !== 'pause') game.hurtT = Math.max(0, (game.hurtT || 0) - dt);
   switch (game.state) {
     case 'intro':
       tickWorld(dt);
@@ -3965,7 +4028,7 @@ function respawn() {
   game.foes = game.foes.filter((e) => e.T.fixed || !onScreen(e.x, 60));
   for (const e of game.foes) e.cd = Math.max(e.cd, 2.2);
   game.shots = []; game.sched = game.sched.filter((s) => s.x != null);
-  game.spawnT = 2.4; game.downT = 0; game.chainN = 0; game.readyT = 1.6;
+  game.spawnT = 2.4; game.downT = 0; game.chainN = 0; game.readyT = 1.6; game.hurtT = 0;
   if (b) chip.play('boss');
   else if (!game.bossSeq) chip.play(game.st.song);
 }
@@ -4170,7 +4233,14 @@ function updateWeather(dt) {
    Menus: boot, title, attract loop, how to play, options, pause, name entry
    ========================================================================== */
 
-const TITLE_ITEMS = ['START GAME', 'MODE', 'HOW TO PLAY', 'HIGH SCORES', 'OPTIONS'];
+const TITLE_ITEMS = ['START GAME', 'MODE', 'HOW TO PLAY', 'HIGH SCORES', 'OPTIONS', 'BACK TO ARCADE'];
+
+/** Leave the game for the Pocket Arcade landing page. */
+function goArcadeHome() {
+  chip.sfx('select');
+  try { chip.stopMusic(); } catch (e) { /* audio not started */ }
+  setTimeout(() => { location.href = '../index.html'; }, 120);
+}
 const OPTION_ITEMS = ['MUSIC', 'EFFECTS', 'CRT FILTER', 'SCREEN SHAKE', 'TOUCH PAD', 'BACK'];
 const PAUSE_ITEMS = ['RESUME', 'OPTIONS', 'QUIT GAME'];
 const HOWTO_PAGES = 3;
@@ -4211,6 +4281,7 @@ function updateMenus(dt, I, P) {
       else if (act === 2) { chip.sfx('select'); setState('howto'); game.page = 0; }
       else if (act === 3) { chip.sfx('select'); setState('scores'); game.attract = false; }
       else if (act === 4) { chip.sfx('select'); game.optFrom = 'title'; setState('options'); }
+      else if (act === 5) goArcadeHome();
       if (game.idleT > 22) { game.idleT = 0; game.attract = true; setState('scores'); }
       break;
     }
@@ -4553,6 +4624,7 @@ function drawWorld(g) {
   }
   g.drawImage(L.level, cx, 0, W, H, 0, 0, W, H);
   if (st.id === 'citadel') drawSearchlights(g, cx);
+  drawActorShadows(g, cx);
   for (const p of game.props) drawProp(g, p, cx);
   for (const c of game.caps) drawCaptive(g, c, cx);
   const b = game.boss;
@@ -4573,6 +4645,56 @@ function drawWorld(g) {
   drawPops(g, cx);
   g.restore();
   if (game.flashT > 0) { g.globalAlpha = Math.min(0.75, game.flashT * 5); rect(g, 0, 0, W, H, '#ffffff'); g.globalAlpha = 1; }
+  drawDangerFrame(g);
+}
+
+/** Red edge glow when the hero is hit, and a slow pulse while on the last heart. */
+function drawDangerFrame(g) {
+  const h = game.hero;
+  let a = (game.hurtT || 0) > 0 ? Math.min(0.55, game.hurtT * 1.2) : 0;
+  if (h && !h.dead && settings.mode === 'modern' && h.hp === 1 && game.state === 'play') a = Math.max(a, 0.16 + 0.12 * Math.sin(game.t * 5));
+  if (a <= 0.01) return;
+  const top = HUD_H;
+  for (let i = 0; i < 8; i++) {
+    g.globalAlpha = a * (1 - i / 8);
+    g.fillStyle = '#d0201a';
+    g.fillRect(i, top, 1, H - top); g.fillRect(W - 1 - i, top, 1, H - top);
+    g.fillRect(0, top + i, W, 1); g.fillRect(0, H - 1 - i, W, 1);
+  }
+  g.globalAlpha = 1;
+}
+
+/** Blinking arrows at the screen edge for enemies and bullets that are about to come into view. */
+function drawThreats(g) {
+  if (game.state !== 'play' || game.demo || !game.hero || game.hero.dead) return;
+  const cx = game.camX;
+  const marks = [];
+  for (const e of game.foes) {
+    if (e.st === 'dead' || e.st === 'para') continue;
+    const sx = e.x - cx;
+    if (sx < -2 && sx > -110) marks.push([-1, e.y - 14, -sx]);
+    else if (sx > W + 2 && sx < W + 110) marks.push([1, e.y - 14, sx - W]);
+  }
+  for (const s of game.shots) {
+    if (!s.foe || s.gone) continue;
+    const sx = s.x - cx;
+    if (sx < 0 && sx > -90 && s.vx > 0) marks.push([-1, s.y, -sx]);
+    else if (sx > W && sx < W + 90 && s.vx < 0) marks.push([1, s.y, sx - W]);
+  }
+  if (!marks.length) return;
+  const on = Math.floor(game.t * 8) % 2 === 0;
+  for (const [side, wy, d] of marks) {
+    const y = clamp(Math.round(wy), HUD_H + 8, H - 10);
+    const near = d < 45;
+    if (!near && !on) continue;
+    const col = near ? '#ff4a3a' : '#ffb04a';
+    const x = side < 0 ? 3 : W - 4;
+    // tip sits on the screen edge and the arrow widens inward, so it points at the threat
+    for (let i = 0; i < 4; i++) {
+      const xx = x - side * i;
+      rect(g, xx, y - i, 1, i * 2 + 1, i === 0 ? '#ffffff' : col);
+    }
+  }
 }
 
 function drawBolt(g, x) {
@@ -4630,8 +4752,8 @@ function drawHUD(g) {
   T(g, pad7(game.hi), 142, 2, C.gold);
   const li = lifeIcon();
   const n = game.lives;
-  if (n <= 4) for (let i = 0; i < n; i++) g.drawImage(li.cv, 4 + i * 9, 10);
-  else { g.drawImage(li.cv, 4, 10); T(g, 'X' + n, 14, 10, C.ink); }
+  g.drawImage(li.cv, 4, 10);
+  T(g, 'X' + n, 14, 10, n === 0 && blink(3) ? C.red : C.ink);
   T(g, 'STAGE ' + (game.stageIdx + 1), 128, 10, C.cyan);
   const h = game.hero;
   // weapon box
@@ -4644,7 +4766,12 @@ function drawHUD(g) {
     T(g, 'KNIFE', W - 37, 5, C.dim);
   }
   if (settings.mode === 'modern' && h) {
-    for (let i = 0; i < MAX_HP; i++) drawHeart(g, W - 88 + i * 11, 5, i < h.hp);
+    const low = h.hp === 1 && !h.dead;
+    for (let i = 0; i < MAX_HP; i++) {
+      const full = i < h.hp;
+      if (low && full && blink(4)) continue;
+      drawHeart(g, W - 88 + i * 11, 5, full);
+    }
   }
   if (game.chainN >= 2 && game.time - game.chainT < 1.6) {
     T(g, 'CHAIN X' + game.chainN, 220, 10, Math.floor(game.t * 8) % 2 ? C.gold : '#ff9a30');
@@ -4669,6 +4796,7 @@ function drawHeart(g, x, y, full) {
 
 /* ---- banners --------------------------------------------------------------------- */
 function drawBanners(g) {
+  drawThreats(g);
   const S = game.bossSeq;
   if (game.state === 'play' && S && S.st === 'warn' && S.t > 0.2) {
     if (Math.floor(S.t * 4) % 2 === 0) {
@@ -4734,19 +4862,19 @@ function drawTitle(g) {
   drawTitleBackdrop(g);
   drawLogo(g, 26);
   T(g, 'ONE KNIFE. ONE MISSION.', W / 2, 72, C.cyan, { align: 'center' });
-  const y0 = 92;
+  const y0 = 86, gap = 14;
   TITLE_ITEMS.forEach((it, i) => {
     let label = it;
     if (it === 'MODE') label = 'MODE  ' + (settings.mode === 'arcade' ? '< ARCADE >' : '< MODERN >');
     const sel = game.menu === i;
-    const y = y0 + i * 15;
+    const y = y0 + i * gap;
     const wpx = textWidth(label, 1);
     if (sel) { rect(g, W / 2 - wpx / 2 - 14, y - 3, wpx + 28, 13, 'rgba(232,57,42,0.28)'); T(g, '>', W / 2 - wpx / 2 - 11, y, C.gold); }
     T(g, label, W / 2, y, sel ? C.ink : C.dim, { align: 'center' });
     hitArea(W / 2 - 90, y - 4, W / 2 + 90, y + 10, { i, dir: it === 'MODE' && sel ? 1 : 0 });
   });
-  const modeTip = settings.mode === 'arcade' ? 'ONE HIT AND YOU ARE DOWN. CLASSIC RULES.' : 'THREE HITS PER LIFE. RATIONS HEAL.';
-  T(g, modeTip, W / 2, y0 + 5 * 15 + 2, C.dim, { align: 'center' });
+  const modeTip = settings.mode === 'arcade' ? 'ONE HIT AND YOU ARE DOWN. FOR VETERANS.' : 'THREE HITS PER LIFE. BEST FOR A FIRST RUN.';
+  T(g, modeTip, W / 2, y0 + TITLE_ITEMS.length * gap + 3, C.dim, { align: 'center' });
   T(g, 'TOP ' + pad7(game.scores[0].s) + '  ' + game.scores[0].n, W / 2, 194, C.gold, { align: 'center' });
   T(g, controlHint(), W / 2, 205, '#6a7a94', { align: 'center' });
 }

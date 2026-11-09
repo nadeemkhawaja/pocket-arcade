@@ -44,7 +44,7 @@ const store = {
   set(k, v) { try { localStorage.setItem('daggerRaid.' + k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } }
 };
 
-const settings = Object.assign({ music: 0.7, sfx: 0.85, crt: true, shake: !reducedMotion, mode: 'arcade', touch: 'auto' }, store.get('settings', {}));
+const settings = Object.assign({ music: 0.7, sfx: 0.85, crt: true, shake: !reducedMotion, mode: 'modern', touch: 'auto' }, store.get('settings', {}));
 function saveSettings() { store.set('settings', settings); }
 
 const DEFAULT_SCORES = [

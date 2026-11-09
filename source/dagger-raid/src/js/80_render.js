@@ -44,6 +44,7 @@ function drawWorld(g) {
   }
   g.drawImage(L.level, cx, 0, W, H, 0, 0, W, H);
   if (st.id === 'citadel') drawSearchlights(g, cx);
+  drawActorShadows(g, cx);
   for (const p of game.props) drawProp(g, p, cx);
   for (const c of game.caps) drawCaptive(g, c, cx);
   const b = game.boss;
@@ -64,6 +65,56 @@ function drawWorld(g) {
   drawPops(g, cx);
   g.restore();
   if (game.flashT > 0) { g.globalAlpha = Math.min(0.75, game.flashT * 5); rect(g, 0, 0, W, H, '#ffffff'); g.globalAlpha = 1; }
+  drawDangerFrame(g);
+}
+
+/** Red edge glow when the hero is hit, and a slow pulse while on the last heart. */
+function drawDangerFrame(g) {
+  const h = game.hero;
+  let a = (game.hurtT || 0) > 0 ? Math.min(0.55, game.hurtT * 1.2) : 0;
+  if (h && !h.dead && settings.mode === 'modern' && h.hp === 1 && game.state === 'play') a = Math.max(a, 0.16 + 0.12 * Math.sin(game.t * 5));
+  if (a <= 0.01) return;
+  const top = HUD_H;
+  for (let i = 0; i < 8; i++) {
+    g.globalAlpha = a * (1 - i / 8);
+    g.fillStyle = '#d0201a';
+    g.fillRect(i, top, 1, H - top); g.fillRect(W - 1 - i, top, 1, H - top);
+    g.fillRect(0, top + i, W, 1); g.fillRect(0, H - 1 - i, W, 1);
+  }
+  g.globalAlpha = 1;
+}
+
+/** Blinking arrows at the screen edge for enemies and bullets that are about to come into view. */
+function drawThreats(g) {
+  if (game.state !== 'play' || game.demo || !game.hero || game.hero.dead) return;
+  const cx = game.camX;
+  const marks = [];
+  for (const e of game.foes) {
+    if (e.st === 'dead' || e.st === 'para') continue;
+    const sx = e.x - cx;
+    if (sx < -2 && sx > -110) marks.push([-1, e.y - 14, -sx]);
+    else if (sx > W + 2 && sx < W + 110) marks.push([1, e.y - 14, sx - W]);
+  }
+  for (const s of game.shots) {
+    if (!s.foe || s.gone) continue;
+    const sx = s.x - cx;
+    if (sx < 0 && sx > -90 && s.vx > 0) marks.push([-1, s.y, -sx]);
+    else if (sx > W && sx < W + 90 && s.vx < 0) marks.push([1, s.y, sx - W]);
+  }
+  if (!marks.length) return;
+  const on = Math.floor(game.t * 8) % 2 === 0;
+  for (const [side, wy, d] of marks) {
+    const y = clamp(Math.round(wy), HUD_H + 8, H - 10);
+    const near = d < 45;
+    if (!near && !on) continue;
+    const col = near ? '#ff4a3a' : '#ffb04a';
+    const x = side < 0 ? 3 : W - 4;
+    // tip sits on the screen edge and the arrow widens inward, so it points at the threat
+    for (let i = 0; i < 4; i++) {
+      const xx = x - side * i;
+      rect(g, xx, y - i, 1, i * 2 + 1, i === 0 ? '#ffffff' : col);
+    }
+  }
 }
 
 function drawBolt(g, x) {
@@ -121,8 +172,8 @@ function drawHUD(g) {
   T(g, pad7(game.hi), 142, 2, C.gold);
   const li = lifeIcon();
   const n = game.lives;
-  if (n <= 4) for (let i = 0; i < n; i++) g.drawImage(li.cv, 4 + i * 9, 10);
-  else { g.drawImage(li.cv, 4, 10); T(g, 'X' + n, 14, 10, C.ink); }
+  g.drawImage(li.cv, 4, 10);
+  T(g, 'X' + n, 14, 10, n === 0 && blink(3) ? C.red : C.ink);
   T(g, 'STAGE ' + (game.stageIdx + 1), 128, 10, C.cyan);
   const h = game.hero;
   // weapon box
@@ -135,7 +186,12 @@ function drawHUD(g) {
     T(g, 'KNIFE', W - 37, 5, C.dim);
   }
   if (settings.mode === 'modern' && h) {
-    for (let i = 0; i < MAX_HP; i++) drawHeart(g, W - 88 + i * 11, 5, i < h.hp);
+    const low = h.hp === 1 && !h.dead;
+    for (let i = 0; i < MAX_HP; i++) {
+      const full = i < h.hp;
+      if (low && full && blink(4)) continue;
+      drawHeart(g, W - 88 + i * 11, 5, full);
+    }
   }
   if (game.chainN >= 2 && game.time - game.chainT < 1.6) {
     T(g, 'CHAIN X' + game.chainN, 220, 10, Math.floor(game.t * 8) % 2 ? C.gold : '#ff9a30');
@@ -160,6 +216,7 @@ function drawHeart(g, x, y, full) {
 
 /* ---- banners --------------------------------------------------------------------- */
 function drawBanners(g) {
+  drawThreats(g);
   const S = game.bossSeq;
   if (game.state === 'play' && S && S.st === 'warn' && S.t > 0.2) {
     if (Math.floor(S.t * 4) % 2 === 0) {
@@ -225,19 +282,19 @@ function drawTitle(g) {
   drawTitleBackdrop(g);
   drawLogo(g, 26);
   T(g, 'ONE KNIFE. ONE MISSION.', W / 2, 72, C.cyan, { align: 'center' });
-  const y0 = 92;
+  const y0 = 86, gap = 14;
   TITLE_ITEMS.forEach((it, i) => {
     let label = it;
     if (it === 'MODE') label = 'MODE  ' + (settings.mode === 'arcade' ? '< ARCADE >' : '< MODERN >');
     const sel = game.menu === i;
-    const y = y0 + i * 15;
+    const y = y0 + i * gap;
     const wpx = textWidth(label, 1);
     if (sel) { rect(g, W / 2 - wpx / 2 - 14, y - 3, wpx + 28, 13, 'rgba(232,57,42,0.28)'); T(g, '>', W / 2 - wpx / 2 - 11, y, C.gold); }
     T(g, label, W / 2, y, sel ? C.ink : C.dim, { align: 'center' });
     hitArea(W / 2 - 90, y - 4, W / 2 + 90, y + 10, { i, dir: it === 'MODE' && sel ? 1 : 0 });
   });
-  const modeTip = settings.mode === 'arcade' ? 'ONE HIT AND YOU ARE DOWN. CLASSIC RULES.' : 'THREE HITS PER LIFE. RATIONS HEAL.';
-  T(g, modeTip, W / 2, y0 + 5 * 15 + 2, C.dim, { align: 'center' });
+  const modeTip = settings.mode === 'arcade' ? 'ONE HIT AND YOU ARE DOWN. FOR VETERANS.' : 'THREE HITS PER LIFE. BEST FOR A FIRST RUN.';
+  T(g, modeTip, W / 2, y0 + TITLE_ITEMS.length * gap + 3, C.dim, { align: 'center' });
   T(g, 'TOP ' + pad7(game.scores[0].s) + '  ' + game.scores[0].n, W / 2, 194, C.gold, { align: 'center' });
   T(g, controlHint(), W / 2, 205, '#6a7a94', { align: 'center' });
 }

@@ -2,7 +2,14 @@
    Menus: boot, title, attract loop, how to play, options, pause, name entry
    ========================================================================== */
 
-const TITLE_ITEMS = ['START GAME', 'MODE', 'HOW TO PLAY', 'HIGH SCORES', 'OPTIONS'];
+const TITLE_ITEMS = ['START GAME', 'MODE', 'HOW TO PLAY', 'HIGH SCORES', 'OPTIONS', 'BACK TO ARCADE'];
+
+/** Leave the game for the Pocket Arcade landing page. */
+function goArcadeHome() {
+  chip.sfx('select');
+  try { chip.stopMusic(); } catch (e) { /* audio not started */ }
+  setTimeout(() => { location.href = '../index.html'; }, 120);
+}
 const OPTION_ITEMS = ['MUSIC', 'EFFECTS', 'CRT FILTER', 'SCREEN SHAKE', 'TOUCH PAD', 'BACK'];
 const PAUSE_ITEMS = ['RESUME', 'OPTIONS', 'QUIT GAME'];
 const HOWTO_PAGES = 3;
@@ -43,6 +50,7 @@ function updateMenus(dt, I, P) {
       else if (act === 2) { chip.sfx('select'); setState('howto'); game.page = 0; }
       else if (act === 3) { chip.sfx('select'); setState('scores'); game.attract = false; }
       else if (act === 4) { chip.sfx('select'); game.optFrom = 'title'; setState('options'); }
+      else if (act === 5) goArcadeHome();
       if (game.idleT > 22) { game.idleT = 0; game.attract = true; setState('scores'); }
       break;
     }

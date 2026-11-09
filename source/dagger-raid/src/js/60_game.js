@@ -69,6 +69,7 @@ function updateGame(dt, I, P) {
   game.flashT = Math.max(0, game.flashT - dt);
   game.fadeT = Math.max(0, (game.fadeT || 0) - dt);
   game.readyT = Math.max(0, (game.readyT || 0) - dt);
+  if (game.state !== 'pause') game.hurtT = Math.max(0, (game.hurtT || 0) - dt);
   switch (game.state) {
     case 'intro':
       tickWorld(dt);
@@ -309,7 +310,7 @@ function respawn() {
   game.foes = game.foes.filter((e) => e.T.fixed || !onScreen(e.x, 60));
   for (const e of game.foes) e.cd = Math.max(e.cd, 2.2);
   game.shots = []; game.sched = game.sched.filter((s) => s.x != null);
-  game.spawnT = 2.4; game.downT = 0; game.chainN = 0; game.readyT = 1.6;
+  game.spawnT = 2.4; game.downT = 0; game.chainN = 0; game.readyT = 1.6; game.hurtT = 0;
   if (b) chip.play('boss');
   else if (!game.bossSeq) chip.play(game.st.song);
 }

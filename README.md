@@ -21,7 +21,7 @@ A side-scrolling commando game in the classic arcade style.
 - Special weapons dropped by officers: Tri-Knife, Grenade and Rocket
 - Captives to free, crates, explosive barrels and mines
 - Chain bonuses, extra lives at 30,000 points and every 70,000 after, continues and a top-5 high score table
-- Two rule sets: Arcade (one hit ends a life) and Modern (three hits per life)
+- Two rule sets: Modern (three hits per life, the default for new players) and Arcade (one hit ends a life)
 
 | Action | Keyboard | Gamepad | Touch |
 | --- | --- | --- | --- |

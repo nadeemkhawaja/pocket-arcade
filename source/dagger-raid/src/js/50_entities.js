@@ -151,6 +151,7 @@ function updateHero(h, dt, I, P) {
     h.act = { type, t: 0, dur: type === 'jstab' ? 0.24 : 0.2, hits: [] };
     if (h.ground && type !== 'jstab') h.vx = 0;
     chip.sfx('knife');
+    game.fx.push({ k: 'slash', h, type, x: h.x, y: h.y, t: 0, life: 0.14 });
   }
   if (h.sbuf > 0 && !h.act && !h.climb && h.hurtT <= 0) {
     h.sbuf = 0;
@@ -195,9 +196,12 @@ function hurtHero(h, dirX, src) {
     if (!h.climb) { h.vx = (dirX || -h.face) * 70; h.vy = -120; h.ground = false; }
     chip.sfx('hurt'); addShake(4);
     game.stageStats.hits++;
+    game.hurtT = 0.45;
+    pop(h.x, h.y - 40, h.hp === 1 ? 'LAST HEART!' : 'OUCH', '#ff6a5a');
     return;
   }
   h.hp = 0;
+  game.hurtT = 0.6;
   killHero(h, dirX);
 }
 
@@ -883,9 +887,67 @@ function drawFx(g, cx) {
         break;
       }
       case 'flash': disc(g, x, y, 3, '#fff2a0'); rect(g, x - 1, y - 1, 3, 3, '#ffffff'); break;
+      case 'slash': drawSlash(g, f, cx); break;
       case 'boom': drawBoom(g, x, y, f.r, f.t); break;
       default: break;
     }
+  }
+}
+
+/** Bright crescent that trails the knife so every stab reads clearly, even on a small screen. */
+function drawSlash(g, f, cx) {
+  const h = f.h;
+  if (!h || h.dead || h.climb) return;
+  const k = f.t / f.life;
+  const face = h.face;
+  const ox = Math.round(h.x - cx), oy = Math.round(h.y);
+  let cy, r, a0, a1;
+  if (f.type === 'cstab') { cy = oy - 9; r = 14; a0 = -0.9; a1 = 0.5; }
+  else if (f.type === 'jstab') { cy = oy - 16; r = 15; a0 = -1.1; a1 = 1.0; }
+  else { cy = oy - 18; r = 15; a0 = -1.0; a1 = 0.55; }
+  const cxp = ox + face * 3;
+  const sweep = Math.min(1, k * 2.2);
+  const steps = 14;
+  g.globalAlpha = Math.max(0, 1 - k) * 0.95;
+  for (let i = 0; i <= steps * sweep; i++) {
+    const u = i / steps;
+    const a = lerp(a0, a1, u);
+    const px = cxp + Math.cos(a) * r * face, py = cy + Math.sin(a) * r;
+    const thick = u > 0.25 && u < 0.85 ? 2 : 1;
+    rect(g, px, py, thick, thick, '#ffffff');
+    const ix = cxp + Math.cos(a) * (r - 3) * face, iy = cy + Math.sin(a) * (r - 3);
+    rect(g, ix, iy, 1, 1, '#9fe8ff');
+  }
+  g.globalAlpha = 1;
+}
+
+/** Soft oval shadow on the surface under an actor; shrinks as the actor rises. */
+function drawShadowAt(g, x, footY, floorY, w) {
+  const lift = Math.max(0, floorY - footY);
+  if (lift > 90) return;
+  const s = 1 - Math.min(0.6, lift / 120);
+  const ww = Math.max(4, Math.round(w * s));
+  g.globalAlpha = 0.32 * s;
+  g.fillStyle = '#000000';
+  g.fillRect(Math.round(x - ww / 2), Math.round(floorY - 1), ww, 2);
+  g.fillRect(Math.round(x - ww / 2 + 2), Math.round(floorY), Math.max(1, ww - 4), 1);
+  g.globalAlpha = 1;
+}
+
+function floorBelow(x, y) {
+  const ly = landY(x, y - 0.5, GROUND_Y + 1, null);
+  return ly === null ? GROUND_Y : ly;
+}
+
+function drawActorShadows(g, cx) {
+  const h = game.hero;
+  if (h && !game.hideHero && !h.climb && !(h.dead && h.deadT > 0.4)) {
+    drawShadowAt(g, h.x - cx, h.y, h.ground ? h.y : floorBelow(h.x, h.y), 14);
+  }
+  for (const e of game.foes) {
+    if (e.st === 'dead' || e.st === 'para' || e.climb) continue;
+    const w = e.kind === 'dog' ? 16 : 13;
+    drawShadowAt(g, e.x - cx, e.y, e.ground === false ? floorBelow(e.x, e.y) : e.y, w);
   }
 }
 

@@ -113,6 +113,11 @@ kbd.arrow { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-
 .play:hover { filter: brightness(1.1); }
 .play:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--acc-deep); }
 a:focus-visible { outline: 3px solid var(--optic); outline-offset: 4px; border-radius: 12px; }
+.card .record {
+  margin: 0; font-size: 15px; color: var(--acc); padding: 7px 12px; border-radius: 10px;
+  background: color-mix(in srgb, var(--acc) 10%, transparent); border: 1px solid color-mix(in srgb, var(--acc) 35%, transparent);
+}
+.card .record[hidden] { display: none; }
 
 /* ---- footer ---- */
 footer { display: grid; gap: 8px; justify-items: center; text-align: center; color: var(--dim); font-size: 15px; padding-bottom: 8px; }
@@ -149,7 +154,7 @@ footer p { margin: 0; max-width: 62ch; }
         <h2>DAGGER RAID</h2>
         <p>A side-scrolling commando raid. Fight through four stages with a combat knife, climb ladders, free captives, grab special weapons and take down four bosses.</p>
         <ul class="facts" aria-label="Ways to play">
-          <li>Keyboard</li><li>Gamepad</li><li>Phone touch pad</li><li>Arcade or Modern mode</li>
+          <li>Keyboard</li><li>Gamepad</li><li>Phone touch pad</li><li>Modern or Arcade rules</li>
         </ul>
         <ul class="keys" aria-label="Keyboard controls">
           <li><kbd class="arrow">&#8592;</kbd><kbd class="arrow">&#8594;</kbd> move</li>
@@ -158,6 +163,7 @@ footer p { margin: 0; max-width: 62ch; }
           <li><kbd>C</kbd> special</li>
           <li><kbd>P</kbd> pause</li>
         </ul>
+        <p class="record" id="recDagger" hidden></p>
         <a class="play" href="dagger-raid/">PLAY DAGGER RAID</a>
       </div>
     </article>
@@ -178,6 +184,7 @@ footer p { margin: 0; max-width: 62ch; }
           <li><kbd class="arrow">&#8593;</kbd> lob</li>
           <li><kbd class="arrow">&#8595;</kbd> drop shot</li>
         </ul>
+        <p class="record" id="recTennis" hidden></p>
         <a class="play" href="tennis/">PLAY TENNIS</a>
       </div>
     </article>
@@ -187,5 +194,27 @@ footer p { margin: 0; max-width: 62ch; }
     <p>Sound starts after your first tap or key press. Scores and settings are saved on your own device.</p>
   </footer>
 </main>
+<script>
+/* Show each player's own best results on the cards, read from what the games saved on this device. */
+(function () {
+  function read(key) { try { var v = localStorage.getItem(key); return v === null ? null : JSON.parse(v); } catch (e) { return null; } }
+  function show(id, text) { var el = document.getElementById(id); if (el && text) { el.textContent = text; el.hidden = false; } }
+  var builtIn = { DAG: 50000, KNF: 40000, RAD: 30000, ACE: 20000, ZAP: 10000 };
+  var scores = read('daggerRaid.scores');
+  if (Array.isArray(scores)) {
+    var mine = scores.filter(function (e) { return e && typeof e.s === 'number' && builtIn[e.n] !== e.s; });
+    if (mine.length) {
+      var top = mine[0];
+      var reach = top.st >= 4 ? 'all four stages' : 'stage ' + top.st;
+      show('recDagger', 'Your best: ' + top.s.toLocaleString('en-US') + ' as ' + top.n + ', reached ' + reach + '.');
+    }
+  }
+  var rec = read('aceRally.record'), rally = read('aceRally.bestRally');
+  var parts = [];
+  if (rec && (rec.w || rec.l)) parts.push('Matches won ' + (rec.w || 0) + ', lost ' + (rec.l || 0));
+  if (typeof rally === 'number' && rally > 0) parts.push('best practice rally ' + rally);
+  if (parts.length) show('recTennis', 'Your record: ' + parts.join(', ') + '.');
+})();
+</script>
 </body>
 </html>

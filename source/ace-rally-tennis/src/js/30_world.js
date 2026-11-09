@@ -626,10 +626,11 @@ function drawScoreboard(info) {
   g.fillStyle = '#123a63'; g.fillRect(0, 0, W, 86);
   g.textBaseline = 'middle';
   const label = info && info.label ? info.label : 'CENTRE COURT';
-  g.font = fitFont(g, 'ACE RALLY OPEN', W * 0.5 - 50, 52);
+  // keep a clear gap between the event name and the match label so they never run together
+  g.font = fitFont(g, 'ACE RALLY OPEN', W * 0.42 - 32, 52);
   g.fillStyle = '#d9f23f'; g.textAlign = 'left';
   g.fillText('ACE RALLY OPEN', 32, 45);
-  g.font = fitFont(g, label, W * 0.5 - 50, 44);
+  g.font = fitFont(g, label, W * 0.5 - 72, 44);
   g.textAlign = 'right'; g.fillStyle = '#9fd3ff';
   g.fillText(label, W - 32, 45);
   if (!info) {
@@ -753,6 +754,9 @@ function updateBallVisual(b, dt) {
   world.ballShadow.visible = visible;
   if (!visible) { updateTrail(b, false, 0); return; }
   mesh.position.set(b.x, Math.max(b.y, BALL_VIS * 0.6), b.z);
+  // grow the ball a little with distance so it stays readable at the far baseline on a phone
+  const camD = mesh.position.distanceTo(world.camera.position);
+  mesh.scale.setScalar(clamp(camD / 15, 1, 1.75));
   const sp = Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
   mesh.rotation.x -= (b.vz / BALL_VIS) * dt * 0.4;
   mesh.rotation.z += (b.vx / BALL_VIS) * dt * 0.4;

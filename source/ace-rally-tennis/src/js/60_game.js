@@ -44,7 +44,9 @@ function guidesOn() {
   if (!game.cfg || game.mode === 'demo') return false;
   if (settings.guides === 'on') return true;
   if (settings.guides === 'off') return false;
-  return game.cfg.level === 'rookie' || game.mode === 'practice' || game.cfg.controls === 'webcam';
+  // Auto shows the landing spot and timing ring everywhere except against the Champion,
+  // so the default Pro match teaches the swing timing instead of leaving people guessing.
+  return game.cfg.level !== 'champ' || game.mode === 'practice' || game.cfg.controls === 'webcam';
 }
 function teamNames(speech) { return game.teams.map((t) => (speech ? t.callName : t.name)); }
 
