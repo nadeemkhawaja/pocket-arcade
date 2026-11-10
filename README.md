@@ -1,15 +1,15 @@
 # Pocket Arcade
 
-Two original arcade games that run in the browser on phones and computers. No install, no account.
+Three original arcade games that run in the browser on phones and computers. No install, no account.
 
 **Play online:** https://pocket-arcade-rouge.vercel.app/
 
-Direct links: [Dagger Raid](https://pocket-arcade-rouge.vercel.app/dagger-raid) and [Ace Rally Tennis](https://pocket-arcade-rouge.vercel.app/tennis)
+Direct links: [Dagger Raid](https://pocket-arcade-rouge.vercel.app/dagger-raid), [Ace Rally Tennis](https://pocket-arcade-rouge.vercel.app/tennis) and [Dragon Pagoda](https://pocket-arcade-rouge.vercel.app/dragon-pagoda)
 
-| Dagger Raid | Ace Rally Tennis |
-| --- | --- |
-| [![Dagger Raid gameplay](assets/dagger-raid.webp)](https://pocket-arcade-rouge.vercel.app/dagger-raid) | [![Ace Rally Tennis gameplay](assets/ace-rally-tennis.webp)](https://pocket-arcade-rouge.vercel.app/tennis) |
-| Side-scrolling commando raid with a combat knife | Stadium tennis you can swing with your webcam |
+| Dagger Raid | Ace Rally Tennis | Dragon Pagoda |
+| --- | --- | --- |
+| [![Dagger Raid gameplay](assets/dagger-raid.webp)](https://pocket-arcade-rouge.vercel.app/dagger-raid) | [![Ace Rally Tennis gameplay](assets/ace-rally-tennis.webp)](https://pocket-arcade-rouge.vercel.app/tennis) | [![Dragon Pagoda gameplay](assets/dragon-pagoda.webp)](https://pocket-arcade-rouge.vercel.app/dragon-pagoda) |
+| Side-scrolling commando raid with a combat knife | Stadium tennis you can swing with your webcam | Kung fu climb through five guarded pagoda floors |
 
 ## Dagger Raid
 
@@ -45,16 +45,37 @@ Keyboard: Space, Enter or a click swings. Hold Left or Right while swinging to a
 
 The webcam mode needs a secure page (HTTPS), which the live site provides. The browser asks for camera permission the first time.
 
+## Dragon Pagoda
+
+A kung fu climb in hand-drawn HD, inspired by 1980s arcade brawlers but with its own characters.
+
+- Five floors: Lantern Hall, Drum Gallery, Iron Forge, Mirror Shrine and Dragon Summit, each with its own hazard
+- Five guardians: Crimson Fan, Jade Spear, Iron Ox, Mirror Monk and Shadow Abbot
+- Two fighters: Tao (heavy kicks) and Lian (double jump, faster chi)
+- Three-hit combos with launching finishers, sweeps, jump attacks and dagger deflects
+- Chi meter and the Dragon Wave super; mash to break free from grabs
+- Floor timer, tally bonuses, continues, a top-5 score table and Disciple or Master levels
+
+| Action | Keyboard | Gamepad | Touch |
+| --- | --- | --- | --- |
+| Move and crouch | Arrow keys or WASD | Stick or D-pad | Pad |
+| Punch | Z or J | X | P |
+| Kick | X or K | B | K |
+| Jump | Space or Up | A | J |
+| Dragon Wave | C, L or Shift | Y, LB or RB | CHI |
+| Pause / mute | P or Esc / M | Start | II |
+
 ## Project layout
 
 ```
 index.html            landing page
 dagger-raid/          playable Dagger Raid (one self-contained HTML file)
 tennis/               playable Ace Rally Tennis (one self-contained HTML file)
+dragon-pagoda/        playable Dragon Pagoda (one self-contained HTML file)
 assets/               screenshots for the landing page
 favicon.svg           site icon
 vercel.json           settings used when the repo is deployed on Vercel
-source/               readable source for both games and the build scripts
+source/               readable source for every game and the build scripts
 ```
 
 Everything is static: no server code, no build step needed to host it. Art, music and sound effects are all generated in code at runtime.
@@ -82,8 +103,8 @@ Edit the files under `source/`, then rebuild the playable pages:
 python3 source/build_site.py
 ```
 
-The script bundles each game's `src/` files into a single HTML page and copies it into `dagger-raid/` and `tennis/`.
+The script bundles each game's `src/` files into a single HTML page and copies it into `dagger-raid/`, `tennis/` and `dragon-pagoda/`.
 
 ## Credits
 
-Ace Rally Tennis renders its 3D court with [three.js](https://threejs.org) (MIT License, see `source/ace-rally-tennis/vendor/package/LICENSE`). Fonts load from Google Fonts: Press Start 2P, Chakra Petch, Fredoka and M PLUS Rounded 1c.
+Ace Rally Tennis renders its 3D court with [three.js](https://threejs.org) (MIT License, see `source/ace-rally-tennis/vendor/package/LICENSE`). Fonts load from Google Fonts: Press Start 2P, Chakra Petch, Fredoka, M PLUS Rounded 1c, Barlow Condensed, Cinzel and Ma Shan Zheng.

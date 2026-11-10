@@ -1,0 +1,144 @@
+<title>Dragon Pagoda</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#07040a">
+<meta name="description" content="Dragon Pagoda: an original kung fu arcade climb. Fight up five temple floors with punches, kicks, combos and a Dragon Wave, beat five guardians and free Grandmaster Hu.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Cinzel:wght@700;900&family=Ma+Shan+Zheng&display=swap">
+<style>
+/* One deliberate world: a lacquered arcade cabinet at night. The canvas is full-bleed; the touch pad
+   sits inside safe-area gutters (portrait: handheld layout under the screen, landscape: side panels). */
+:root {
+  color-scheme: dark;
+  --bg: #07040a;
+  --body: #140b10;
+  --line: #3a2228;
+  --ink: #f2e8e0;
+  --ink-dim: #8a7a80;
+  --punch: #d6312a;
+  --punch-deep: #7a1410;
+  --kick: #2f7ad0;
+  --kick-deep: #143e78;
+  --jump: #2aa070;
+  --jump-deep: #105a3a;
+  --chi: #e0b030;
+  --chi-deep: #7a5a10;
+  --gl: max(16px, env(safe-area-inset-left, 0px));
+  --gr: max(16px, env(safe-area-inset-right, 0px));
+  --gt: max(10px, env(safe-area-inset-top, 0px));
+  --gb: max(14px, env(safe-area-inset-bottom, 0px));
+  --pix: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+  --game-bottom: 50vh;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--pix); font-size: 10px; line-height: 1.15;
+  overflow: hidden; overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+#app { position: fixed; inset: 0; overflow: hidden; touch-action: none; }
+#screen { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
+#safeProbe {
+  position: absolute; width: 0; height: 0; visibility: hidden; pointer-events: none;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+noscript { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; }
+
+/* ---------- touch pad ---------- */
+#touch {
+  position: absolute; inset: 0; display: none; pointer-events: none;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: var(--gt) var(--gb);
+  --dp: min(40vw, 30vh, 176px);
+  --bk: min(19vw, 13.5vh, 80px);
+  --bj: min(16vw, 11.5vh, 68px);
+  --bs: min(14vw, 10vh, 58px);
+}
+body.touch-on #touch { display: block; }
+body.touch-on.portrait #touch {
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0) 0, rgba(0,0,0,0) var(--game-bottom), var(--body) calc(var(--game-bottom) + 1px), #0a0c13 100%);
+}
+.brand {
+  display: none; position: absolute; left: var(--gl); right: var(--gr); top: calc(var(--game-bottom) + 18px);
+  text-align: center; font-family: "Cinzel", Georgia, serif; font-size: 19px; letter-spacing: 5px; font-weight: 700; line-height: 1.15; color: #b48a52;
+}
+body.portrait .brand { display: block; }
+.brand b { color: #d0463a; font-weight: 900; }
+.brand span { display: block; margin-top: 10px; font-family: var(--pix); font-size: 11px; font-weight: 500; letter-spacing: 1px; line-height: 1.15; color: #6a5058; }
+.grille {
+  display: none; position: absolute; left: 50%; width: 180px; margin-left: -90px; height: 12px;
+  top: calc(var(--game-bottom) + 74px);
+  background: linear-gradient(90deg, transparent, rgba(201,154,74,0.6) 28%, rgba(201,154,74,0.6) 72%, transparent) center / 100% 1px no-repeat;
+}
+.grille::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -5px 0 0 -5px;
+  transform: rotate(45deg); border: 1px solid rgba(214,168,90,0.85); background: #3a1418;
+}
+body.portrait .grille { display: block; }
+@media (max-height: 700px) { .grille { display: none !important; } .brand span { display: none; } }
+
+#dpad {
+  position: absolute; left: var(--gl); bottom: calc(var(--gb) + 6px);
+  width: var(--dp); height: var(--dp); border-radius: 50%; pointer-events: auto; touch-action: none;
+  background: radial-gradient(circle at 50% 45%, rgba(70,40,40,0.55), rgba(24,12,14,0.72) 70%);
+  border: 2px solid rgba(140,90,70,0.45);
+}
+body.portrait #dpad { bottom: calc(var(--gb) + 40px); }
+#dpad .arm { position: absolute; background: #2a1618; border: 2px solid #5a3430; border-radius: 6px; }
+#dpad .arm.h { left: 12%; right: 12%; top: 38%; bottom: 38%; }
+#dpad .arm.v { top: 12%; bottom: 12%; left: 38%; right: 38%; }
+#dpad .ar { position: absolute; width: 0; height: 0; border: 7px solid transparent; opacity: 0.65; }
+#dpad .ar.l { left: 16%; top: calc(50% - 7px); border-right-color: #d0a890; border-left-width: 0; }
+#dpad .ar.r { right: 16%; top: calc(50% - 7px); border-left-color: #d0a890; border-right-width: 0; }
+#dpad .ar.u { top: 16%; left: calc(50% - 7px); border-bottom-color: #d0a890; border-top-width: 0; }
+#dpad .ar.d { bottom: 16%; left: calc(50% - 7px); border-top-color: #d0a890; border-bottom-width: 0; }
+#dpad.left .ar.l, #dpad.right .ar.r, #dpad.up .ar.u, #dpad.down .ar.d { opacity: 1; filter: drop-shadow(0 0 4px #ffd27a); }
+#dpadKnob {
+  position: absolute; left: calc(50% - 15%); top: calc(50% - 15%); width: 30%; height: 30%; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #8a5a50, #3a2022); border: 2px solid #160a0c; pointer-events: none;
+  transition: transform 40ms linear;
+}
+
+/* arcade layout: PUNCH and KICK on the bottom row, CHI and JUMP staggered above them */
+#btns { position: absolute; right: var(--gr); bottom: calc(var(--gb) + 6px); width: calc(var(--bk) * 2 + 12px); height: calc(var(--bk) * 1.3 + var(--bj) + 12px); pointer-events: none; }
+body.portrait #btns { bottom: calc(var(--gb) + 40px); }
+.tbtn {
+  position: absolute; border-radius: 50%; border: 0; padding: 0; margin: 0; pointer-events: auto; touch-action: none;
+  display: grid; place-content: center; gap: 4px; text-align: center; color: #fff; font-family: var(--pix);
+  box-shadow: inset 0 -5px 0 rgba(0,0,0,0.35), 0 4px 0 rgba(0,0,0,0.55);
+  transition: transform 50ms linear, filter 50ms linear;
+}
+.tbtn b { font-size: 20px; font-weight: 700; text-shadow: 0 2px 0 rgba(0,0,0,0.45); }
+.tbtn small { font-size: 10px; letter-spacing: 1px; font-weight: 600; opacity: 0.92; }
+.tbtn.on { transform: translateY(3px) scale(0.96); filter: brightness(1.25); box-shadow: inset 0 -2px 0 rgba(0,0,0,0.35), 0 1px 0 rgba(0,0,0,0.55); }
+#bPunch { width: var(--bk); height: var(--bk); left: 0; bottom: 0; background: radial-gradient(circle at 40% 32%, #ff7060, var(--punch) 55%, var(--punch-deep)); }
+#bKick { width: var(--bk); height: var(--bk); right: 0; bottom: calc(var(--bk) * 0.3); background: radial-gradient(circle at 40% 32%, #70b0ff, var(--kick) 55%, var(--kick-deep)); }
+#bJump { width: var(--bj); height: var(--bj); right: calc((var(--bk) - var(--bj)) / 2); bottom: calc(var(--bk) * 1.3 + 10px); background: radial-gradient(circle at 40% 32%, #6ae0b0, var(--jump) 55%, var(--jump-deep)); }
+#bChi { width: var(--bs); height: var(--bs); left: calc((var(--bk) - var(--bs)) / 2); bottom: calc(var(--bk) + 12px); background: radial-gradient(circle at 40% 32%, #ffe080, var(--chi) 55%, var(--chi-deep)); color: #2a1c00; }
+#bChi b { text-shadow: none; }
+
+#tPause {
+  position: absolute; pointer-events: auto; touch-action: none;
+  width: 44px; height: 30px; border-radius: 15px; border: 2px solid #5a3430; background: rgba(36,18,20,0.8);
+  color: #e8d2c8; font-family: var(--pix); font-size: 13px; font-weight: 700; letter-spacing: 1px;
+  right: var(--gr); top: var(--gt);
+}
+body.portrait #tPause { top: auto; right: auto; left: calc(50% - 22px); bottom: calc(var(--gb) + 6px); width: 58px; }
+
+/* landscape: a handheld layout with the pad in side panels; slightly translucent in case it overlaps the screen edge */
+body.touch-on:not(.portrait) #dpad, body.touch-on:not(.portrait) .tbtn { opacity: 0.82; }
+body.touch-on:not(.portrait) .tbtn.on { opacity: 1; }
+body.touch-on:not(.portrait) #tPause { opacity: 0.85; }
+@media (max-height: 420px) {
+  .tbtn small { display: none; }
+}
+.tbtn:focus-visible, #tPause:focus-visible { outline: 2px solid #ffd27a; outline-offset: 3px; }
+#screen:focus-visible { outline: none; }
+@media (prefers-reduced-motion: reduce) {
+  .tbtn, #dpadKnob { transition: none; }
+}
+</style>

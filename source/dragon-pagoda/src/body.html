@@ -1,0 +1,21 @@
+<div id="app">
+  <canvas id="screen" tabindex="0" aria-label="Dragon Pagoda game screen. Arrow keys move, Z punch, X kick, Space or Up jump, C chi wave, P pause."></canvas>
+  <div id="safeProbe" aria-hidden="true"></div>
+  <div id="touch" aria-hidden="true">
+    <div class="brand"><b>DRAGON</b> PAGODA<span>TIP: TURN YOUR PHONE SIDEWAYS FOR A BIGGER SCREEN</span></div>
+    <div class="grille" aria-hidden="true"></div>
+    <div id="dpad" class="tctl">
+      <i class="arm h"></i><i class="arm v"></i>
+      <i class="ar l"></i><i class="ar r"></i><i class="ar u"></i><i class="ar d"></i>
+      <span id="dpadKnob"></span>
+    </div>
+    <div id="btns">
+      <button class="tbtn tctl" type="button" data-k="special" id="bChi"><b>C</b><small>CHI</small></button>
+      <button class="tbtn tctl" type="button" data-k="jump" id="bJump"><b>J</b><small>JUMP</small></button>
+      <button class="tbtn tctl" type="button" data-k="punch" id="bPunch"><b>P</b><small>PUNCH</small></button>
+      <button class="tbtn tctl" type="button" data-k="kick" id="bKick"><b>K</b><small>KICK</small></button>
+    </div>
+    <button id="tPause" type="button" aria-label="Pause">II</button>
+  </div>
+  <noscript>Dragon Pagoda needs JavaScript to run.</noscript>
+</div>

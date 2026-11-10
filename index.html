@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Pocket Arcade</title>
-<meta name="description" content="Two free browser arcade games for phones and computers: Dagger Raid, a side-scrolling commando knife fighter, and Ace Rally Tennis, with webcam, keyboard and touch swings.">
+<meta name="description" content="Three free browser arcade games for phones and computers: Dagger Raid, a side-scrolling commando knife fighter, Ace Rally Tennis, with webcam, keyboard and touch swings, and Dragon Pagoda, a kung fu climb through five guarded floors.">
 <meta property="og:title" content="Pocket Arcade">
-<meta property="og:description" content="Two free browser arcade games: Dagger Raid and Ace Rally Tennis. No download, no sign up.">
+<meta property="og:description" content="Three free browser arcade games: Dagger Raid, Ace Rally Tennis and Dragon Pagoda. No download, no sign up.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#0b0e17">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&family=Press+Start+2P&display=swap">
 <style>
-/* Layout: an arcade marquee over two "cabinets" (screen bezel + game card) that stack on phones.
+/* Layout: an arcade marquee over three "cabinets" (screen bezel + game card) that stack on phones.
    One deliberate look: a dark arcade hall, so the palette is fixed rather than theme-switched. */
 :root {
   --bg: #0b0e17;
@@ -28,6 +28,8 @@
   --red-deep: #9e2118;
   --optic: #d9f23f;
   --optic-deep: #7f9214;
+  --gold: #f2b83a;
+  --gold-deep: #9a6a12;
   --f-pix: "Press Start 2P", ui-monospace, "Courier New", monospace;
   --f-body: "Chakra Petch", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
   color-scheme: dark;
@@ -49,7 +51,7 @@ body::after {
 }
 a { color: inherit; }
 .wrap {
-  max-width: 1120px; margin: 0 auto;
+  max-width: 1240px; margin: 0 auto;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: max(28px, env(safe-area-inset-top, 0px)) max(28px, env(safe-area-inset-bottom, 0px));
@@ -68,13 +70,18 @@ h1 span { color: var(--red); }
 .lede { margin: 0; max-width: 34ch; color: var(--dim); font-size: 19px; text-wrap: balance; }
 
 /* ---- cabinets ---- */
-.cabinets { display: grid; gap: 26px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); }
+.cabinets { display: grid; gap: 26px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+/* two columns: centre the third cabinet under the first two instead of leaving it stranded */
+@media (min-width: 738px) and (max-width: 1105px) {
+  .cab:last-child:nth-child(odd) { grid-column: 1 / -1; justify-self: center; width: calc(50% - 13px); }
+}
 .cab {
   --acc: var(--red); --acc-deep: var(--red-deep); --acc-ink: #fff;
   background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
   padding: 14px; display: grid; grid-template-rows: auto 1fr; gap: 16px; min-width: 0;
 }
 .cab--tennis { --acc: var(--optic); --acc-deep: var(--optic-deep); --acc-ink: #1a2200; }
+.cab--pagoda { --acc: var(--gold); --acc-deep: var(--gold-deep); --acc-ink: #2a1400; }
 .screen {
   display: block; position: relative; border-radius: 10px; overflow: hidden;
   background: var(--bezel); padding: 10px; border: 1px solid #1b2234;
@@ -86,7 +93,7 @@ h1 span { color: var(--red); }
   box-shadow: 0 0 28px color-mix(in srgb, var(--acc) 30%, transparent);
   transition: transform 0.25s ease, filter 0.25s ease;
 }
-.cab--tennis .screen img { image-rendering: auto; }
+.cab--tennis .screen img, .cab--pagoda .screen img { image-rendering: auto; }
 .screen:hover img, .screen:focus-visible img { transform: scale(1.015); filter: brightness(1.08); }
 .screen::after {
   content: "PLAY"; position: absolute; right: 18px; bottom: 18px;
@@ -137,7 +144,7 @@ footer p { margin: 0; max-width: 62ch; }
   <header class="marquee">
     <p class="freeplay">FREE PLAY</p>
     <h1>POCKET <span>ARCADE</span></h1>
-    <p class="lede">Two original arcade games that run right in your browser, on a phone or a computer.</p>
+    <p class="lede">Three original arcade games that run right in your browser, on a phone or a computer.</p>
   </header>
 
   <section class="cabinets" aria-label="Games">
@@ -179,6 +186,26 @@ footer p { margin: 0; max-width: 62ch; }
           <li><kbd class="arrow">&#8595;</kbd> drop shot</li>
         </ul>
         <a class="play" href="tennis/">PLAY TENNIS</a>
+      </div>
+    </article>
+    <article class="cab cab--pagoda">
+      <a class="screen" href="dragon-pagoda/" aria-label="Play Dragon Pagoda">
+        <img src="assets/dragon-pagoda.webp" width="1152" height="648" alt="Dragon Pagoda gameplay: a kung fu fighter on a moonlit rooftop terrace beside a red column with a gold dragon coiled around it">
+      </a>
+      <div class="card">
+        <h2>DRAGON PAGODA</h2>
+        <p>A kung fu climb in hand-drawn HD. Punch and kick your way up five pagoda floors, string combos, unleash the Dragon Wave and defeat five guardians to free the Grandmaster.</p>
+        <ul class="facts" aria-label="Ways to play">
+          <li>Keyboard</li><li>Gamepad</li><li>Phone touch pad</li><li>Two fighters</li>
+        </ul>
+        <ul class="keys" aria-label="Keyboard controls">
+          <li><kbd class="arrow">&#8592;</kbd><kbd class="arrow">&#8594;</kbd> move</li>
+          <li><kbd>Z</kbd> punch</li>
+          <li><kbd>X</kbd> kick</li>
+          <li><kbd>SPACE</kbd> jump</li>
+          <li><kbd>C</kbd> chi wave</li>
+        </ul>
+        <a class="play" href="dragon-pagoda/">PLAY DRAGON PAGODA</a>
       </div>
     </article>
   </section>
