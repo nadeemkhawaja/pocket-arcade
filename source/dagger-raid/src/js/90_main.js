@@ -23,17 +23,18 @@ function sizePad(vw, vh, portrait) {
   if (!root) return { left: 0, right: 0 };
   if (portrait) { for (const k of ['--dp', '--bk', '--bj', '--bs']) root.style.removeProperty(k); return { left: 0, right: 0 }; }
   const dp = Math.round(clamp(Math.min(vh, 520) * 0.33, 100, 160));
-  const bk = Math.round(dp * 0.47), bj = Math.round(dp * 0.41), bs = Math.round(dp * 0.33);
+  const bk = Math.round(dp * 0.44), bj = Math.round(dp * 0.37), bs = Math.round(dp * 0.32);
   root.style.setProperty('--dp', dp + 'px'); root.style.setProperty('--bk', bk + 'px');
   root.style.setProperty('--bj', bj + 'px'); root.style.setProperty('--bs', bs + 'px');
-  return { left: Math.max(16, safe.l) + dp + 14, right: Math.max(16, safe.r) + bk + bj + 18 + 14 };
+  return { left: Math.max(16, safe.l) + dp + 14, right: Math.max(16, safe.r) + bk * 2 + 12 + 14 };
 }
 
 function layout() {
   readSafe();
   const cv = $('screen');
-  const dpr = Math.min(3, window.devicePixelRatio || 1);
   const vw = window.innerWidth, vh = window.innerHeight;
+  // full resolution, capped so huge screens stay smooth
+  const dpr = Math.min(3, window.devicePixelRatio || 1, 2600 / Math.max(1, vw), 1600 / Math.max(1, vh)) * QUALITY.res[QUALITY.level];
   const tw = Math.max(1, Math.round(vw * dpr)), th = Math.max(1, Math.round(vh * dpr));
   if (cv.width !== tw || cv.height !== th) { cv.width = tw; cv.height = th; }
   const touchOn = touchVisible();
@@ -56,14 +57,11 @@ function layout() {
     gh = vh - gy - Math.max(0, safe.b * 0.5);
   }
   if (!touchOn || portrait) sizePad(vw, vh, true);
-  const fit = Math.min(gw / W, gh / H) * dpr;
-  let s = fit;
-  if (fit >= 2) { const f = Math.floor(fit); if (f / fit > 0.9) s = f; }
+  const s = Math.min(gw / W, gh / H) * dpr;
   view.scale = s;
   view.ox = Math.round(gx * dpr + (gw * dpr - W * s) / 2);
   view.oy = Math.round(gy * dpr + (gh * dpr - H * s) / 2);
   document.documentElement.style.setProperty('--game-bottom', Math.round((view.oy + H * s) / dpr) + 'px');
-  crtCache = null;
 }
 function layoutTouch() { layout(); }
 
@@ -75,6 +73,7 @@ function frame(now) {
   let dt = (now - lastT) / 1000;
   lastT = now;
   if (dt > 0.25) dt = 0.25;
+  watchSpeed(dt);
   acc += dt;
   pollInput();
   const tv = touchVisible();
@@ -87,6 +86,21 @@ function frame(now) {
   }
   if (steps >= 8) acc = 0;
   renderFrame();
+}
+
+/** If the device can't hold a smooth frame rate, render at a lower resolution. */
+const speed = { t: 0, n: 0, slow: 0 };
+function watchSpeed(dt) {
+  if (document.hidden || dt <= 0 || dt > 0.2) return;
+  speed.t += dt; speed.n++;
+  if (dt > 1 / 42) speed.slow++;
+  if (speed.t < 2.5) return;
+  const slowShare = speed.slow / speed.n;
+  speed.t = 0; speed.n = 0; speed.slow = 0;
+  if (slowShare > 0.45 && QUALITY.level < QUALITY.res.length - 1 && (game.state === 'play' || game.state === 'title')) {
+    QUALITY.level++;
+    layout();
+  }
 }
 
 function boot() {
@@ -104,6 +118,8 @@ function boot() {
     }
   });
   window.addEventListener('blur', () => { if (game.state === 'play' && !game.demo) openPause(); });
+  loadFonts();
+  ensureArtScale();
   stageArt(STAGES[0]);
   try { $('screen').focus({ preventScroll: true }); } catch (e) { /* focus is best effort */ }
   setState('boot');
@@ -113,9 +129,9 @@ function boot() {
   }
 
   // hooks for automated testing
-  const blank = () => ({ left: false, right: false, up: false, down: false, jump: false, knife: false, special: false, start: false, pause: false, back: false, any: false });
+  const blank = () => ({ left: false, right: false, up: false, down: false, jump: false, knife: false, special: false, dash: false, start: false, pause: false, back: false, any: false });
   window.__dagger = {
-    game, input, chip, settings, STAGES, ETYPES, Chip, SONGS, parseTrack,
+    game, input, chip, settings, STAGES, ETYPES, Chip, SONGS, parseTrack, DIFFS, MEDALS, PROG, MELEE, HERO_OUTFITS, ART, DBG, QUALITY,
     setManual(v) { manual = v; },
     step(n, held, pressed, quiet) {
       const H0 = Object.assign(blank(), held || {});
@@ -127,7 +143,8 @@ function boot() {
       }
       if (!quiet) renderFrame();
     },
-    render: renderFrame, newGame, startStage, startDemo, setState, spawnFoe, makeBoss, layout, view
+    render: renderFrame, newGame, startStage, startDemo, setState, spawnFoe, makeBoss, layout, view, beginPlay, hurtHero, killFoe, qualifies, botInput, botPressed,
+    updateGame, spawnItem, collect, award, heroKnifeBox, foeBox, drawSprite, stageArt, restartStage, outfitOpen
   };
 }
 
@@ -136,12 +153,13 @@ function hotSnapshot() {
   const live = ['intro', 'play', 'pause', 'clear', 'continue'].includes(game.state) && !game.demo;
   if (!live) return {};
   const h = game.hero;
-  return { run: { stage: game.stageIdx, score: game.score, lives: game.lives, continues: game.continues, carry: h ? { wpn: h.wpn, ammo: h.ammo, hp: h.hp } : null } };
+  return { run: { stage: game.stageIdx, score: game.score, lives: game.lives, continues: game.continues, level: game.diff.id, carry: h ? { wpn: h.wpn, ammo: h.ammo, hp: h.hp, blade: h.blade, bladeN: h.bladeN } : null } };
 }
 
 function resumeRun(r) {
+  if (r.level && DIFFS[r.level]) settings.level = r.level;
   newGame(false);
-  game.score = r.score || 0; game.lives = r.lives == null ? 2 : r.lives; game.continues = r.continues || 0;
+  game.score = r.score || 0; game.lives = r.lives == null ? game.diff.lives : r.lives; game.continues = r.continues || 0;
   game.nextExtend = 30000;
   while (game.nextExtend <= game.score) game.nextExtend += 70000;
   game.hi = Math.max(game.hi, game.score);

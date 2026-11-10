@@ -1,6 +1,6 @@
 /* ==========================================================================
    Bosses: MAULER, IRONCLAD, SKY HAMMER, GENERAL KROME
-   Each boss exposes update, draw, knife, shotHit, blast, touches.
+   Each boss exposes update, draw, knife, shotHit, blast, touches. The art is in 56_bossart.js.
    ========================================================================== */
 
 const BOSS_NAMES = { mauler: 'MAULER', ironclad: 'IRONCLAD', gunship: 'SKY HAMMER', krome: 'GENERAL KROME' };
@@ -9,31 +9,31 @@ const BOSS_POINTS = { mauler: 10000, ironclad: 20000, gunship: 30000, krome: 500
 function makeBoss(kind) {
   const ax = game.camX;
   const b = { kind, name: BOSS_NAMES[kind], st: 'enter', t: 0, flash: 0, dead: false, deathT: 0, face: -1, ax, hitCD: 0, phase: 1 };
-  const mul = game.loop > 1 ? 1.3 : 1;
-  if (kind === 'mauler') Object.assign(b, { x: ax + W + 40, y: GROUND_Y, vx: 0, vy: 0, hp: Math.round(30 * mul) }, MAULER);
-  if (kind === 'ironclad') Object.assign(b, { x: ax + W + 10, y: GROUND_Y, hp: Math.round(30 * mul), open: 0, turretA: -2.3, recoil: 0, wheel: 0, lid: 0, seq: 0 }, IRONCLAD);
-  if (kind === 'gunship') Object.assign(b, { x: ax + W + 90, y: 62, vx: 0, vy: 0, hp: Math.round(34 * mul), rot: 0, seq: 0, tilt: 0 }, GUNSHIP);
-  if (kind === 'krome') Object.assign(b, { x: ax + W + 24, y: GROUND_Y, vx: 0, vy: 0, ground: true, climb: null, dropY: null, hp: Math.round(36 * mul), combo: 0, calls: 0, recentHits: [] }, KROME);
+  const mul = (game.loop > 1 ? 1.3 : 1) * game.diff.bossHp;
+  if (kind === 'mauler') Object.assign(b, { x: ax + W + 40, y: GROUND_Y, vx: 0, vy: 0, hp: Math.round(36 * mul) }, MAULER);
+  if (kind === 'ironclad') Object.assign(b, { x: ax + W + 10, y: GROUND_Y, hp: Math.round(40 * mul), open: 0, turretA: -2.3, recoil: 0, wheel: 0, lid: 0, seq: 0 }, IRONCLAD);
+  if (kind === 'gunship') Object.assign(b, { x: ax + W + 90, y: 62, vx: 0, vy: 0, hp: Math.round(40 * mul), rot: 0, seq: 0, tilt: 0 }, GUNSHIP);
+  if (kind === 'krome') Object.assign(b, { x: ax + W + 24, y: GROUND_Y, vx: 0, vy: 0, ground: true, climb: null, dropY: null, hp: Math.round(44 * mul), combo: 0, calls: 0, recentHits: [] }, KROME);
   b.max = b.hp;
   return b;
 }
 
 function bossDamage(b, dmg, x, y, quiet) {
   if (b.dead || b.st === 'enter') return false;
-  b.hp -= dmg; b.flash = 0.09;
+  b.hp -= dmg; b.flash = 0.09; b.hurtAt = game.t;
   if (!quiet) { sparks(x, y, 4, '#ffffff'); chip.sfx('hit'); }
   addScore(10 * dmg, 0, 0, false, true);
   if (b.hp <= 0) { b.hp = 0; b.dead = true; b.deathT = 0; b.st = 'dying'; b.t = 0; onBossDown(b); }
-  else if (b.phase === 1 && b.hp <= b.max / 2) { b.phase = 2; if (b.onPhase) b.onPhase(); }
+  else if (b.phase === 1 && b.hp <= b.max / 2) { b.phase = 2; game.flashT = 0.1; addShake(4); if (b.onPhase) b.onPhase(); }
   return true;
 }
 
 /* generic helpers for the hit tests every boss shares */
-function bossKnifeOn(b, kb, boxes) {
+function bossKnifeOn(b, kb, boxes, dmg) {
   for (const z of boxes) {
     if (!boxHit(kb, z.b)) continue;
     if (z.armor) { chip.sfx('clang'); sparks((Math.max(kb.x0, z.b.x0) + Math.min(kb.x1, z.b.x1)) / 2, (kb.y0 + kb.y1) / 2, 3, '#ffe27a'); return true; }
-    bossDamage(b, z.mul || 1, (Math.max(kb.x0, z.b.x0) + Math.min(kb.x1, z.b.x1)) / 2, (kb.y0 + kb.y1) / 2);
+    bossDamage(b, (dmg || 1) * (z.mul || 1), (Math.max(kb.x0, z.b.x0) + Math.min(kb.x1, z.b.x1)) / 2, (kb.y0 + kb.y1) / 2);
     return true;
   }
   return false;
@@ -41,9 +41,10 @@ function bossKnifeOn(b, kb, boxes) {
 function bossShotOn(b, s, sb, boxes) {
   for (const z of boxes) {
     if (!boxHit(sb, z.b)) continue;
-    if (s.k === 'tknife') {
+    if (s.k === 'flame') { if (!z.armor) bossDamage(b, 0.25 * (z.mul || 1), s.x, s.y, true); else continue; }
+    else if (s.k === 'tknife' || s.k === 'star' || s.k === 'bullet') {
       if (z.armor) { chip.sfx('tink'); sparks(s.x, s.y, 2, '#ffe27a'); }
-      else bossDamage(b, 2 * (z.mul || 1), s.x, s.y);
+      else bossDamage(b, (s.k === 'tknife' ? 2 : 1) * (z.mul || 1), s.x, s.y);
     }
     return true;
   }
@@ -63,7 +64,7 @@ const MAULER = {
     if (this.st === 'charge') return [{ b: box(this.x - 11, this.y - 34, this.x + 11, this.y) }];
     return [{ b: box(this.x - 12, this.y - 50, this.x + 12, this.y - 1) }];
   },
-  knife(kb) { return bossKnifeOn(this, kb, this.boxes()); },
+  knife(kb, dmg) { return bossKnifeOn(this, kb, this.boxes(), dmg); },
   shotHit(s, sb) { return bossShotOn(this, s, sb, this.boxes()); },
   blast(x, y, r, d) { bossBlastOn(this, x, y, r, d, this.boxes()); },
   touches(hb) {
@@ -149,28 +150,7 @@ const MAULER = {
     if (this.st !== 'charge' && this.st !== 'enter') this.x = clamp(this.x, left, right);
     if (this.vx) this.dist = (this.dist || 0) + Math.abs(this.vx) * dt;
   },
-  draw(g, cx) {
-    let anim = 'idle', fr = Math.floor(game.t * 2) % 2;
-    switch (this.st) {
-      case 'enter': case 'walk': if (this.vx) { anim = 'run'; fr = Math.floor((this.dist || 0) / 9) % 8; } break;
-      case 'roar': case 'raise': case 'prep': anim = 'raise'; fr = 0; break;
-      case 'smash': anim = 'smash'; fr = this.t < 0.08 ? 0 : 1; break;
-      case 'throw': anim = 'throw'; fr = this.t < 0.5 ? 0 : 1; break;
-      case 'charge': anim = 'charge'; fr = 0; break;
-      case 'stun': anim = 'stun'; fr = Math.floor(this.t * 4) % 2; break;
-      case 'dying': anim = 'dead'; fr = Math.min(2, Math.floor(this.deathT / 0.2)); break;
-      default: break;
-    }
-    const sx = this.x - cx;
-    if (this.st === 'prep' || this.st === 'charge') { g.globalAlpha = 0.35; drawSprite(g, 'brute', anim, fr, this.face, sx - this.face * 6, this.y); g.globalAlpha = 1; }
-    drawSprite(g, 'brute', anim, fr, this.face, sx, this.y, this.flash > 0);
-    if (this.st === 'throw' && this.t < 0.5) { disc(g, sx - this.face * 2, this.y - 62, 6, OUTLINE); disc(g, sx - this.face * 2, this.y - 62, 5, '#7a5a3a'); }
-    if (this.st === 'stun') for (let i = 0; i < 3; i++) {
-      const a = game.t * 6 + (i * TAU) / 3;
-      const px = sx + Math.cos(a) * 10, py = this.y - 58 + Math.sin(a) * 3;
-      rect(g, px - 1, py, 3, 1, '#ffe27a'); rect(g, px, py - 1, 1, 3, '#ffe27a');
-    }
-  }
+  draw(g, cx) { drawMauler(this, g, cx); }
 };
 
 /* ---- IRONCLAD: armoured cannon car that rolls out of the tunnel ---------------- */
@@ -184,7 +164,7 @@ const IRONCLAD = {
     z.push({ b: box(this.x, this.y - 60, this.x + 190, this.y - 6), armor: true });
     return z;
   },
-  knife(kb) { return bossKnifeOn(this, kb, this.boxes()); },
+  knife(kb, dmg) { return bossKnifeOn(this, kb, this.boxes(), dmg); },
   shotHit(s, sb) { return bossShotOn(this, s, sb, this.boxes()); },
   blast(x, y, r, d) { bossBlastOn(this, x, y, r, d, this.boxes()); },
   touches() { return false; },
@@ -258,106 +238,16 @@ const IRONCLAD = {
       default: break;
     }
   },
-  draw(g, cx) {
-    const x0 = Math.round(this.x - cx), by = this.y;
-    // track under the car
-    for (let x = Math.max(0, x0 - 40); x < W; x += 8) rect(g, x, by - 1, 5, 3, '#4a3a32');
-    rect(g, Math.max(0, x0 - 40), by - 3, W, 2, '#8a929c');
-    const dark = this.dead;
-    const body = dark ? '#2e302a' : '#4a5240', plate = dark ? '#22241f' : '#3a4032', hi = dark ? '#3a3d35' : '#6a7458', rivet = dark ? '#3a3d35' : '#7a8466';
-    // turret and barrel
-    const tx = x0 + 96, ty = by - 66;
-    const rc = this.recoil * 4;
-    const ex = tx + Math.cos(this.turretA) * (28 - rc), ey = ty + Math.sin(this.turretA) * (28 - rc);
-    stampLine(g, tx, ty, ex, ey, 6, OUTLINE); stampLine(g, tx, ty, ex, ey, 4, dark ? '#2a2a2a' : '#3a3f34');
-    disc(g, tx, ty + 2, 12, OUTLINE); disc(g, tx, ty + 2, 11, body); rect(g, tx - 11, ty + 2, 23, 6, body); rect(g, tx - 8, ty - 7, 10, 2, hi);
-    // exhaust stack
-    rect(g, x0 + 170, by - 76, 8, 18, OUTLINE); rect(g, x0 + 171, by - 75, 6, 17, '#2a2a2a');
-    // roof hatch lid
-    rect(g, x0 + 36, by - 61, 18, 3, OUTLINE);
-    if (this.lid > 0) { stampLine(g, x0 + 54, by - 60, x0 + 54 - Math.cos(this.lid * 1.5) * 16, by - 60 - Math.sin(this.lid * 1.5) * 16, 3, plate); }
-    else rect(g, x0 + 36, by - 61, 18, 2, plate);
-    // hull
-    rect(g, x0 + 8, by - 60, 184, 46, OUTLINE);
-    for (let y = by - 59; y < by - 14; y++) {
-      const slope = Math.max(0, Math.round((by - 40 - y) * 0.35));
-      rect(g, x0 + 9 + slope, y, 182 - slope, 1, y < by - 56 ? hi : body);
-    }
-    for (let x = x0 + 34; x < x0 + 190; x += 26) rect(g, x, by - 56, 1, 41, plate);
-    for (let x = x0 + 30; x < x0 + 190; x += 13) { rect(g, x, by - 54, 1, 1, rivet); rect(g, x, by - 18, 1, 1, rivet); }
-    rect(g, x0 + 9, by - 30, 182, 2, plate);
-    // identification plate
-    rect(g, x0 + 112, by - 50, 34, 11, '#d8c86a'); drawText(g, 'KR-01', x0 + 114, by - 48, '#2a2a20');
-    // front armour, plough and MG port
-    for (let i = 0; i < 12; i++) rect(g, x0 - 6 + i, by - 12 + i, 16 - i, 1, i % 3 ? '#5a5f52' : '#3a3d35');
-    rect(g, x0 + 2, by - 14, 8, 5, '#16171a'); rect(g, x0 - 7, by - 12, 9, 2, '#2a2a2e');
-    // hatch with the reactor core
-    const hb = { x: x0 + 4, y: by - 36, w: 22, h: 20 };
-    rect(g, hb.x - 1, hb.y - 1, hb.w + 2, hb.h + 2, OUTLINE);
-    const pulse = 0.5 + 0.5 * Math.sin(game.t * 12);
-    rect(g, hb.x, hb.y, hb.w, hb.h, dark ? '#2a1010' : '#5a1010');
-    if (!dark) { disc(g, hb.x + 11, hb.y + 10, 7, pulse > 0.5 ? '#ff5a2a' : '#e8402a'); disc(g, hb.x + 11, hb.y + 10, 3, '#ffe27a'); }
-    const cover = Math.round((hb.h / 2) * (1 - this.open));
-    rect(g, hb.x, hb.y, hb.w, cover, plate); rect(g, hb.x, hb.y + hb.h - cover, hb.w, cover, plate);
-    if (cover > 1) { rect(g, hb.x, hb.y + cover - 1, hb.w, 1, hi); rect(g, hb.x + 2, hb.y + 2, 1, 1, rivet); }
-    // chassis and wheels
-    rect(g, x0 + 4, by - 15, 190, 5, '#22242a');
-    for (const wx of [16, 34, 52, 122, 140, 158, 176]) {
-      const cxw = x0 + wx, cyw = by - 7;
-      disc(g, cxw, cyw, 7, OUTLINE); disc(g, cxw, cyw, 6, '#2a2c32'); disc(g, cxw, cyw, 2, '#7a808a');
-      const a = (this.wheel || 0) / 6;
-      rect(g, cxw + Math.round(Math.cos(a) * 4), cyw + Math.round(Math.sin(a) * 4), 1, 1, '#9aa0aa');
-    }
-    if (this.flash > 0) { g.globalAlpha = 0.5; rect(g, hb.x, hb.y, hb.w, hb.h, '#ffffff'); g.globalAlpha = 1; }
-    if (dark) { for (let i = 0; i < 3; i++) if (Math.random() < 0.2) puff(this.x + rand(20, 180), by - rand(30, 60), 1, '#2a2a2a'); }
-  }
+  draw(g, cx) { drawIronclad(this, g, cx); }
 };
 
 /* ---- SKY HAMMER: a gunship over the refinery helipad ------------------------------- */
-function gunshipCanvas(face, rotorFrame, flash, dark) {
-  const key = 'gs' + face + rotorFrame + (flash ? 'w' : '') + (dark ? 'd' : '');
-  if (MISC[key]) return MISC[key];
-  const base = miscSprite('gsb' + rotorFrame + (dark ? 'd' : ''), 150, 52, (g) => {
-    const cx = 62, cy = 28;
-    const body = dark ? '#3a3a2e' : '#7a6e44', shade = dark ? '#2a2a22' : '#565030', hi = dark ? '#4a4a3a' : '#a09468';
-    // tail boom and fin
-    for (let x = 0; x < 44; x++) { const th = Math.round(6 - x * 0.08); rect(g, cx + 24 + x, cy - 6 + Math.round(x * 0.06), 1, th, x % 9 === 0 ? shade : body); }
-    rect(g, cx + 64, cy - 18, 6, 16, body); rect(g, cx + 64, cy - 18, 6, 2, hi);
-    // tail rotor
-    if (rotorFrame % 2) rect(g, cx + 66, cy - 20, 2, 14, '#2a2a2a'); else rect(g, cx + 60, cy - 13, 14, 2, '#2a2a2a');
-    // body capsule
-    for (let y = -11; y <= 11; y++) {
-      const w = Math.round(Math.sqrt(1 - Math.pow(y / 12, 2)) * 30);
-      rect(g, cx - w, cy + y, w * 2 + 4, 1, y < -6 ? hi : y > 6 ? shade : body);
-    }
-    // cockpit glass
-    for (let y = -9; y <= 1; y++) { const w = Math.round(Math.sqrt(1 - Math.pow((y + 4) / 7, 2)) * 9); rect(g, cx - 30 + (9 - w), cy + y, w + 6, 1, y < -6 ? '#bff0ff' : '#5fb6dc'); }
-    rect(g, cx - 18, cy - 9, 1, 10, shade);
-    // stub wing and rocket pod
-    rect(g, cx - 6, cy + 3, 22, 3, shade); rect(g, cx - 4, cy + 6, 16, 5, '#3a3a2a'); rect(g, cx - 5, cy + 7, 2, 3, '#d8402f');
-    // nose gun
-    rect(g, cx - 34, cy + 6, 8, 2, '#1a1a1a'); rect(g, cx - 28, cy + 4, 5, 5, '#2a2a2a');
-    // skids
-    rect(g, cx - 14, cy + 11, 2, 6, '#2a2a2a'); rect(g, cx + 10, cy + 11, 2, 6, '#2a2a2a'); rect(g, cx - 22, cy + 17, 40, 2, '#2a2a2a');
-    // markings
-    tri(g, cx + 12, cy - 4, 8, 6, '#e3bd4b');
-    // mast and main rotor
-    rect(g, cx - 1, cy - 16, 4, 6, '#2a2a2a');
-    const span = rotorFrame % 2 ? 60 : 36;
-    rect(g, cx + 1 - span, cy - 17, span * 2, 2, rotorFrame % 2 ? '#3a3a3a' : '#1a1a1a');
-  });
-  let cv = face > 0 ? base.flip : base.cv;
-  if (flash) cv = silhouette(cv, '#ffffff');
-  MISC[key] = { cv, w: 150, h: 52 };
-  return MISC[key];
-}
-
 const GUNSHIP = {
   boxes() {
     if (this.dead) return [];
     return [{ b: box(this.x - 30, this.y - 12, this.x + 30, this.y + 14) }];
   },
-  knife(kb) { return bossKnifeOn(this, kb, this.boxes()); },
+  knife(kb, dmg) { return bossKnifeOn(this, kb, this.boxes(), dmg); },
   shotHit(s, sb) { return bossShotOn(this, s, sb, this.boxes()); },
   blast(x, y, r, d) { bossBlastOn(this, x, y, r, d, this.boxes()); },
   touches() { return false; },
@@ -448,21 +338,7 @@ const GUNSHIP = {
     this.x += (this.vx || 0) * dt; this.y += (this.vy || 0) * dt;
     if (!this.dead) this.x = clamp(this.x, this.ax - 120, this.ax + W + 120);
   },
-  draw(g, cx) {
-    const frame = Math.floor(game.t * 30) % 2;
-    const c = gunshipCanvas(this.face, frame, this.flash > 0, this.crashed);
-    const sx = Math.round(this.x - cx), sy = Math.round(this.y);
-    g.save();
-    g.translate(sx, sy);
-    g.rotate(this.dead ? this.rot : this.face * -this.tilt);
-    g.drawImage(c.cv, this.face > 0 ? -88 : -62, -28);
-    g.restore();
-    if (!this.dead && this.st === 'hover' && this.n > 0) {
-      g.globalAlpha = 0.25 + 0.1 * Math.sin(game.t * 30);
-      for (let i = 0; i < 6; i++) rect(g, sx - 30 + i * 12 + Math.floor(Math.random() * 4), GROUND_Y - 3, 6, 2, '#f0d8a0');
-      g.globalAlpha = 1;
-    }
-  }
+  draw(g, cx) { drawGunship(this, g, cx); }
 };
 
 /* ---- GENERAL KROME: the final duel -------------------------------------------------- */
@@ -472,8 +348,8 @@ const KROME = {
     if (this.st === 'dash') return [{ b: box(this.x - 7, this.y - 26, this.x + 7, this.y - 1) }];
     return [{ b: box(this.x - 6, this.y - 34, this.x + 6, this.y - 1) }];
   },
-  knife(kb) {
-    const r = bossKnifeOn(this, kb, this.boxes());
+  knife(kb, dmg) {
+    const r = bossKnifeOn(this, kb, this.boxes(), dmg);
     if (r && !this.dead) {
       this.recentHits = this.recentHits.filter((t) => game.t - t < 1.2);
       this.recentHits.push(game.t);
@@ -609,25 +485,5 @@ const KROME = {
     this.face = sgn(this.vx) || this.face;
     chip.sfx('jump');
   },
-  draw(g, cx) {
-    let anim = 'idle', fr = Math.floor(game.t * 2) % 2;
-    switch (this.st) {
-      case 'enter': case 'stalk': if (this.vx) { anim = 'run'; fr = Math.floor((this.dist || 0) / 7) % 8; } break;
-      case 'slash': anim = 'slash'; fr = this.t < 0.3 ? 0 : this.t < 0.44 ? 1 : 2; break;
-      case 'dashPrep': anim = 'idle'; fr = 0; break;
-      case 'dash': anim = 'dash'; fr = 0; break;
-      case 'shoot': anim = 'shoot'; fr = 0; break;
-      case 'grenade': anim = 'throw'; fr = (this.t % 0.45) < 0.3 ? 0 : 1; break;
-      case 'leap': case 'evade': anim = 'dash'; fr = 0; break;
-      case 'dying': anim = this.deathT < 1.0 ? 'hurt' : 'dead'; fr = this.deathT < 1.0 ? 0 : Math.min(2, Math.floor((this.deathT - 1) / 0.15)); break;
-      default: break;
-    }
-    const sx = this.x - cx;
-    if (this.st === 'dash') { g.globalAlpha = 0.3; drawSprite(g, 'general', anim, fr, this.face, sx - this.face * 8, this.y); g.globalAlpha = 1; }
-    drawSprite(g, 'general', anim, fr, this.face, sx, this.y, this.flash > 0);
-    if (this.st === 'dashPrep' && Math.floor(this.t * 16) % 2 === 0) {
-      const gx = sx + this.face * 9, gy = this.y - 30;
-      rect(g, gx - 3, gy, 7, 1, '#ffffff'); rect(g, gx, gy - 3, 1, 7, '#ffffff');
-    }
-  }
+  draw(g, cx) { drawKrome(this, g, cx); }
 };

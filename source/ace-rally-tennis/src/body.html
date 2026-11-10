@@ -20,6 +20,8 @@
         </button>
       </div>
       <div id="speed" class="speed" hidden><small>SERVE</small><b id="speedVal">0</b><small>KM/H</small></div>
+      <div id="power" class="power" hidden><span>POWER</span><i></i><i></i><i></i></div>
+      <div id="shieldTag" class="shield-tag" hidden>INVINCIBLE</div>
       <div id="prompt" class="prompt" hidden></div>
       <div id="keysHint" class="keys" hidden>
         <span><i class="kbd">SPACE</i> swing</span>
@@ -33,6 +35,7 @@
     <div id="banner" class="banner" aria-live="assertive"></div>
     <div id="sub" class="sub"></div>
     <div id="pops"></div>
+    <div id="toast" class="toast" hidden><b></b><span></span></div>
 
     <div id="touch" class="touch" hidden>
       <div class="grp">
@@ -72,8 +75,18 @@
             <button class="btn" id="bHow" type="button">How to play</button>
             <button class="btn" id="bSettings" type="button">Settings</button>
           </div>
+          <button class="btn" id="bMedals" type="button">Medals <span id="medalCount"></span></button>
         </nav>
         <p class="record" id="record"></p>
+      </div>
+    </section>
+
+    <!-- medals -->
+    <section id="scrMedals" class="screen" hidden>
+      <div class="panel wide">
+        <div class="panel-head"><h2>Medals</h2><button class="btn ghost" type="button" data-back>Back</button></div>
+        <div class="medals" id="medalList"></div>
+        <p class="hint" id="medalHint"></p>
       </div>
     </section>
 
@@ -87,6 +100,7 @@
         <div class="field"><span class="label" id="lblMode">Mode</span><div class="opts" id="optMode" role="group" aria-labelledby="lblMode"></div></div>
         <div class="field"><span class="label" id="lblControls">Controls</span><div class="opts" id="optControls" role="group" aria-labelledby="lblControls"></div><p class="hint" id="ctrlHint"></p></div>
         <div class="field" id="fieldLevel"><span class="label" id="lblLevel">Opponent</span><div class="opts" id="optLevel" role="group" aria-labelledby="lblLevel"></div></div>
+        <div class="field" id="fieldShield"><span class="label" id="lblShield">Rules</span><div class="opts" id="optShield" role="group" aria-labelledby="lblShield"></div></div>
         <div class="field" id="fieldFormat"><span class="label" id="lblFormat">Match length</span><div class="opts" id="optFormat" role="group" aria-labelledby="lblFormat"></div></div>
         <div class="field"><span class="label" id="lblSurface">Court</span><div class="opts" id="optSurface" role="group" aria-labelledby="lblSurface"></div></div>
         <div class="field">

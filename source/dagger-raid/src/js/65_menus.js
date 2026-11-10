@@ -2,10 +2,12 @@
    Menus: boot, title, attract loop, how to play, options, pause, name entry
    ========================================================================== */
 
-const TITLE_ITEMS = ['START GAME', 'MODE', 'HOW TO PLAY', 'HIGH SCORES', 'OPTIONS'];
-const OPTION_ITEMS = ['MUSIC', 'EFFECTS', 'CRT FILTER', 'SCREEN SHAKE', 'TOUCH PAD', 'BACK'];
-const PAUSE_ITEMS = ['RESUME', 'OPTIONS', 'QUIT GAME'];
-const HOWTO_PAGES = 3;
+const TITLE_ITEMS = ['START MISSION', 'HOW TO PLAY', 'HIGH SCORES', 'MEDALS', 'OPTIONS'];
+const SETUP_ITEMS = ['LEVEL', 'STAGE', 'OUTFIT', 'INVINCIBLE', 'DEPLOY'];
+const OPTION_ITEMS = ['MUSIC', 'EFFECTS', 'GLOW FX', 'SCREEN SHAKE', 'TOUCH PAD', 'BACK'];
+const PAUSE_ITEMS = ['RESUME', 'RESTART STAGE', 'OPTIONS', 'QUIT GAME'];
+const HOWTO_PAGES = 4;
+const OUTFIT_ORDER = ['commando', 'raven', 'crimson'];
 
 function menuMove(n, P) {
   let m = game.menu;
@@ -36,28 +38,40 @@ function updateMenus(dt, I, P) {
       if (P.any || input.tap) game.idleT = 0;
       menuMove(TITLE_ITEMS.length, P);
       let act = confirm ? game.menu : -1;
-      if (hit) { game.menu = hit.i; act = hit.i; if (hit.dir) { toggleMode(); act = -1; } }
-      if (game.menu === 1 && (P.left || P.right)) { toggleMode(); }
-      if (act === 0) { chip.sfx('coin'); chip.stopMusic(); newGame(false); }
-      else if (act === 1) toggleMode();
-      else if (act === 2) { chip.sfx('select'); setState('howto'); game.page = 0; }
-      else if (act === 3) { chip.sfx('select'); setState('scores'); game.attract = false; }
+      if (hit) { game.menu = hit.i; act = hit.i; }
+      if (act === 0) { chip.sfx('select'); setState('setup'); game.menu = 4; }
+      else if (act === 1) { chip.sfx('select'); setState('howto'); game.page = 0; }
+      else if (act === 2) { chip.sfx('select'); setState('scores'); game.attract = false; }
+      else if (act === 3) { chip.sfx('select'); setState('medals'); }
       else if (act === 4) { chip.sfx('select'); game.optFrom = 'title'; setState('options'); }
       if (game.idleT > 22) { game.idleT = 0; game.attract = true; setState('scores'); }
       break;
     }
+    case 'setup': {
+      menuMove(SETUP_ITEMS.length, P);
+      let d = P.left ? -1 : P.right ? 1 : 0;
+      let act = confirm;
+      if (hit) { if (hit.back) { chip.sfx('move'); setState('title'); break; } game.menu = hit.i; if (hit.dir) d = hit.dir; else act = true; }
+      if (game.menu === 4) { if (act) { chip.sfx('coin'); chip.stopMusic(); newGame(false); break; } }
+      else if (d || act) adjustSetup(game.menu, d || 1);
+      if (back) { chip.sfx('move'); setState('title'); }
+      break;
+    }
+    case 'medals':
+      if (confirm || back || (input.tap && game.stateT > 0.3)) { chip.sfx('move'); setState('title'); game.menu = 3; }
+      break;
     case 'scores':
       if (game.attract) {
         if (P.any || input.tap) { game.attract = false; setState('title'); game.idleT = 0; break; }
         if (game.stateT > 7) startDemo();
-      } else if (confirm || back || hit || (input.tap && game.stateT > 0.3)) { chip.sfx('move'); setState('title'); game.menu = 3; }
+      } else if (confirm || back || hit || (input.tap && game.stateT > 0.3)) { chip.sfx('move'); setState('title'); game.menu = 2; }
       break;
     case 'howto':
       if (P.right || confirm || (hit && hit.next) || (input.tap && !hit && game.stateT > 0.2)) {
         game.page++; chip.sfx('move');
-        if (game.page >= HOWTO_PAGES) { setState('title'); game.menu = 2; }
+        if (game.page >= HOWTO_PAGES) { setState('title'); game.menu = 1; }
       } else if (P.left && game.page > 0) { game.page--; chip.sfx('move'); }
-      else if (back || (hit && hit.back)) { setState('title'); game.menu = 2; chip.sfx('move'); }
+      else if (back || (hit && hit.back)) { setState('title'); game.menu = 1; chip.sfx('move'); }
       break;
     case 'options': {
       menuMove(OPTION_ITEMS.length, P);
@@ -74,8 +88,9 @@ function updateMenus(dt, I, P) {
       if (hit) { game.menu = hit.i; act = hit.i; }
       if (P.pause || back) act = 0;
       if (act === 0) { game.state = 'play'; chip.duck(false); chip.sfx('select'); }
-      else if (act === 1) { chip.sfx('select'); game.optFrom = 'pause'; setState('options'); }
-      else if (act === 2) { chip.duck(false); chip.stopMusic(); game.demo = false; finishRun(); }
+      else if (act === 1) { chip.sfx('coin'); restartStage(); }
+      else if (act === 2) { chip.sfx('select'); game.optFrom = 'pause'; setState('options'); }
+      else if (act === 3) { chip.duck(false); chip.stopMusic(); game.demo = false; finishRun(); }
       break;
     }
     case 'entry': updateEntry(dt, P, hit); break;
@@ -83,16 +98,24 @@ function updateMenus(dt, I, P) {
   }
 }
 
-function toggleMode() {
-  settings.mode = settings.mode === 'arcade' ? 'modern' : 'arcade';
-  saveSettings(); chip.sfx('move');
+function adjustSetup(i, d) {
+  const cyc = (list, cur) => list[(list.indexOf(cur) + (d > 0 ? 1 : list.length - 1)) % list.length];
+  switch (SETUP_ITEMS[i]) {
+    case 'LEVEL': settings.level = cyc(DIFF_ORDER, settings.level); break;
+    case 'STAGE': { const n = Math.min(PROG.reached, STAGES.length - 1) + 1; settings.stage = ((settings.stage | 0) + (d > 0 ? 1 : n - 1)) % n; break; }
+    case 'OUTFIT': settings.outfit = cyc(OUTFIT_ORDER, settings.outfit); break;
+    case 'INVINCIBLE': settings.invincible = !settings.invincible; break;
+    default: return;
+  }
+  chip.sfx('move');
+  saveSettings();
 }
 
 function adjustOption(i, d, activate) {
   switch (OPTION_ITEMS[i]) {
     case 'MUSIC': settings.music = clamp(Math.round(settings.music * 10 + d) / 10, 0, 1); chip.applyVolumes(); chip.sfx('move'); break;
     case 'EFFECTS': settings.sfx = clamp(Math.round(settings.sfx * 10 + d) / 10, 0, 1); chip.applyVolumes(); chip.sfx('pickup'); break;
-    case 'CRT FILTER': settings.crt = !settings.crt; chip.sfx('move'); break;
+    case 'GLOW FX': settings.fx = !settings.fx; chip.sfx('move'); break;
     case 'SCREEN SHAKE': settings.shake = !settings.shake; chip.sfx('move'); if (settings.shake) game.shake = 4; break;
     case 'TOUCH PAD': {
       const order = ['auto', 'on', 'off'];
@@ -108,7 +131,7 @@ function adjustOption(i, d, activate) {
 
 function leaveOptions() {
   chip.sfx('move');
-  if (game.optFrom === 'pause') { setState('pause'); game.menu = 1; }
+  if (game.optFrom === 'pause') { setState('pause'); game.menu = 2; }
   else { setState('title'); game.menu = 4; }
 }
 

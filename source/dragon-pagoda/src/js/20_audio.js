@@ -355,6 +355,14 @@ class Chip {
         this.noise(t, k ? 0.11 : 0.08, 1.3, 'bandpass', k ? 700 : 1100, 1.2, null, { sweep: k ? 2400 : 3600 });
         break;
       }
+      case 'whip':
+        this.noise(t, 0.07, 0.75, 'bandpass', 2600, 2, null, { sweep: 5200 });
+        this.tone(t, 900, 0.05, 'sin', 0.12, null, { slide: 1800 });
+        break;
+      case 'star':
+        this.noise(t, 0.09, 0.55, 'highpass', 3000, 1, null, { sweep: 7000 });
+        this.tone(t, 2200, 0.08, 'sin', 0.08, null, { slide: 3400 });
+        break;
       case 'punch':
         this.noise(t, 0.06, 0.5, 'lowpass', 1900, 0.8);
         this.tone(t, 190, 0.07, 'sin', 0.38, null, { slide: 60 });

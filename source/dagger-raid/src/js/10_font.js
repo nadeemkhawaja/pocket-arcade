@@ -1,136 +1,43 @@
 /* ==========================================================================
-   Bitmap font: 5x7 glyphs, cached per colour, drawn on pixel boundaries
+   Type: Barlow Condensed for the interface and Black Ops One, a stencil face,
+   for titles. Sizes are in world units, so text stays sharp at any resolution.
    ========================================================================== */
 
-const GLYPHS = {
-  'A': ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
-  'B': ['####.', '#...#', '#...#', '####.', '#...#', '#...#', '####.'],
-  'C': ['.###.', '#...#', '#....', '#....', '#....', '#...#', '.###.'],
-  'D': ['####.', '#...#', '#...#', '#...#', '#...#', '#...#', '####.'],
-  'E': ['#####', '#....', '#....', '####.', '#....', '#....', '#####'],
-  'F': ['#####', '#....', '#....', '####.', '#....', '#....', '#....'],
-  'G': ['.###.', '#...#', '#....', '#.###', '#...#', '#...#', '.####'],
-  'H': ['#...#', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
-  'I': ['.###.', '..#..', '..#..', '..#..', '..#..', '..#..', '.###.'],
-  'J': ['..###', '...#.', '...#.', '...#.', '#..#.', '#..#.', '.##..'],
-  'K': ['#...#', '#..#.', '#.#..', '##...', '#.#..', '#..#.', '#...#'],
-  'L': ['#....', '#....', '#....', '#....', '#....', '#....', '#####'],
-  'M': ['#...#', '##.##', '#.#.#', '#.#.#', '#...#', '#...#', '#...#'],
-  'N': ['#...#', '#...#', '##..#', '#.#.#', '#..##', '#...#', '#...#'],
-  'O': ['.###.', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'],
-  'P': ['####.', '#...#', '#...#', '####.', '#....', '#....', '#....'],
-  'Q': ['.###.', '#...#', '#...#', '#...#', '#.#.#', '#..#.', '.##.#'],
-  'R': ['####.', '#...#', '#...#', '####.', '#.#..', '#..#.', '#...#'],
-  'S': ['.####', '#....', '#....', '.###.', '....#', '....#', '####.'],
-  'T': ['#####', '..#..', '..#..', '..#..', '..#..', '..#..', '..#..'],
-  'U': ['#...#', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'],
-  'V': ['#...#', '#...#', '#...#', '#...#', '#...#', '.#.#.', '..#..'],
-  'W': ['#...#', '#...#', '#...#', '#.#.#', '#.#.#', '#.#.#', '.#.#.'],
-  'X': ['#...#', '#...#', '.#.#.', '..#..', '.#.#.', '#...#', '#...#'],
-  'Y': ['#...#', '#...#', '.#.#.', '..#..', '..#..', '..#..', '..#..'],
-  'Z': ['#####', '....#', '...#.', '..#..', '.#...', '#....', '#####'],
-  '0': ['.###.', '#...#', '#..##', '#.#.#', '##..#', '#...#', '.###.'],
-  '1': ['..#..', '.##..', '..#..', '..#..', '..#..', '..#..', '.###.'],
-  '2': ['.###.', '#...#', '....#', '...#.', '..#..', '.#...', '#####'],
-  '3': ['####.', '....#', '....#', '.###.', '....#', '....#', '####.'],
-  '4': ['...#.', '..##.', '.#.#.', '#..#.', '#####', '...#.', '...#.'],
-  '5': ['#####', '#....', '####.', '....#', '....#', '#...#', '.###.'],
-  '6': ['.###.', '#....', '#....', '####.', '#...#', '#...#', '.###.'],
-  '7': ['#####', '....#', '...#.', '..#..', '.#...', '.#...', '.#...'],
-  '8': ['.###.', '#...#', '#...#', '.###.', '#...#', '#...#', '.###.'],
-  '9': ['.###.', '#...#', '#...#', '.####', '....#', '....#', '.###.'],
-  '.': ['.....', '.....', '.....', '.....', '.....', '.##..', '.##..'],
-  ',': ['.....', '.....', '.....', '.....', '.##..', '..#..', '.#...'],
-  '!': ['..#..', '..#..', '..#..', '..#..', '..#..', '.....', '..#..'],
-  '?': ['.###.', '#...#', '....#', '...#.', '..#..', '.....', '..#..'],
-  ':': ['.....', '.##..', '.##..', '.....', '.##..', '.##..', '.....'],
-  '-': ['.....', '.....', '.....', '.###.', '.....', '.....', '.....'],
-  "'": ['..#..', '..#..', '.#...', '.....', '.....', '.....', '.....'],
-  '/': ['....#', '....#', '...#.', '..#..', '.#...', '#....', '#....'],
-  '(': ['...#.', '..#..', '.#...', '.#...', '.#...', '..#..', '...#.'],
-  ')': ['.#...', '..#..', '...#.', '...#.', '...#.', '..#..', '.#...'],
-  '%': ['##..#', '##..#', '...#.', '..#..', '.#...', '#..##', '#..##'],
-  '+': ['.....', '..#..', '..#..', '#####', '..#..', '..#..', '.....'],
-  '=': ['.....', '.....', '#####', '.....', '#####', '.....', '.....'],
-  '>': ['.#...', '..#..', '...#.', '....#', '...#.', '..#..', '.#...'],
-  '<': ['...#.', '..#..', '.#...', '#....', '.#...', '..#..', '...#.'],
-  '&': ['.##..', '#..#.', '#.#..', '.#...', '#.#.#', '#..#.', '.##.#'],
-  '*': ['.....', '#.#.#', '.###.', '#####', '.###.', '#.#.#', '.....'],
-  '"': ['.#.#.', '.#.#.', '.....', '.....', '.....', '.....', '.....'],
-  '#': ['.#.#.', '#####', '.#.#.', '.#.#.', '.#.#.', '#####', '.#.#.'],
-  '^': ['..#..', '.###.', '#####', '..#..', '..#..', '..#..', '.....'],
-  '~': ['.....', '.....', '.#...', '#.#.#', '...#.', '.....', '.....'],
-  ' ': ['.....', '.....', '.....', '.....', '.....', '.....', '.....']
-};
+const FONT_UI = '"Barlow Condensed", "Arial Narrow", "Roboto Condensed", "Helvetica Neue", sans-serif';
+const FONT_DISPLAY = '"Black Ops One", "Barlow Condensed", Impact, "Arial Narrow", sans-serif';
+const MEASURE = makeCanvas(4, 4).getContext('2d');
 
-const glyphCache = {};
-function glyph(ch, color) {
-  const key = ch + color;
-  let c = glyphCache[key];
-  if (c) return c;
-  const rows = GLYPHS[ch] || GLYPHS['?'];
-  c = makeCanvas(5, 7);
-  const g = c.getContext('2d');
-  g.fillStyle = color;
-  for (let y = 0; y < 7; y++) for (let x = 0; x < 5; x++) if (rows[y][x] === '#') g.fillRect(x, y, 1, 1);
-  glyphCache[key] = c;
-  return c;
+function fontSpec(scale, opts) {
+  const s = 8.4 * (scale || 1);
+  if (opts && opts.display) return '400 ' + s + 'px ' + FONT_DISPLAY;
+  return (opts && opts.weight || 600) + ' ' + s + 'px ' + FONT_UI;
 }
 
-function textWidth(str, scale) {
-  const s = scale || 1;
-  return str.length ? (str.length * 6 - 1) * s : 0;
+function textWidth(str, scale, opts) {
+  MEASURE.font = fontSpec(scale, opts);
+  return MEASURE.measureText(opts && opts.raw ? String(str) : String(str).toUpperCase()).width;
 }
 
-/** Draw pixel text. opts: { scale, align: 'left'|'center'|'right', shadow: colour } */
+/** Draw text with its top at y. opts: { scale, align, shadow, display, weight, raw, stroke, strokeW } */
 function drawText(g, str, x, y, color, opts) {
-  str = String(str).toUpperCase();
+  str = String(str);
+  if (!(opts && opts.raw)) str = str.toUpperCase();
   const s = (opts && opts.scale) || 1;
-  const align = (opts && opts.align) || 'left';
-  const wpx = textWidth(str, s);
-  let px = Math.round(align === 'center' ? x - wpx / 2 : align === 'right' ? x - wpx : x);
-  const py = Math.round(y);
+  g.font = fontSpec(s, opts);
+  g.textBaseline = 'top';
+  g.textAlign = (opts && opts.align) || 'left';
+  if (opts && opts.stroke) { g.lineJoin = 'round'; g.lineWidth = opts.strokeW || 1.6 * s; g.strokeStyle = opts.stroke; g.strokeText(str, x, y); }
   const shadow = opts && opts.shadow;
-  for (let i = 0; i < str.length; i++) {
-    const ch = str[i];
-    if (ch !== ' ') {
-      if (shadow) g.drawImage(glyph(ch, shadow), px + s, py + s, 5 * s, 7 * s);
-      g.drawImage(glyph(ch, color), px, py, 5 * s, 7 * s);
-    }
-    px += 6 * s;
-  }
-  return wpx;
+  if (shadow) { g.fillStyle = shadow; g.fillText(str, x + 0.5 * s, y + 0.6 * s); }
+  g.fillStyle = color;
+  g.fillText(str, x, y);
+  const w = g.measureText(str).width;
+  g.textAlign = 'left';
+  return w;
 }
 
-/** Chunky bevelled title lettering built from the same glyphs. */
-function drawLogoText(g, str, x, y, cell, colors) {
-  str = String(str).toUpperCase();
-  const total = str.length * 6 * cell - cell;
-  let px = Math.round(x - total / 2);
-  const c = colors;
-  for (let i = 0; i < str.length; i++) {
-    const rows = GLYPHS[str[i]] || GLYPHS[' '];
-    for (let yy = 0; yy < 7; yy++) for (let xx = 0; xx < 5; xx++) {
-      if (rows[yy][xx] !== '#') continue;
-      const bx = px + xx * cell, by = y + yy * cell;
-      g.fillStyle = c.depth; g.fillRect(bx + 2, by + 3, cell, cell);
-    }
-    px += 6 * cell;
-  }
-  px = Math.round(x - total / 2);
-  for (let i = 0; i < str.length; i++) {
-    const rows = GLYPHS[str[i]] || GLYPHS[' '];
-    for (let yy = 0; yy < 7; yy++) for (let xx = 0; xx < 5; xx++) {
-      if (rows[yy][xx] !== '#') continue;
-      const bx = px + xx * cell, by = y + yy * cell;
-      const t = yy / 6;
-      g.fillStyle = t < 0.35 ? c.top : t < 0.7 ? c.mid : c.low;
-      g.fillRect(bx, by, cell, cell);
-      g.fillStyle = c.hi;
-      if (yy === 0 || rows[yy - 1][xx] !== '#') g.fillRect(bx, by, cell, 1);
-      g.fillStyle = c.edge;
-      if (yy === 6 || rows[yy + 1][xx] !== '#') g.fillRect(bx, by + cell - 1, cell, 1);
-    }
-    px += 6 * cell;
-  }
+/** Ask the browser for the web fonts early; text uses fallbacks until they arrive. */
+function loadFonts() {
+  if (!document.fonts || !document.fonts.load) return;
+  for (const f of ['600 12px "Barlow Condensed"', '700 12px "Barlow Condensed"', '400 12px "Black Ops One"']) document.fonts.load(f).catch(() => {});
 }

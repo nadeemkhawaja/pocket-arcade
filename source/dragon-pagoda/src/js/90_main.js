@@ -143,8 +143,8 @@ function boot() {
       }
       if (!quiet) renderFrame();
     },
-    render: renderFrame, newGame, startFloor, startDemo, setState, spawnFoe, makeBoss, layout, view, beginPlay, hurtHero, killFoe, botInput, botPressed, updateGame, drawSprite, drawPortrait, drawMonkey, drawSnake, drawVase, drawLantern, drawPickup, drawDragonHead,
-    DBG
+    render: renderFrame, newGame, startFloor, startDemo, setState, spawnFoe, makeBoss, layout, view, beginPlay, hurtHero, killFoe, qualifies, botInput, botPressed, updateGame, drawSprite, drawPortrait, drawMonkey, drawSnake, drawVase, drawLantern, drawPickup, drawDragonHead,
+    DBG, PROG, MEDALS, award, restartFloor, critRoll
   };
 }
 

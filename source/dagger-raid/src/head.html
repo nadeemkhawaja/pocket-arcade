@@ -1,10 +1,10 @@
 <title>Dagger Raid</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#05060a">
-<meta name="description" content="Dagger Raid: an original side-scrolling commando arcade game with knife combat, special weapons, captives to free and four boss fights.">
+<meta name="description" content="Dagger Raid: an original side-scrolling commando arcade game in hand-drawn HD, with knife combos, ninja moves, special weapons, captives to free and four boss fights.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Black+Ops+One&display=swap">
 <style>
 /* One deliberate world: a dark arcade cabinet. The canvas is full-bleed; the touch pad
    sits inside safe-area gutters (portrait: handheld layout under the screen, landscape: overlay). */
@@ -21,11 +21,13 @@
   --jump-deep: #8a6410;
   --spec: #2fa8c8;
   --spec-deep: #156078;
+  --dash: #8a6aff;
+  --dash-deep: #3e2a9a;
   --gl: max(16px, env(safe-area-inset-left, 0px));
   --gr: max(16px, env(safe-area-inset-right, 0px));
   --gt: max(10px, env(safe-area-inset-top, 0px));
   --gb: max(14px, env(safe-area-inset-bottom, 0px));
-  --pix: "Press Start 2P", ui-monospace, "Courier New", monospace;
+  --pix: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
   --game-bottom: 50vh;
 }
 *, *::before, *::after { box-sizing: border-box; }
@@ -37,7 +39,7 @@ body {
   -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
 #app { position: fixed; inset: 0; overflow: hidden; touch-action: none; }
-#screen { position: absolute; inset: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; image-rendering: crisp-edges; outline: none; }
+#screen { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
 #safeProbe {
   position: absolute; width: 0; height: 0; visibility: hidden; pointer-events: none;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
@@ -51,9 +53,9 @@ noscript { position: absolute; inset: 0; display: grid; place-items: center; pad
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: var(--gt) var(--gb);
   --dp: min(40vw, 30vh, 176px);
-  --bk: min(21vw, 15vh, 88px);
-  --bj: min(18vw, 13vh, 78px);
-  --bs: min(14vw, 10.5vh, 60px);
+  --bk: min(19vw, 13.5vh, 80px);
+  --bj: min(16vw, 11.5vh, 68px);
+  --bs: min(14vw, 10vh, 58px);
 }
 body.touch-on #touch { display: block; }
 body.touch-on.portrait #touch {
@@ -62,18 +64,19 @@ body.touch-on.portrait #touch {
 }
 .brand {
   display: none; position: absolute; left: var(--gl); right: var(--gr); top: calc(var(--game-bottom) + 18px);
-  text-align: center; font-size: 13px; letter-spacing: 4px; color: #4a5470;
+  text-align: center; font-family: "Black Ops One", "Barlow Condensed", Impact, sans-serif; font-size: 20px; letter-spacing: 4px; line-height: 1.15; color: #8a96b4;
 }
 body.portrait .brand { display: block; }
-.brand b { color: #8a2e28; font-weight: 400; }
-.brand span { display: block; margin-top: 12px; font-size: 7px; letter-spacing: 1px; line-height: 1.15; color: #3d465e; }
+.brand b { color: #e8392a; font-weight: 400; }
+.brand span { display: block; margin-top: 10px; font-family: var(--pix); font-size: 11px; font-weight: 500; letter-spacing: 1px; line-height: 1.15; color: #56607c; }
 .grille {
-  display: none; position: absolute; left: 50%; width: 96px; margin-left: -48px; height: 34px;
-  top: calc(var(--game-bottom) + 66px);
-  background: repeating-linear-gradient(90deg, #1a1f2c 0 4px, transparent 4px 10px);
-  -webkit-mask: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
-  mask: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
-  opacity: 0.9; border-radius: 4px;
+  display: none; position: absolute; left: 50%; width: 180px; margin-left: -90px; height: 12px;
+  top: calc(var(--game-bottom) + 74px);
+  background: linear-gradient(90deg, transparent, rgba(232,57,42,0.6) 28%, rgba(232,57,42,0.6) 72%, transparent) center / 100% 1px no-repeat;
+}
+.grille::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -5px 0 0 -5px;
+  transform: rotate(45deg); border: 1px solid rgba(255,120,100,0.85); background: #2a1014;
 }
 body.portrait .grille { display: block; }
 @media (max-height: 700px) { .grille { display: none !important; } .brand span { display: none; } }
@@ -100,7 +103,8 @@ body.portrait #dpad { bottom: calc(var(--gb) + 40px); }
   transition: transform 40ms linear;
 }
 
-#btns { position: absolute; right: var(--gr); bottom: calc(var(--gb) + 6px); width: calc(var(--bk) + var(--bj) + 18px); height: calc(var(--bk) + var(--bs) + 26px); pointer-events: none; }
+/* arcade layout: KNIFE and JUMP on the bottom row, SPECIAL and DASH staggered above them */
+#btns { position: absolute; right: var(--gr); bottom: calc(var(--gb) + 6px); width: calc(var(--bk) * 2 + 12px); height: calc(var(--bk) * 1.3 + var(--bj) + 12px); pointer-events: none; }
 body.portrait #btns { bottom: calc(var(--gb) + 40px); }
 .tbtn {
   position: absolute; border-radius: 50%; border: 0; padding: 0; margin: 0; pointer-events: auto; touch-action: none;
@@ -108,18 +112,19 @@ body.portrait #btns { bottom: calc(var(--gb) + 40px); }
   box-shadow: inset 0 -5px 0 rgba(0,0,0,0.35), 0 4px 0 rgba(0,0,0,0.55);
   transition: transform 50ms linear, filter 50ms linear;
 }
-.tbtn b { font-size: 15px; font-weight: 400; text-shadow: 0 2px 0 rgba(0,0,0,0.45); }
-.tbtn small { font-size: 7px; letter-spacing: 0.5px; opacity: 0.9; }
+.tbtn b { font-size: 20px; font-weight: 700; text-shadow: 0 2px 0 rgba(0,0,0,0.45); }
+.tbtn small { font-size: 10px; letter-spacing: 1px; font-weight: 600; opacity: 0.92; }
 .tbtn.on { transform: translateY(3px) scale(0.96); filter: brightness(1.25); box-shadow: inset 0 -2px 0 rgba(0,0,0,0.35), 0 1px 0 rgba(0,0,0,0.55); }
 #bKnife { width: var(--bk); height: var(--bk); left: 0; bottom: 0; background: radial-gradient(circle at 40% 32%, #ff6a58, var(--knife) 55%, var(--knife-deep)); }
-#bJump { width: var(--bj); height: var(--bj); right: 0; bottom: calc(var(--bk) * 0.42); background: radial-gradient(circle at 40% 32%, #ffd86a, var(--jump) 55%, var(--jump-deep)); color: #2a1c00; }
+#bJump { width: var(--bk); height: var(--bk); right: 0; bottom: calc(var(--bk) * 0.3); background: radial-gradient(circle at 40% 32%, #ffd86a, var(--jump) 55%, var(--jump-deep)); color: #2a1c00; }
 #bJump b { text-shadow: none; }
-#bSpecial { width: var(--bs); height: var(--bs); left: calc(var(--bk) * 0.62); bottom: calc(var(--bk) + 10px); background: radial-gradient(circle at 40% 32%, #6ad8f0, var(--spec) 55%, var(--spec-deep)); }
+#bDash { width: var(--bj); height: var(--bj); right: calc((var(--bk) - var(--bj)) / 2); bottom: calc(var(--bk) * 1.3 + 10px); background: radial-gradient(circle at 40% 32%, #b8a4ff, var(--dash) 55%, var(--dash-deep)); }
+#bSpecial { width: var(--bs); height: var(--bs); left: calc((var(--bk) - var(--bs)) / 2); bottom: calc(var(--bk) + 12px); background: radial-gradient(circle at 40% 32%, #6ad8f0, var(--spec) 55%, var(--spec-deep)); }
 
 #tPause {
   position: absolute; pointer-events: auto; touch-action: none;
   width: 44px; height: 30px; border-radius: 15px; border: 2px solid #313a52; background: rgba(20,24,36,0.78);
-  color: #c9d2e4; font-family: var(--pix); font-size: 9px; letter-spacing: 1px;
+  color: #c9d2e4; font-family: var(--pix); font-size: 13px; font-weight: 700; letter-spacing: 1px;
   right: var(--gr); top: var(--gt);
 }
 body.portrait #tPause { top: auto; right: auto; left: calc(50% - 22px); bottom: calc(var(--gb) + 6px); width: 58px; }

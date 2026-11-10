@@ -278,7 +278,7 @@ function drawHUD(g) {
   if (game.chainN >= 2 && game.time - game.chainT < 1.5 && game.state === 'play') {
     const s = 'CHAIN X' + game.chainN;
     T(g, s, 192, HUD_H + 3, Math.floor(game.t * 8) % 2 ? C.gold : '#ff9a30', { align: 'center', stroke: '#140a10', strokeW: 2, weight: 700 });
-  }
+  }  drawArmsHud(g);
 }
 
 /* ---- banners --------------------------------------------------------------------- */
@@ -387,14 +387,15 @@ function drawTitle(g) {
   drawTitleBackdrop(g);
   drawLogo(g, 20);
   T(g, 'FIVE FLOORS.  FIVE GUARDIANS.  ONE MASTER.', W / 2, 58, C.cyan, { align: 'center', weight: 600 });
-  const y0 = 82;
+  const y0 = 78;
   TITLE_ITEMS.forEach((it, i) => {
-    const sel = game.menu === i, y = y0 + i * 18;
+    const sel = game.menu === i, y = y0 + i * 16.5;
     menuBar(g, W / 2 - 62, y - 3, 124, 14, sel);
     T(g, it, W / 2 + (sel ? 3 : 0), y - 0.6, sel ? '#ffffff' : C.dim, { align: 'center', scale: 1.2, weight: 700 });
     hitArea(W / 2 - 90, y - 5, W / 2 + 90, y + 12, { i });
   });
-  T(g, 'TOP ' + pad7(game.scores[0].s) + '   ' + game.scores[0].n, W / 2, 162, C.gold, { align: 'center', weight: 700 });
+  T(g, 'TOP ' + pad7(game.scores[0].s) + '   ' + game.scores[0].n, W / 2, 166, C.gold, { align: 'center', weight: 700 });
+  T(g, 'MEDALS ' + medalCount() + ' / ' + MEDALS.length, W / 2, 178, '#c8b8ff', { align: 'center', scale: 0.86, weight: 700 });
   T(g, controlHint(), W / 2, 200, '#9a8aa0', { align: 'center', scale: 0.85 });
 }
 
@@ -402,7 +403,7 @@ function drawSelect(g) {
   drawTitleBackdrop(g, 0.78);
   bigTitle(g, 'CHOOSE YOUR FIGHTER', W / 2, 6, 1.7);
   FIGHTERS.forEach((f, i) => {
-    const sel = settings.fighter === f, x0 = 46 + i * 152, y0 = 28, w = 140, hgt = 100;
+    const sel = settings.fighter === f, x0 = 46 + i * 152, y0 = 24, w = 140, hgt = 80;
     panel(g, x0, y0, w, hgt, sel ? { border: game.menu === 0 && blink(3) ? '#ffe08a' : undefined, lw: 1.1 } : { border: '#4a3040' });
     if (sel) { drawGlow(g, x0 + 50, y0 + 64, 50, '#ff6a3a', 0.35); }
     const S = HERO_STATS[f];
@@ -410,33 +411,44 @@ function drawSelect(g) {
     const anim = sel ? (ph < 1 ? 'punch' : 'kick') : 'idle';
     const fr = sel ? Math.min(2, (ph % 1) * 5) : (game.t * 1.1) % 2;
     g.save(); g.beginPath(); g.rect(x0 + 1, y0 + 1, w - 2, hgt - 2); g.clip();
-    rect(g, x0 + 1, y0 + 86, w - 2, 13, 'rgba(0,0,0,0.25)');
+    rect(g, x0 + 1, y0 + 68, w - 2, 11, 'rgba(0,0,0,0.25)');
     g.globalAlpha = sel ? 1 : 0.55;
-    g.translate(x0 + 50, y0 + 94); g.scale(2, 2);
+    g.translate(x0 + 50, y0 + 75); g.scale(1.62, 1.62);
     g.globalAlpha = 0.5; g.drawImage(shadowSprite(), -14, -2.4, 28, 5); g.globalAlpha = sel ? 1 : 0.55;
     drawSprite(g, f, anim, fr, 1, 0, 0);
     g.restore(); g.globalAlpha = 1;
     bigTitle(g, S.name, x0 + w - 6, y0 + 5, 1.6, { align: 'right', fill: sel ? undefined : '#8a7a80', stroke: sel ? undefined : '#2a1a20' });
-    T(g, S.blurb[0], x0 + w / 2, y0 + hgt + 4, sel ? C.gold : '#7a6a70', { align: 'center', weight: 700 });
-    T(g, S.blurb[1], x0 + w / 2, y0 + hgt + 14, sel ? C.cyan : '#6a6a7a', { align: 'center' });
-    hitArea(x0, y0, x0 + w, y0 + hgt + 22, { fighter: f });
+    T(g, S.blurb[0], x0 + w / 2, y0 + hgt + 3, sel ? C.gold : '#7a6a70', { align: 'center', weight: 700 });
+    T(g, S.blurb[1], x0 + w / 2, y0 + hgt + 12, sel ? C.cyan : '#6a6a7a', { align: 'center' });
+    hitArea(x0, y0, x0 + w, y0 + hgt + 20, { fighter: f });
   });
-  const y = 158;
-  T(g, 'LEVEL', 60, y, game.menu === 1 ? C.ink : C.dim, { weight: 700 });
+  const y = 141;
+  T(g, 'LEVEL', 22, y, game.menu === 1 ? C.ink : C.dim, { weight: 700 });
   LEVELS.forEach((lv, i) => {
-    const sel = settings.level === lv, x = 140 + i * 110;
+    const sel = settings.level === lv, x = 74 + i * 76;
     g.fillStyle = sel ? lgrad(g, 0, y - 4, 0, y + 11, [[0, '#c0322a'], [1, '#6a1010']]) : 'rgba(255,255,255,0.06)';
-    roundRectPath(g, x - 4, y - 4, 92, 15, 7.5); g.fill();
+    roundRectPath(g, x - 4, y - 4, 70, 15, 7.5); g.fill();
     if (sel && game.menu === 1 && blink(3)) { g.strokeStyle = C.gold; g.lineWidth = 0.7; g.stroke(); }
-    T(g, DIFFS[lv].name, x + 42, y - 0.5, sel ? C.ink : C.dim, { align: 'center', weight: 700, scale: 1.05 });
-    hitArea(x - 6, y - 6, x + 90, y + 12, { level: lv });
+    T(g, DIFFS[lv].name, x + 31, y - 0.5, sel ? C.ink : C.dim, { align: 'center', weight: 700, scale: lv === 'grandmaster' ? 0.9 : 1.05 });
+    hitArea(x - 6, y - 6, x + 68, y + 12, { level: lv });
   });
-  T(g, settings.level === 'master' ? 'FASTER FOES, TOUGHER GUARDIANS, LESS TIME.' : 'GENTLER DAMAGE, LONGER WARNINGS, MORE TIME.', W / 2, y + 15, '#a898a8', { align: 'center' });
-  const by = 190, sel = game.menu === 2;
+  T(g, (DIFFS[settings.level] || DIFFS.disciple).blurb, W / 2, y + 14, '#a898a8', { align: 'center' });
+  const iy = 169, on = !!settings.invincible;
+  T(g, 'INVINCIBLE', 22, iy, game.menu === 2 ? C.ink : C.dim, { weight: 700 });
+  g.fillStyle = on ? lgrad(g, 0, iy - 4, 0, iy + 11, [[0, '#7a5aff'], [1, '#3a1e9a']]) : 'rgba(255,255,255,0.06)';
+  roundRectPath(g, 92, iy - 4, 52, 15, 7.5); g.fill();
+  if (game.menu === 2 && blink(3)) { g.strokeStyle = C.gold; g.lineWidth = 0.7; g.stroke(); }
+  disc(g, on ? 136 : 100, iy + 3.5, 5, on ? '#ffffff' : '#7a6a78');
+  T(g, on ? 'ON' : 'OFF', on ? 110 : 128, iy - 0.5, on ? C.ink : C.dim, { align: 'center', weight: 700 });
+  T(g, on ? 'NO DAMAGE, NO TIME LIMIT. SCORES ARE NOT RANKED.' : 'TAKE NO DAMAGE AT ALL. GREAT FOR PRACTICE.', 152, iy, on ? '#c8b8ff' : '#8a7a90');
+  hitArea(88, iy - 6, 148, iy + 12, { inv: true });
+  const by = 192, sel = game.menu === 3;
   g.fillStyle = lgrad(g, 0, by - 5, 0, by + 12, sel ? [[0, blink(3) ? '#e8402e' : '#c0322a'], [1, '#6a1010']] : [[0, '#4a1a1a'], [1, '#2a0e10']]);
   roundRectPath(g, W / 2 - 52, by - 5, 104, 17, 8.5); g.fill();
   g.strokeStyle = '#ffd27a'; g.lineWidth = sel ? 0.9 : 0.4; g.stroke();
-  T(g, 'BEGIN', W / 2, by - 1.6, C.ink, { align: 'center', weight: 700, scale: 1.25 });
+  const sf = startFloorPick(), many = PROG.reached > 0;
+  T(g, many ? 'BEGIN: FLOOR ' + (sf + 1) : 'BEGIN', W / 2, by - 1.6, C.ink, { align: 'center', weight: 700, scale: many ? 1.05 : 1.25 });
+  if (many && sel) { T(g, '<', W / 2 - 62, by - 1.6, C.gold, { align: 'center', weight: 700 }); T(g, '>', W / 2 + 62, by - 1.6, C.gold, { align: 'center', weight: 700 }); }
   hitArea(W / 2 - 54, by - 7, W / 2 + 54, by + 14, { go: true });
   T(g, '< BACK', 8, 205, C.dim); hitArea(2, 199, 60, 216, { back: true });
   T(g, input.usingTouch ? 'TAP TO CHOOSE' : 'UP/DOWN ROW   LEFT/RIGHT CHANGE', W - 6, 205, '#8a7a90', { align: 'right' });
@@ -475,14 +487,25 @@ function drawHowTo(g) {
       ['PUNCH', 'Z  J', 'X', 'P'],
       ['KICK', 'X  K', 'B', 'K'],
       ['JUMP', 'SPACE  UP', 'A  UP', 'J'],
-      ['CHI WAVE', 'C  L  SHIFT', 'Y  LB  RB', 'C'],
+      ['CHI / STAR', 'C  L  SHIFT', 'Y  LB  RB', 'CHI'],
+      ['DASH', 'V  Q  OR TAP TWICE', 'LT  RT', 'TAP TWICE'],
       ['PAUSE', 'P  ESC', 'START', 'II']
     ];
     rows.forEach((r, i) => { const y = 62 + i * 12; rect(g, 22, y - 1.5, W - 44, 0.4, 'rgba(255,220,160,0.12)'); L(r[0], 24, y, C.dim); L(r[1], 112, y); L(r[2], 222, y); L(r[3], 306, y); });
-    L('M MUTES THE SOUND.', 24, 136, C.dim);
-    L('HOLD DOWN TO CROUCH. ATTACKS WHILE CROUCHING HIT LOW.', 24, 150);
-    L('LIAN CAN JUMP AGAIN IN THE AIR.', 24, 162);
+    L('M MUTES THE SOUND.  HOLD DOWN TO CROUCH AND HIT LOW.', 24, 150, C.dim);
   } else if (p === 1) {
+    L('NINJA ARTS', 24, 33, C.cyan, { weight: 700, scale: 1.1 });
+    L('DOUBLE TAP LEFT OR RIGHT, OR PRESS V, TO SHADOW STEP.', 24, 48);
+    L('A SHADOW STEP DODGES EVERY HIT, AND WORKS IN THE AIR.', 24, 59);
+    L('ATTACK RIGHT AFTER A DASH FOR A SHADOW STRIKE FINISHER.', 24, 70, C.gold);
+    L('JUMP AGAIN IN MID AIR TO SOMERSAULT. LIAN FLIPS TWICE.', 24, 84);
+    L('HOLD TOWARD A WALL TO SLIDE, THEN JUMP TO KICK OFF IT.', 24, 95);
+    L('TAP JUMP FOR A SHORT HOP, HOLD IT TO JUMP HIGH.', 24, 106);
+    L('WEAPONS', 24, 122, C.cyan, { weight: 700, scale: 1.1 });
+    L('NUNCHAKU AND BO STAFF POWER UP PUNCHES UNTIL THEY BREAK.', 24, 137);
+    L('SHURIKEN: PRESS CHI WHILE THE METER IS NOT FULL TO THROW.', 24, 148, C.gold);
+    L('NINJAS THROW STARS TOO. PUNCH THEM TO SEND THEM BACK!', 24, 159);
+  } else if (p === 2) {
     L('COMBAT', 24, 33, C.cyan, { weight: 700, scale: 1.1 });
     L('LAND TWO HITS, THEN A THIRD FOR A FINISHER THAT LAUNCHES FOES.', 24, 50);
     L('DOWN + KICK SWEEPS.  DOWN + PUNCH HITS LOW.', 24, 64);
@@ -609,7 +632,7 @@ function drawPause(g) {
   rect(g, 0, 0, W, H, 'rgba(10,4,10,0.66)');
   bigTitle(g, 'PAUSED', W / 2, 48, 2.4);
   PAUSE_ITEMS.forEach((it, i) => {
-    const y = 90 + i * 18, sel = game.menu === i;
+    const y = 84 + i * 17, sel = game.menu === i;
     menuBar(g, W / 2 - 62, y - 4, 124, 14, sel);
     T(g, it, W / 2 + (sel ? 3 : 0), y - 1, sel ? C.ink : C.dim, { align: 'center', weight: 700, scale: 1.15 });
     hitArea(W / 2 - 80, y - 5, W / 2 + 80, y + 11, { i });
@@ -701,6 +724,7 @@ function renderFrame() {
     case 'title': drawTitle(g); break;
     case 'select': drawSelect(g); break;
     case 'scores': drawScores(g); break;
+    case 'medals': drawMedals(g); break;
     case 'howto': drawHowTo(g); break;
     case 'options': drawOptions(g); break;
     case 'intro': drawIntro(g); break;
@@ -714,6 +738,7 @@ function renderFrame() {
     default: break;
   }
   if (game.fadeT > 0) { g.globalAlpha = Math.min(1, game.fadeT / 0.22); rect(g, 0, 0, W, H, '#000000'); g.globalAlpha = 1; }
+  drawMedalToast(g);
   if (game.toast) {
     game.toast.t += 1 / 60;
     if (game.toast.t > 1.6) game.toast = null;

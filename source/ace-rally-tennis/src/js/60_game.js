@@ -104,6 +104,7 @@ function teardown() {
 function startMatch(cfg) {
   teardown();
   game.cfg = cfg;
+  plusReset();
   game.mode = cfg.mode === 'demo' ? 'demo' : cfg.mode === 'practice' ? 'practice' : 'match';
   game.doubles = cfg.mode === 'doubles';
   game.surf = SURFACES[cfg.surface] || SURFACES.hard;
@@ -592,7 +593,7 @@ function onSwingInput(inp) {
   const b = g.ball;
   const inSpeed = Math.sqrt(b.vx * b.vx + b.vz * b.vz);
   const lvl = g.mode === 'practice' ? 'rookie' : (g.cfg && g.cfg.level) || 'pro';
-  const ws = (lvl === 'rookie' ? 1.15 : lvl === 'champ' ? 0.86 : 1) * clamp(1.1 - (inSpeed - 15) / 40, 0.75, 1.1);
+  const ws = (lvl === 'rookie' ? 1.15 : lvl === 'champ' ? 0.86 : lvl === 'legend' ? 0.8 : 1) * clamp(1.1 - (inSpeed - 15) / 40, 0.75, 1.1);
   const early = W.ideal + (W.early - W.ideal) * ws, late = W.late * ws;
   const now = g.t - W.lat;
   const dtc = p.plan.t - now;
@@ -640,7 +641,9 @@ function performHit(p, plan) {
   audio.hit(shot.power, b.x, b.z < -2, shot.type);
   if (shot.type === 'smash') { game.shake = Math.max(game.shake, 0.25); sparkle(b.x, b.y, b.z, 1.3); }
   if (human) {
-    if (shot.perfect) { sparkle(b.x, b.y, b.z, 1.1); ui.pop('PERFECT!', 'good', p); crowdCheer(0.25); vibrate(30); }
+    plusOnHit(p, shot, b);
+    if (shot.pw) { /* the power shot has its own call */ }
+    else if (shot.perfect) { sparkle(b.x, b.y, b.z, 1.1); ui.pop('PERFECT!', 'good', p); crowdCheer(0.25); vibrate(30); }
     else if (shot.e > 0.7) ui.pop('EARLY', 'warn', p);
     else if (shot.e < -0.7) ui.pop('LATE', 'warn', p);
     else if (Math.abs(shot.e) < 0.4) { ui.pop('NICE', 'ok', p); vibrate(15); }
@@ -727,8 +730,11 @@ function humanShot(p, plan) {
   else if (type === 'lob') { tz = dir * rand(9.0, 10.5); spin = 0.25; clear = 2.0; tx = d * xr * 2.6; speed = 10; }
   else if (type === 'drop') { tz = dir * rand(2.0, 3.8); speed = rand(8.2, 10); spin = -0.45; clear = 0.22; tx = d * xr * 3.0; }
   else { tz = dir * (lerp(7.4, 10.1, q) + rand(-0.35, 0.35)); speed = lerp(14.5, 25.5, q * q); spin = 0.5 + q * 0.3; clear = lerp(0.7, 0.3, q); }
+  const pw = plusPowerReady() && ae < 0.5 && (type === 'drive' || type === 'volley' || type === 'smash');
+  if (pw) { speed = type === 'volley' ? 23 : type === 'smash' ? 34 : 29.5; clear = Math.min(clear, 0.3); spin = Math.max(spin, 0.7); }
   let kind = 'ok';
-  if (ae > 0.78) {
+  if (pw) { /* a charged shot never misses */ }
+  else if (ae > 0.78) {
     const k = (ae - 0.78) / 0.22;
     if (chance(0.3 + 0.55 * k)) kind = chance(0.55) ? 'wide' : (e < 0 ? 'net' : 'long');
   } else if (ae >= 0.18) {
@@ -743,7 +749,7 @@ function humanShot(p, plan) {
   if (kind === 'long') tz = dir * (COURT.HL + rand(0.25, 1.4));
   if (type === 'lob') speed = hyp(tx - from.x, tz - from.z) / rand(2.0, 2.4);
   const sol = kind === 'net' ? netShot(from, tx, tz, speed, spin) : aimShot(from, tx, tz, speed, spin, clear);
-  return { v: sol.v, spin, type, power: clamp(speed / 26, 0.3, 1) * (0.7 + q * 0.3), perfect: ae < 0.18, e };
+  return { v: sol.v, spin, type, power: pw ? 1 : clamp(speed / 26, 0.3, 1) * (0.7 + q * 0.3), perfect: ae < 0.18, e, pw };
 }
 
 /* ---- rally: rules ------------------------------------------------------------- */
@@ -840,7 +846,9 @@ function endPoint(winner, reason) {
   const loser = 1 - winner;
   const st = g.stats;
   if (g.mode === 'practice') { practicePointOver(winner, reason); return; }
+  if (plusShield(winner)) return;
   st[winner].points++;
+  plusOnPoint(winner, reason);
   if (reason === 'ace') st[winner].aces++;
   else if (reason === 'winner') st[winner].winners++;
   else if (reason === 'out' || reason === 'net') st[loser].errors++;
@@ -929,9 +937,12 @@ function matchOver(winner, res) {
   g.celebrate = g.teams[winner].players[0];
   g.camMode = 'celebrate'; g.camT0 = g.t;
   ui.prompt(null);
-  const rec = store.get('record', { w: 0, l: 0 });
-  if (humanWon) rec.w++; else rec.l++;
-  store.set('record', rec);
+  if (!(g.cfg && g.cfg.invincible)) {
+    const rec = store.get('record', { w: 0, l: 0 });
+    if (humanWon) rec.w++; else rec.l++;
+    store.set('record', rec);
+  }
+  plusOnMatch(!!humanWon);
   after(4.6, () => ui.showResults(winner));
 }
 
@@ -1142,6 +1153,7 @@ function updateGame(dt) {
   const g = game;
   if (g.paused || !g.teams.length) return;
   const sdt = dt * g.timeScale;
+  plusUpdate(sdt);
   g.acc += sdt;
   let steps = 0;
   while (g.acc >= PH_DT && steps < 60) {

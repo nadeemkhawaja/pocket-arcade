@@ -184,6 +184,7 @@ function drawHeldV(g, d, hand, item, angDeg, k, rot) {
   const steel = d.tint ? d.ink : '#d8e2ec', steelS = d.tint ? d.ink : '#8a98a8';
   g.lineJoin = 'round';
   switch (item) {
+    case 'star': case 'staff': case 'nunchaku': drawHeldExtra(g, d, item, u); break;
     case 'dagger': {
       limbs(g, [[-1.8 * u, 0, -0.2 * u, 0, 0.42 * u, 0.42 * u, '#3a2418', '#6a4a30']], d);
       rect(g, -0.1 * u, -0.95 * u, 0.6 * u, 1.9 * u, d.tint ? d.ink : '#a3282a');
@@ -575,7 +576,8 @@ function spriteRect(m, cv, x, y, k) {
 function drawSprite(g, kind, anim, frame, facing, x, y, flash, alpha) {
   const a = alpha === undefined ? 1 : clamp(alpha, 0, 1);
   if (a <= 0.01) return;
-  const pose = poseAt(kind, anim, frame);
+  let pose = poseAt(kind, anim, frame);
+  if (SPRITE_ITEM && !pose.item) pose = Object.assign({}, pose, SPRITE_ITEM);
   const ga = g.globalAlpha, net = ga * a;
   const cv = g.canvas;
   const layered = (flash || net < 0.97) && !SPRITE_DIRECT && QUALITY.level < 2 && cv && cv.id === 'screen' && g.getTransform;

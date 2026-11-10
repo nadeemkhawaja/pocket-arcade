@@ -44,7 +44,10 @@ const store = {
   set(k, v) { try { localStorage.setItem('daggerRaid.' + k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } }
 };
 
-const settings = Object.assign({ music: 0.7, sfx: 0.85, crt: true, shake: !reducedMotion, mode: 'arcade', touch: 'auto' }, store.get('settings', {}));
+const settings = Object.assign(
+  { music: 0.7, sfx: 0.85, fx: true, shake: !reducedMotion, level: 'soldier', invincible: false, outfit: 'commando', stage: 0, touch: 'auto', muted: false },
+  store.get('settings', {})
+);
 function saveSettings() { store.set('settings', settings); }
 
 const DEFAULT_SCORES = [
@@ -56,6 +59,9 @@ function loadScores() {
   if (!Array.isArray(s) || s.length !== 5) return DEFAULT_SCORES.map((e) => Object.assign({}, e));
   return s;
 }
+
+const DBG = {};               // profiling switches used by the tests
+const QUALITY = { level: 0, res: [1, 0.8, 0.64] };
 
 function makeCanvas(w, h) {
   const c = document.createElement('canvas');

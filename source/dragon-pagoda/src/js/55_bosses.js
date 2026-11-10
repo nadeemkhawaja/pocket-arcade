@@ -39,8 +39,8 @@ function makeBoss(kind) {
   b.shotHit = (s) => {
     if (!boxHit(shotBox(s), b.hurtBox())) return false;
     hitSpark(b.x, s.y, true);
-    bossDamage(b, s.k === 'orb' ? 3 : 2, sgn(s.vx), true);
-    pop(b.x, b.y - D.h - 16, 'RETURNED!', '#9fe8ff');
+    bossDamage(b, s.k === 'orb' ? 3 : s.hero ? 1 : 2, sgn(s.vx), true);
+    if (!s.hero) pop(b.x, b.y - D.h - 16, 'RETURNED!', '#9fe8ff');
     return true;
   };
   b.touches = (hb) => bossTouches(b, hb);

@@ -92,6 +92,13 @@ const SURFACES = {
     inner: '#c9693f', outer: '#bb5f37', outer2: '#c4653b', line: '#f7f1ea',
     dust: 0xd98a5f, dustAmt: 1.0, mark: 0x9c4a26, sound: 'clay',
     grassColor: '#3f8a45'
+  },
+  royal: {
+    key: 'royal', label: 'Royal', name: 'Royal indoor court', locked: 'pro',
+    e: 0.70, f: 0.80, kick: 0.04, roll: 1.6,
+    inner: '#5a3d9a', outer: '#1f2a52', outer2: '#243060', line: '#ffe9a8',
+    dust: 0xcfc4ff, dustAmt: 0.2, mark: 0x3a2870, sound: 'hard',
+    grassColor: '#2a3a6a'
   }
 };
 
@@ -120,6 +127,14 @@ const LEVELS = {
     approach: 0.28, netReach: 1.12,
     look: { shirt: '#1d2230', shirt2: '#f2c94c', shorts: '#1d2230', skin: 3, hair: 4, style: 'spiky', band: '#f2c94c' },
     look2: { shirt: '#1d2230', shirt2: '#f2c94c', shorts: '#1d2230', skin: 0, hair: 1, style: 'short', band: '#f2c94c' }
+  },
+  legend: {
+    key: 'legend', label: 'Legend', name: 'VERA', partner: 'NOX',
+    speed: 7.4, react: 0.075, pace: [22.5, 28], err: 0.035, width: 4.2, depth: [8.8, 10.9],
+    aggr: 1.0, serve: [32, 38], serveIn: [0.7, 0.96], leaveOut: 0.96, lob: 0.12, drop: 0.09,
+    approach: 0.36, netReach: 1.2,
+    look: { shirt: '#c8102e', shirt2: '#ffd9a0', shorts: '#101318', skin: 2, hair: 4, style: 'pony', band: '#ffd24a' },
+    look2: { shirt: '#c8102e', shirt2: '#ffd9a0', shorts: '#101318', skin: 4, hair: 0, style: 'buzz', band: '#ffd24a' }
   }
 };
 
@@ -148,7 +163,7 @@ const DEFAULTS = {
   sfx: true, music: true, voice: true, guides: 'auto', shake: true, quality: 'auto', mute: false,
   camSens: 55, camAim: true, camPreview: true,
   name: 'PLAYER', shirt: 0, skin: 0,
-  mode: 'singles', controls: isTouchDevice ? 'touch' : 'keys', level: 'pro', format: 'g3', surface: 'hard'
+  mode: 'singles', controls: isTouchDevice ? 'touch' : 'keys', level: 'pro', format: 'g3', surface: 'hard', invincible: false
 };
 const settings = Object.assign({}, DEFAULTS, store.get('settings', {}));
 if (!LEVELS[settings.level]) settings.level = 'pro';

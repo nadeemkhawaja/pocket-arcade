@@ -2,12 +2,12 @@
    Menus: boot, title, fighter select, attract loop, how to play, options, pause, name entry
    ========================================================================== */
 
-const TITLE_ITEMS = ['START GAME', 'HOW TO PLAY', 'HIGH SCORES', 'OPTIONS'];
+const TITLE_ITEMS = ['START GAME', 'HOW TO PLAY', 'HIGH SCORES', 'MEDALS', 'OPTIONS'];
 const OPTION_ITEMS = ['MUSIC', 'EFFECTS', 'GLOW FX', 'SCREEN SHAKE', 'TOUCH PAD', 'BACK'];
-const PAUSE_ITEMS = ['RESUME', 'OPTIONS', 'QUIT GAME'];
-const HOWTO_PAGES = 3;
+const PAUSE_ITEMS = ['RESUME', 'RESTART FLOOR', 'OPTIONS', 'QUIT GAME'];
+const HOWTO_PAGES = 4;
 const FIGHTERS = ['tao', 'lian'];
-const LEVELS = ['disciple', 'master'];
+const LEVELS = ['novice', 'disciple', 'master', 'grandmaster'];
 
 function menuMove(n, P) {
   let m = game.menu;
@@ -39,23 +39,27 @@ function updateMenus(dt, I, P) {
       menuMove(TITLE_ITEMS.length, P);
       let act = confirm ? game.menu : -1;
       if (hit) { game.menu = hit.i; act = hit.i; }
-      if (act === 0) { chip.sfx('select'); setState('select'); game.menu = 2; }
+      if (act === 0) { chip.sfx('select'); setState('select'); game.menu = 3; }
       else if (act === 1) { chip.sfx('select'); setState('howto'); game.page = 0; }
       else if (act === 2) { chip.sfx('select'); setState('scores'); game.attract = false; }
-      else if (act === 3) { chip.sfx('select'); game.optFrom = 'title'; setState('options'); }
+      else if (act === 3) { chip.sfx('select'); setState('medals'); }
+      else if (act === 4) { chip.sfx('select'); game.optFrom = 'title'; setState('options'); }
       if (game.idleT > 22) { game.idleT = 0; game.attract = true; setState('scores'); }
       break;
     }
     case 'select': {
-      menuMove(3, P);
+      menuMove(4, P);
       const d = P.left ? -1 : P.right ? 1 : 0;
       if (d && game.menu === 0) { settings.fighter = FIGHTERS[(FIGHTERS.indexOf(settings.fighter) + 1) % 2]; chip.sfx('move'); saveSettings(); }
-      if (d && game.menu === 1) { settings.level = LEVELS[(LEVELS.indexOf(settings.level) + 1) % 2]; chip.sfx('move'); saveSettings(); }
-      let go = confirm && game.menu === 2;
-      if (confirm && game.menu < 2) { game.menu++; chip.sfx('move'); }
+      if (d && game.menu === 1) { const n = LEVELS.length; settings.level = LEVELS[(Math.max(0, LEVELS.indexOf(settings.level)) + d + n) % n]; chip.sfx('move'); saveSettings(); }
+      if (d && game.menu === 3) { const n = Math.min(PROG.reached, FLOORS.length - 1) + 1; settings.floor = (startFloorPick() + d + n) % n; chip.sfx('move'); saveSettings(); }
+      if (d && game.menu === 2) { settings.invincible = !settings.invincible; chip.sfx(settings.invincible ? 'chime' : 'move'); saveSettings(); }
+      let go = confirm && game.menu === 3;
+      if (confirm && game.menu < 3) { game.menu++; chip.sfx('move'); }
       if (hit) {
         if (hit.fighter) { settings.fighter = hit.fighter; game.menu = 0; chip.sfx('move'); saveSettings(); }
         else if (hit.level) { settings.level = hit.level; game.menu = 1; chip.sfx('move'); saveSettings(); }
+        else if (hit.inv) { settings.invincible = !settings.invincible; game.menu = 2; chip.sfx(settings.invincible ? 'chime' : 'move'); saveSettings(); }
         else if (hit.go) go = true;
         else if (hit.back) { setState('title'); chip.sfx('move'); break; }
       }
@@ -63,6 +67,9 @@ function updateMenus(dt, I, P) {
       else if (back) { setState('title'); chip.sfx('move'); }
       break;
     }
+    case 'medals':
+      if (confirm || back || (input.tap && game.stateT > 0.3)) { chip.sfx('move'); setState('title'); game.menu = 3; }
+      break;
     case 'scores':
       if (game.attract) {
         if (P.any || input.tap) { game.attract = false; setState('title'); game.idleT = 0; break; }
@@ -91,8 +98,9 @@ function updateMenus(dt, I, P) {
       if (hit) { game.menu = hit.i; act = hit.i; }
       if (P.pause || back) act = 0;
       if (act === 0) { game.state = 'play'; chip.duck(false); chip.sfx('select'); }
-      else if (act === 1) { chip.sfx('select'); game.optFrom = 'pause'; setState('options'); }
-      else if (act === 2) { chip.duck(false); chip.stopMusic(); game.demo = false; finishRun(); }
+      else if (act === 1) { chip.sfx('coin'); restartFloor(); }
+      else if (act === 2) { chip.sfx('select'); game.optFrom = 'pause'; setState('options'); }
+      else if (act === 3) { chip.duck(false); chip.stopMusic(); game.demo = false; finishRun(); }
       break;
     }
     case 'entry': updateEntry(dt, P, hit); break;
@@ -120,8 +128,8 @@ function adjustOption(i, d, activate) {
 
 function leaveOptions() {
   chip.sfx('move');
-  if (game.optFrom === 'pause') { setState('pause'); game.menu = 1; }
-  else { setState('title'); game.menu = 3; }
+  if (game.optFrom === 'pause') { setState('pause'); game.menu = 2; }
+  else { setState('title'); game.menu = 4; }
 }
 
 function openPause() {

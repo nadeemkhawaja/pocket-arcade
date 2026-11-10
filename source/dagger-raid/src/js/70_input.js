@@ -2,13 +2,13 @@
    Input: keyboard, gamepad and touch pad merged into one action state
    ========================================================================== */
 
-const ACTIONS = ['left', 'right', 'up', 'down', 'jump', 'knife', 'special', 'start', 'pause', 'back'];
+const ACTIONS = ['left', 'right', 'up', 'down', 'jump', 'knife', 'special', 'dash', 'start', 'pause', 'back'];
 const KEYMAP = {
   ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
   ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
   Space: 'jump', KeyX: 'jump', KeyK: 'jump',
   KeyZ: 'knife', KeyJ: 'knife', KeyF: 'knife',
-  KeyC: 'special', KeyL: 'special', ShiftLeft: 'special', ShiftRight: 'special',
+  KeyC: 'special', KeyL: 'special', KeyV: 'dash', KeyQ: 'dash', ShiftLeft: 'dash', ShiftRight: 'dash',
   Enter: 'start', NumpadEnter: 'start', KeyP: 'pause', Escape: 'back'
 };
 
@@ -18,7 +18,7 @@ const input = {
   usingTouch: false, usingPad: false, padIdx: -1, pend: {}
 };
 for (const a of ACTIONS) { input.held[a] = false; input.pressed[a] = false; input.prev[a] = false; }
-const NO_PRESS = Object.freeze({ left: false, right: false, up: false, down: false, jump: false, knife: false, special: false, start: false, pause: false, back: false, any: false });
+const NO_PRESS = Object.freeze({ left: false, right: false, up: false, down: false, jump: false, knife: false, special: false, dash: false, start: false, pause: false, back: false, any: false });
 
 function initInput() {
   window.addEventListener('keydown', (ev) => {
@@ -99,7 +99,7 @@ function initTouch() {
 }
 
 function recomputeTouch(isDown) {
-  const next = { left: false, right: false, up: false, down: false, jump: false, knife: false, special: false };
+  const next = { left: false, right: false, up: false, down: false, jump: false, knife: false, special: false, dash: false };
   const dp = $('dpad').getBoundingClientRect();
   const dcx = dp.left + dp.width / 2, dcy = dp.top + dp.height / 2, rad = dp.width / 2;
   let knob = null;
@@ -150,8 +150,9 @@ function pollPad() {
   P.up = b(12) || ay < -0.55;
   P.down = b(13) || ay > 0.55;
   P.jump = b(0);
-  P.knife = b(2) || b(5) || b(7);
-  P.special = b(1) || b(3) || b(4) || b(6);
+  P.knife = b(2);
+  P.special = b(1) || b(3);
+  P.dash = b(4) || b(5) || b(6) || b(7);
   P.start = b(9);
   P.back = b(8);
   if (gp.buttons.some((x) => x && x.pressed)) { input.usingPad = true; input.usingTouch = false; }

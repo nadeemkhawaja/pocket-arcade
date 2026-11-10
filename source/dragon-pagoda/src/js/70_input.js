@@ -2,13 +2,14 @@
    Input: keyboard, gamepad and touch pad merged into one action state
    ========================================================================== */
 
-const ACTIONS = ['left', 'right', 'up', 'down', 'jump', 'punch', 'kick', 'special', 'start', 'pause', 'back'];
+const ACTIONS = ['left', 'right', 'up', 'down', 'jump', 'punch', 'kick', 'special', 'dash', 'start', 'pause', 'back'];
 const KEYMAP = {
   ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
   ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down',
   Space: 'jump',
   KeyZ: 'punch', KeyJ: 'punch', KeyX: 'kick', KeyK: 'kick',
   KeyC: 'special', KeyL: 'special', ShiftLeft: 'special', ShiftRight: 'special',
+  KeyV: 'dash', KeyQ: 'dash',
   Enter: 'start', NumpadEnter: 'start', KeyP: 'pause', Escape: 'back'
 };
 
@@ -18,7 +19,7 @@ const input = {
   usingTouch: false, usingPad: false, padIdx: -1, pend: {}
 };
 for (const a of ACTIONS) { input.held[a] = false; input.pressed[a] = false; input.prev[a] = false; }
-const NO_PRESS = Object.freeze({ left: false, right: false, up: false, down: false, jump: false, punch: false, kick: false, special: false, start: false, pause: false, back: false, any: false });
+const NO_PRESS = Object.freeze({ left: false, right: false, up: false, down: false, jump: false, punch: false, kick: false, special: false, dash: false, start: false, pause: false, back: false, any: false });
 
 function initInput() {
   window.addEventListener('keydown', (ev) => {
@@ -157,7 +158,8 @@ function pollPad() {
   P.jump = b(0);
   P.punch = b(2);
   P.kick = b(1);
-  P.special = b(3) || b(4) || b(5) || b(6) || b(7);
+  P.special = b(3) || b(4) || b(5);
+  P.dash = b(6) || b(7);
   P.start = b(9);
   P.back = b(8);
   if (gp.buttons.some((x) => x && x.pressed)) { input.usingPad = true; input.usingTouch = false; }

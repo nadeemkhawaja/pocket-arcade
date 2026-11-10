@@ -3,8 +3,14 @@
    ========================================================================== */
 
 const DIFFS = {
-  disciple: { id: 'disciple', name: 'DISCIPLE', dmg: 0.7, foeSpeed: 0.92, spawn: 0.85, tele: 1.25, drain: 0.65, bossHp: 0.85, time: 30 },
-  master: { id: 'master', name: 'MASTER', dmg: 1, foeSpeed: 1.04, spawn: 1.08, tele: 1, drain: 1, bossHp: 1.15, time: 0 }
+  novice: { id: 'novice', name: 'NOVICE', dmg: 0.45, foeSpeed: 0.84, spawn: 0.72, tele: 1.5, drain: 0.45, bossHp: 0.7, time: 60, ninja: 0.6,
+    blurb: 'GENTLE HITS, SLOW FOES, LONG WARNINGS. LEARN THE ARTS.' },
+  disciple: { id: 'disciple', name: 'DISCIPLE', dmg: 0.7, foeSpeed: 0.92, spawn: 0.85, tele: 1.25, drain: 0.65, bossHp: 0.85, time: 30, ninja: 0.85,
+    blurb: 'BALANCED. CLEAR WARNINGS AND EXTRA TIME.' },
+  master: { id: 'master', name: 'MASTER', dmg: 1, foeSpeed: 1.04, spawn: 1.08, tele: 1, drain: 1, bossHp: 1.15, time: 0, ninja: 1,
+    blurb: 'FASTER FOES, TOUGHER GUARDIANS, LESS TIME.' },
+  grandmaster: { id: 'grandmaster', name: 'GRANDMASTER', dmg: 1.35, foeSpeed: 1.13, spawn: 1.22, tele: 0.82, drain: 1.3, bossHp: 1.4, time: -15, ninja: 1.35,
+    blurb: 'BRUTAL. HEAVY HITS, SHORT WARNINGS, NINJA SWARMS.' }
 };
 
 const game = {
@@ -41,14 +47,17 @@ function newGame(demo) {
   chip.mute = game.demo;
   game.fighter = demo ? pick(['tao', 'lian']) : settings.fighter;
   game.diff = DIFFS[demo ? 'master' : settings.level] || DIFFS.disciple;
+  game.invincible = !demo && !!settings.invincible;
+  game.gifts = {};
   game.score = 0; game.lives = 2; game.nextExtend = 50000; game.continues = 0; game.cleared = false;
   game.stats = freshStats();
   game.carry = null;
-  startFloor(0);
+  startFloor(demo ? 0 : startFloorPick());
 }
 
 function startFloor(i) {
   game.floorIdx = i;
+  game.floorScore0 = game.score; game.floorCarry0 = game.carry;
   const F = game.F = FLOORS[i];
   game.L = floorArt(F);
   const h = game.hero = makeHero(floorX(F, 44), game.fighter);
@@ -131,11 +140,13 @@ function updatePlay(dt, I, P) {
   updateCamera(dt);
   // the hero stays on screen, out of the stairwell until the guardian falls, and inside the arena
   if (!cut) {
+    const xBefore = h.x;
     h.x = clamp(h.x, game.camX + 8, game.camX + W - 8);
     h.x = clamp(h.x, 10, F.len - 10);
     const sx = stairX(F);
     if (F.dir > 0) h.x = Math.min(h.x, sx - 36); else h.x = Math.max(h.x, sx + 36);
     if (game.arena) h.x = clamp(h.x, game.arena.x0, game.arena.x1);
+    heroWallContact(h, xBefore, dt);
   }
   if (!game.bossSeq) { runEvents(); ambientSpawn(dt); checkArena(); }
   else runSched();
@@ -152,7 +163,7 @@ function updatePlay(dt, I, P) {
   // the floor timer
   if (!h.dead && !cut && !game.demo) {
     const before = Math.ceil(game.timeLeft);
-    game.timeLeft = Math.max(0, game.timeLeft - dt);
+    if (!game.invincible) game.timeLeft = Math.max(0, game.timeLeft - dt);
     if (game.timeLeft < 20 && Math.ceil(game.timeLeft) !== before) chip.sfx('tick');
     if (game.timeLeft <= 0) { pop(h.x, h.y - 60, 'TIME UP!', '#ff5a4a'); releaseGrabbers(h, false); killHero(h, -h.face); }
   }
@@ -374,6 +385,10 @@ function finishRun() {
 /* ---- floor clear and tally ------------------------------------------------------------ */
 function startClear() {
   setState('clear');
+  if (game.stageStats.hits === 0 && game.stageStats.deaths === 0) award('flawless');
+  if (game.floorIdx === 0) award('floor1');
+  if (game.floorIdx === 2) award('floor3');
+  if (game.floorIdx + 1 < FLOORS.length) reachFloor(game.floorIdx + 1);
   chip.play('clear');
   const S = game.stageStats, h = game.hero;
   const t = Math.floor(game.timeLeft);
@@ -410,7 +425,7 @@ function nextFloor() {
   for (const k in game.stageStats) game.stats[k] += game.stageStats[k];
   game.hideHero = false;
   if (game.floorIdx + 1 < FLOORS.length) startFloor(game.floorIdx + 1);
-  else startEnding();
+  else { award('master'); if (game.diff.id === 'grandmaster') award('grand'); startEnding(); }
 }
 
 /* ---- ending ------------------------------------------------------------------------------- */
@@ -439,7 +454,7 @@ function updateEnding(dt, I, P) {
 
 /* ---- high scores ---------------------------------------------------------------------------- */
 function qualifies(score) {
-  if (game.demo || score <= 0) return -1;
+  if (game.demo || game.invincible || score <= 0) return -1;
   for (let i = 0; i < game.scores.length; i++) if (score > game.scores[i].s) return i;
   return -1;
 }

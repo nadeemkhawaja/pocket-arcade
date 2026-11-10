@@ -2,7 +2,7 @@
    UI: title, setup, webcam setup, HUD, banners, pause, results, settings
    ========================================================================== */
 
-const SCREENS = ['scrTitle', 'scrSetup', 'scrCam', 'scrHow', 'scrSettings', 'scrPause', 'scrResults'];
+const SCREENS = ['scrTitle', 'scrSetup', 'scrCam', 'scrHow', 'scrSettings', 'scrPause', 'scrResults', 'scrMedals'];
 
 const ICONS = {
   webcam: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="2.6" fill="currentColor"/><path d="M7.5 20.5h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
@@ -108,7 +108,11 @@ const ui = {
       value: s.key, label: s.label,
       icon: '<i class="court-swatch" style="background:linear-gradient(90deg,' + s.outer + ' 0 22%,' + s.inner + ' 22% 78%,' + s.outer + ' 78%)"></i>',
       sub: s.key === 'clay' ? 'High bounce' : s.key === 'grass' ? 'Low and quick' : 'True bounce'
-    })), settings.surface, (v) => { settings.surface = v; setSurface(v); });
+    })).filter((s) => plusCourtOpen(s.value)), settings.surface, (v) => { settings.surface = v; setSurface(v); });
+    this.chips('optShield', [
+      { value: 'off', label: 'Standard', sub: 'Every point counts' },
+      { value: 'on', label: 'Invincible', sub: 'You cannot lose a point' }
+    ], settings.invincible ? 'on' : 'off', (v) => { settings.invincible = v === 'on'; });
 
     const shirts = $('optShirt');
     SHIRTS.forEach((s, i) => {
@@ -146,6 +150,7 @@ const ui = {
     const practice = this.setupMode === 'practice';
     $('fieldLevel').hidden = practice;
     $('fieldFormat').hidden = practice;
+    $('fieldShield').hidden = practice;
     $('setupTitle').textContent = practice ? 'Rally practice' : 'Match setup';
     $('bStart').textContent = practice ? 'Start practice' : 'Start match';
     const c = settings.controls;
@@ -171,7 +176,8 @@ const ui = {
   currentCfg() {
     return {
       mode: this.setupMode, controls: settings.controls, level: settings.level, format: settings.format,
-      surface: settings.surface, name: cleanName(settings.name), shirt: settings.shirt, skin: settings.skin || 0
+      surface: plusCourtOpen(settings.surface) ? settings.surface : 'hard', name: cleanName(settings.name), shirt: settings.shirt, skin: settings.skin || 0,
+      invincible: !!settings.invincible && this.setupMode !== 'practice'
     };
   },
 
@@ -493,6 +499,7 @@ const ui = {
     on('bPlay', () => { audio.ui('go'); this.openSetup(settings.mode === 'practice' ? 'singles' : settings.mode, 'scrTitle'); });
     on('bPractice', () => { audio.ui('go'); this.openSetup('practice', 'scrTitle'); });
     on('bHow', () => { audio.ui('move'); this.open('scrHow', this.screen); });
+    on('bMedals', () => { audio.ui('move'); plusShowMedals(); this.open('scrMedals', this.screen); });
     on('bSettings', () => { audio.ui('move'); this.open('scrSettings', this.screen); });
     on('bStart', () => this.startFromSetup());
     document.querySelectorAll('[data-back]').forEach((b) => b.addEventListener('click', () => this.back()));

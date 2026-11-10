@@ -5,8 +5,8 @@
 const MAX_HP = 24;
 const MAX_CHI = 100;
 const HERO_STATS = {
-  tao: { name: 'TAO', speed: 88, jumpV: 314, punch: 1, kick: 2, chiGain: 1, airJumps: 0, quick: 1, blurb: ['POWER STYLE', 'KICKS HIT TWICE AS HARD'] },
-  lian: { name: 'LIAN', speed: 102, jumpV: 318, punch: 1, kick: 1, chiGain: 1.35, airJumps: 1, quick: 0.82, blurb: ['SWIFT STYLE', 'DOUBLE JUMP, FAST CHI'] }
+  tao: { name: 'TAO', speed: 88, jumpV: 314, punch: 1, kick: 2, chiGain: 1, airJumps: 1, quick: 1, blurb: ['POWER STYLE', 'KICKS HIT TWICE AS HARD'] },
+  lian: { name: 'LIAN', speed: 102, jumpV: 318, punch: 1, kick: 1, chiGain: 1.35, airJumps: 2, quick: 0.82, blurb: ['SWIFT STYLE', 'TRIPLE JUMP, FAST CHI'] }
 };
 
 /** Attack table. box = [near, far, lo, hi] in pixels in front of the feet. */
@@ -40,7 +40,8 @@ function makeHero(x, fighter) {
   return {
     kind: fighter, S, x, y: GROUND_Y, vx: 0, vy: 0, face: game.F ? game.F.dir : 1, ground: true, crouch: false,
     act: null, hp: MAX_HP, inv: 0, hurtT: 0, dead: false, deadT: 0, grabbers: [], escape: 0, lastDir: 0,
-    combo: 0, comboT: 0, jumps: 0, chi: 0, runT: 0, flash: 0, pose: null, bufK: null, bufT: 0, airAtk: false, flexT: 0, wig: 0
+    combo: 0, comboT: 0, jumps: 0, chi: 0, runT: 0, flash: 0, pose: null, bufK: null, bufT: 0, airAtk: false, flexT: 0, wig: 0,
+    weapon: null, stars: 0, dashT: 0, dashCD: 0, dashWin: 0, airDash: false, flipT: -1, wallSide: 0, wallT: 0, tapDir: 0, tapT: -9, jumpCut: false
   };
 }
 
@@ -55,7 +56,7 @@ function heroAttackBox(h) {
   if (!a || a.k === 'chi') return null;
   const D = ATK[a.k];
   if (a.t < D.a0 * h.S.quick || a.t > D.a1 * (D.air ? 1 : h.S.quick)) return null;
-  return front(h, D.box[0], D.box[1], D.box[2], D.box[3]);
+  return front(h, D.box[0], D.box[1] + weaponReach(h, D), D.box[2], D.box[3]);
 }
 
 function startAttack(h, k) {
@@ -110,16 +111,17 @@ function updateHero(h, dt, I, P) {
     chip.sfx('charge');
     for (let i = 0; i < 16; i++) { const a = rand(0, TAU); fxAdd({ k: 'chiP', x: h.x + Math.cos(a) * 40, y: h.y - 24 + Math.sin(a) * 30, tx: h.x + h.face * 6, ty: h.y - 26, t: 0, life: 0.32 }); }
     return;
-  } else if (P.special && h.chi < MAX_CHI && !game.demo) { chip.sfx('nochi'); }
+  } else if (P.special && h.chi < MAX_CHI) { if (!throwStar(h) && !game.demo) chip.sfx('nochi'); }
 
   const dir = (I.right ? 1 : 0) - (I.left ? 1 : 0);
+  if (heroNinja(h, dt, I, P, dir)) { heroLand(h); return; }
   // attacks (buffered presses, combos chain on hits)
   if (h.bufK && (!h.act || (h.act.landed && h.act.t > (ATK[h.act.k].a1 * h.S.quick) && !ATK[h.act.k].air))) {
     const isP = h.bufK === 'p';
     let k = null;
     if (!h.ground) { if (!h.airAtk) { k = isP ? 'jpunch' : 'jkick'; h.airAtk = true; } }
     else if (I.down) k = isP ? 'cpunch' : 'sweep';
-    else if (h.combo >= 2 && h.comboT > 0) k = isP ? 'fist' : 'round';
+    else if ((h.combo >= 2 && h.comboT > 0) || h.dashWin > 0) { k = isP ? 'fist' : 'round'; if (h.dashWin > 0) pop(h.x, h.y - 62, 'SHADOW STRIKE', '#b9a8ff'); h.dashWin = 0; }
     else if (h.combo === 1 && h.comboT > 0) k = isP ? 'cross' : 'kick2';
     else k = isP ? 'jab' : 'kick';
     if (k) {
@@ -129,14 +131,15 @@ function updateHero(h, dt, I, P) {
     }
   }
   // jumping (up or the jump button), with Lian's double jump
-  const wantJump = P.jump || P.up;
+  const wantJump = (P.jump || P.up) && !h.skipJump;
+  h.skipJump = false;
   if (wantJump && !h.act) {
     if (h.ground) {
-      h.vy = -h.S.jumpV; h.ground = false; h.jumps = 0; h.airAtk = false;
+      h.vy = -h.S.jumpV; h.ground = false; h.jumps = 0; h.airAtk = false; h.jumpCut = false;
       h.vx = dir * h.S.speed; if (dir) h.face = dir;
       chip.sfx('jump'); dust(h.x, h.y, 4);
     } else if (h.jumps < h.S.airJumps && h.vy > -150) {
-      h.jumps++; h.vy = -h.S.jumpV * 0.82; h.airAtk = false;
+      h.jumps++; h.vy = -h.S.jumpV * 0.82; h.airAtk = false; h.flipT = 0; h.jumpCut = true;
       if (dir) { h.vx = dir * h.S.speed; h.face = dir; }
       chip.sfx('jump2'); fxAdd({ k: 'ring', x: h.x, y: h.y, t: 0, life: 0.3, r0: 4, r1: 16, col: '#9fe8ff' });
     }
@@ -148,14 +151,16 @@ function updateHero(h, dt, I, P) {
     if (D && !D.air) h.vx = 0;
     else if (h.crouch) { h.vx = 0; if (dir) h.face = dir; }
     else {
-      h.vx = dir * h.S.speed;
+      h.vx = approach(h.vx, dir * h.S.speed, (dir ? 1500 : 2200) * dt);
       if (dir) h.face = dir;
       if (dir) h.runT += dt * h.S.speed;
     }
   } else {
     h.crouch = false;
     if (dir && !h.act) h.face = dir;
-    if (dir) h.vx = approach(h.vx, dir * h.S.speed, 260 * dt);
+    if (dir && !(h.wallLock > 0)) h.vx = approach(h.vx, dir * h.S.speed, 320 * dt);
+    // let go of jump early for a short hop
+    if (!h.jumpCut && h.vy < -120 && h.vy > -h.S.jumpV + 60 && !I.jump && !I.up) { h.vy *= 0.72; h.jumpCut = true; }
   }
   if (h.act) {
     h.act.t += dt;
@@ -165,10 +170,12 @@ function updateHero(h, dt, I, P) {
   heroPhys(h, dt);
   if (h.ground && !wasGround) {
     if (h.act && ATK[h.act.k].air) h.act = null;
-    h.airAtk = false; h.jumps = 0; h.vx = 0;
+    h.airAtk = false; h.jumps = 0; h.vx *= 0.3; h.airDash = false; h.flipT = -1; h.jumpCut = false;
     chip.sfx('land'); dust(h.x, h.y, 3);
   }
 }
+
+function heroLand(h) { if (h.ground) { h.airDash = false; h.flipT = -1; } }
 
 function heroPhys(h, dt) {
   h.x += h.vx * dt;
@@ -189,7 +196,7 @@ function updateGrabbed(h, dt, I, P) {
   const need = (game.diff.id === 'master' ? 4.2 : 3.2) + h.grabbers.length * 1.6;
   h.escNeed = need;
   const drain = 2.6 * game.diff.drain * h.grabbers.length;
-  h.hp -= drain * dt;
+  if (!game.invincible) h.hp -= drain * dt;
   h.drainT = (h.drainT || 0) + dt;
   if (h.drainT > 0.4) { h.drainT = 0; chip.sfx('squeeze'); h.flash = 0.06; }
   if (h.hp <= 0) { h.hp = 0; releaseGrabbers(h, false); killHero(h, -h.face); return; }
@@ -217,15 +224,16 @@ function releaseGrabbers(h, flung) {
 
 /** Damage the hero. dir is the direction the hit pushes them. */
 function hurtHero(h, dmg, dir, opt) {
-  if (h.dead || h.inv > 0 || game.cheat) return false;
+  if (h.dead || h.inv > 0 || game.cheat || h.dashT > 0) return false;
+  if (game.invincible) { h.flash = 0.06; sparks(h.x, h.y - 26, 4, '#b9a8ff'); chip.sfx('clang'); h.inv = 0.35; return false; }
   const d = dmg * game.diff.dmg;
   h.hp = Math.max(0, h.hp - d);
   h.flash = 0.12;
   game.stageStats.hits++;
   if (h.grabbers.length) releaseGrabbers(h, false);
   addShake(3);
-  if (h.hp <= 0) { killHero(h, dir); return true; }
-  chip.sfx('hurt');
+  if (h.hp <= 0) { chip.voice('down', h.kind === 'lian'); killHero(h, dir); return true; }
+  chip.sfx('hurt'); chip.voice('pain', h.kind === 'lian');
   const knock = opt && opt.knock;
   h.act = null; h.crouch = false;
   h.hurtT = knock ? 0.5 : 0.24;
@@ -308,13 +316,17 @@ function killFoe(e, dir, power, quiet) {
   e.vx = dir * (power || 80) * rand(0.9, 1.15); e.vy = -rand(130, 180); e.ground = false; e.face = -dir;
   if (!quiet) chip.sfx('down');
   game.stageStats.kills++;
+  award('first'); countUp('ko', 100, 'ko100');
+  if (e.kind !== 'snake' && e.kind !== 'monkey' && chance(0.35)) chip.voice('grunt');
   if (e.kind === 'monk' && chance(0.4)) dropItem(chance(0.5) ? 'bun' : 'scroll', e.x, e.y - 30);
+  ninjaDrop(e);
 }
 
 function updateFoe(e, dt) {
   const h = game.hero;
   e.t += dt;
   e.flash = Math.max(0, e.flash - dt);
+  if (e.kind === 'ninja' && e.ground === false && e.st !== 'flip' && e.st !== 'dead') ninjaFall(e, dt);
   const dx = h.x - e.x, adx = Math.abs(dx), toward = sgn(dx) || e.face;
   if (e.st === 'dead') {
     e.x += e.vx * dt;
@@ -453,6 +465,7 @@ function monkAI(e, dt, dx, adx, toward, h) {
 }
 
 function ninjaAI(e, dt, dx, adx, toward, h) {
+  if (ninjaExtra(e, dt, dx, adx, toward, h)) return;
   if (e.st === 'appear') {
     e.alpha = Math.min(1, e.t / 0.3); e.face = toward;
     if (e.t > 0.35) setFoeSt(e, 'ready');
@@ -510,14 +523,16 @@ function attackLow(ab) { return ab.y1 > GROUND_Y - 8; }
 function strikeFoe(e, h, D, ab) {
   const fromFront = sgn(h.x - e.x) === e.face;
   if (e.kind === 'monk' && fromFront && !attackLow(ab) && e.st !== 'hurt' && e.st !== 'trip') {
-    setFoeSt(e, 'block'); e.blocks++;
+    setFoeSt(e, 'block'); e.blocks += weaponOf(h, D) && WEAPONS[h.weapon.k].guard ? 2 : 1;
     chip.sfx('clang');
     sparks((h.x + e.x) / 2 + e.face * 4, h.y - 26, 6, '#ffe27a');
     h.x -= h.face * 6;
     if (e.blocks >= 3) { e.blocks = 0; setFoeSt(e, 'hurt'); e.stun = 1.2; e.vx = h.face * 40; pop(e.x, e.y - 52, 'GUARD BREAK!', '#ffd27a'); chip.sfx('break'); }
     return 'block';
   }
-  let dmg = D.dmg === 'punch' ? h.S.punch : D.dmg === 'kick' ? h.S.kick : 3;
+  let dmg = (D.dmg === 'punch' ? h.S.punch : D.dmg === 'kick' ? h.S.kick : 3) + weaponDmg(h, D);
+  if (weaponOf(h, D)) chip.sfx('whip');
+  dmg = critRoll(h, dmg, e.x, e.y - e.T.h - 16);
   e.hp -= dmg;
   e.flash = 0.08;
   const hx = e.x - h.face * 4, hy = clamp((ab.y0 + ab.y1) / 2, e.y - e.T.h + 4, e.y - 3);
@@ -527,7 +542,7 @@ function strikeFoe(e, h, D, ab) {
     killFoe(e, h.face, D.fin ? 200 : D.kb + 40, true);
     chip.sfx('down');
     addScore(e.T.pts + (D.fin ? 200 : 0), e.x, e.y - e.T.h - 6, true);
-    if (D.fin) pop(e.x, e.y - e.T.h - 28, 'FINISH!', '#ff9a30');
+    if (D.fin) { pop(e.x, e.y - e.T.h - 28, 'FINISH!', '#ff9a30'); chip.voice('kiai', h.kind === 'lian'); countUp('finish', 10, 'finish'); }
     grantChi(h, D.fin ? 12 : 4);
   } else if (D.trip) {
     setFoeSt(e, 'trip'); e.vx = h.face * 40;
@@ -542,6 +557,7 @@ function strikeFoe(e, h, D, ab) {
 
 function onLanded(h, D, strong) {
   h.act.landed = true;
+  weaponWear(h, D);
   if (D.fin) { h.combo = 0; h.comboT = 0; }
   else if (!D.air && !D.crouch) { h.combo = Math.min(2, h.combo + 1); h.comboT = D.dur * h.S.quick - h.act.t + 0.42; }
   game.hitStop = Math.max(game.hitStop || 0, D.fin || strong ? 0.1 : 0.045);
@@ -613,6 +629,7 @@ function resolveFoeAttacks() {
 function shotBox(s) {
   switch (s.k) {
     case 'knife': return box(s.x - 5, s.y - 2, s.x + 5, s.y + 2);
+    case 'star': return box(s.x - 4, s.y - 4, s.x + 4, s.y + 4);
     case 'fan': return box(s.x - 7, s.y - 7, s.x + 7, s.y + 7);
     case 'tal': return box(s.x - 4, s.y - 6, s.x + 4, s.y + 6);
     case 'orb': return box(s.x - 6, s.y - 6, s.x + 6, s.y + 6);
@@ -676,6 +693,7 @@ function updateShots(dt) {
       for (const e of game.foes) {
         if (!foeHittable(e)) continue;
         if (boxHit(shotBox(s), foeBox(e))) {
+          if (s.hero) { starHitFoe(s, e); break; }
           s.gone = true; hitSpark(e.x, s.y, true); killFoe(e, sgn(s.vx), 140, true); chip.sfx('smash');
           addScore(e.T.pts + 300, e.x, e.y - e.T.h - 6, true); pop(e.x, e.y - e.T.h - 18, 'RETURN!', '#9fe8ff');
           break;
@@ -867,6 +885,8 @@ function heroPose(h) {
     if (a.t < a1) return [D.anim, 1];
     return [D.anim, 1 + Math.min(0.999, (a.t - a1) / Math.max(0.01, dur - a1))];
   }
+  const np = heroNinjaPose(h);
+  if (np) return np;
   if (!h.ground) return [h.vy < 0 ? 'jumpUp' : 'jumpDown', 0];
   if (h.crouch) return ['crouch', 0];
   if (Math.abs(h.vx) > 1) return ['walk', (h.runT / 6) % 8];
@@ -898,7 +918,7 @@ function drawHero(g, h, cx) {
     }
     g.restore();
   }
-  if (!blinkOff) drawSprite(g, h.kind, anim, fr, h.face, h.x - cx, h.y, h.flash > 0 ? '#ff5a4a' : false);
+  if (!blinkOff) drawHeroBody(g, h, anim, fr, cx);
   if (h.grabbers.length && !h.dead) {
     const need = h.escNeed || 5, p = clamp(h.escape / need, 0, 1);
     const x = h.x - cx, y = h.y - 64;
@@ -932,7 +952,10 @@ function foePose(e) {
       if (e.st === 'bash') return ['bash', e.t < e.wind ? 0 : Math.min(1, (e.t - e.wind) / 0.07)];
       if (e.st === 'block') return ['block', 0];
       return Math.abs(e.vx) > 1 ? ['walk', walkF] : ['idle', idleF];
-    case 'ninja':
+    case 'ninja': {
+      const np = ninjaFoePose(e);
+      if (np) return np;
+    }
       if (e.st === 'slash') return ['slash', Math.min(2, e.t / 0.12)];
       if (e.st === 'dash') return ['walk', (e.walkT / 7) % 8];
       if (e.st === 'ready' || e.st === 'appear' || e.st === 'vanish') return ['idle', 0];
@@ -954,7 +977,7 @@ function drawFoe(g, e, cx) {
   }
   if (e.kind === 'snake') { drawSnake(g, x, e.y, e.face, e.st === 'strike' && e.t > 0.15 ? 2 : 0, fade); return; }
   const [anim, fr] = foePose(e);
-  drawSprite(g, e.kind, anim, fr, e.face, x, e.y, e.flash > 0 ? true : false, fade);
+  spinDraw(g, x, e.y, e.kind === 'ninja' ? ninjaSpin(e) : 0, () => drawSprite(g, e.kind, anim, fr, e.face, x, e.y, e.flash > 0 ? true : false, fade));
   let gl = null;
   if (e.kind === 'dagger' && e.st === 'aim' && e.t > 0.55 * game.diff.tele - 0.28) gl = [x - e.face * 4, e.y - (e.high ? 52 : 20)];
   if (e.kind === 'monk' && e.st === 'bash' && e.t < e.wind && e.t > e.wind - 0.28) gl = [x + e.face * 12, e.y - 30];
@@ -998,6 +1021,7 @@ function drawShot(g, s, cx) {
   const x = s.x - cx, y = s.y;
   switch (s.k) {
     case 'knife': drawKnifeShot(g, x, y, sgn(s.vx) || 1, s.deflected); break;
+    case 'star': drawStarShot(g, x, y, s.t, s); break;
     case 'fan': drawFanShot(g, x, y, s.t); break;
     case 'tal': drawTalismanShot(g, x, y, s.t); break;
     case 'orb': {

@@ -1,23 +1,22 @@
 /* ==========================================================================
-   Game state: flow, stage runtime, spawning, collisions, scoring
+   Game state: flow, stage runtime, spawning, scoring
    ========================================================================== */
 
 const game = {
   state: 'boot', t: 0, stateT: 0,
   st: STAGES[0], L: null, stageIdx: 0, camX: 0, lockCam: false,
-  hero: null, foes: [], shots: [], fx: [], props: [], items: [], caps: [], pops: [], wx: [], sched: [],
+  hero: null, foes: [], shots: [], fx: [], props: [], items: [], caps: [], pops: [], wx: [], sched: [], toasts: [],
   boss: null, bossSeq: null, time: 0, evIdx: 0, spawnT: 0,
   score: 0, hi: 0, lives: 2, nextExtend: 30000, continues: 0, loop: 1,
-  chainN: 0, chainT: -9, shake: 0, flashT: 0, slowT: 0,
-  diff: { speed: 1, spawn: 1 }, stats: null, stageStats: null,
+  chainN: 0, chainT: -9, shake: 0, flashT: 0, slowT: 0, hitStop: 0, boomLight: 0,
+  diff: DIFFS[settings.level] || DIFFS.soldier, invincible: false, startStage: 0, stats: null, stageStats: null,
   demo: false, menu: 0, hits: [], scores: loadScores(), entry: null, idleT: 0
 };
 game.hi = game.scores[0].s;
 
-const ART_CACHE = {};
-function stageArt(st) { if (!ART_CACHE[st.id]) ART_CACHE[st.id] = buildStageArt(st); return ART_CACHE[st.id]; }
-
-function freshStats() { return { kills: 0, captives: 0, specials: 0, deaths: 0, hits: 0, items: 0, time: 0 }; }
+function freshStats() {
+  return { kills: 0, captives: 0, specials: 0, deaths: 0, hits: 0, items: 0, time: 0, crits: 0, parries: 0, dodges: 0, dashes: 0, walls: 0, flips: 0, blocked: 0, finishers: 0 };
+}
 
 function setState(s) {
   if (s !== game.state && s !== 'pause' && game.state !== 'pause') game.fadeT = 0.22;
@@ -28,10 +27,16 @@ function setState(s) {
 function newGame(demo) {
   game.demo = !!demo;
   chip.mute = game.demo;
-  game.score = 0; game.lives = 2; game.nextExtend = 30000; game.continues = 0; game.loop = 1;
+  if (!DIFFS[settings.level]) settings.level = 'soldier';
+  game.diff = demo ? DIFFS.soldier : DIFFS[settings.level];
+  game.invincible = !demo && !!settings.invincible;
+  if (!HERO_OUTFITS[settings.outfit] || !outfitOpen(settings.outfit)) settings.outfit = 'commando';
+  CHARS.hero.pal = HERO_OUTFITS[demo ? 'commando' : settings.outfit].pal;
+  game.score = 0; game.lives = game.diff.lives; game.nextExtend = 30000; game.continues = 0; game.loop = 1;
   game.stats = freshStats();
-  game.carry = null;
-  startStage(0);
+  game.carry = null; game.cheat = false;
+  game.startStage = demo ? 0 : clamp(settings.stage | 0, 0, Math.min(PROG.reached, STAGES.length - 1));
+  startStage(game.startStage);
 }
 
 function startStage(i) {
@@ -41,24 +46,32 @@ function startStage(i) {
   game.camX = 0; game.lockCam = false;
   const keep = game.carry;
   game.hero = makeHero(48);
-  if (keep) { game.hero.wpn = keep.wpn; game.hero.ammo = keep.ammo; game.hero.hp = keep.hp; }
+  if (keep) { const h = game.hero; h.wpn = keep.wpn; h.ammo = keep.ammo; h.hp = Math.min(game.diff.hp, keep.hp || game.diff.hp); h.blade = keep.blade || 'knife'; h.bladeN = keep.bladeN || 0; }
   game.foes = []; game.shots = []; game.fx = []; game.items = []; game.caps = []; game.pops = []; game.sched = [];
   game.props = game.st.props.map(makeProp);
   game.boss = null; game.bossSeq = null; game.time = 0; game.evIdx = 0; game.spawnT = 2.2;
-  game.chainN = 0; game.chainT = -9; game.shake = 0; game.flashT = 0; game.slowT = 0;
+  game.chainN = 0; game.chainT = -9; game.shake = 0; game.flashT = 0; game.slowT = 0; game.hitStop = 0;
   game.stageStats = freshStats();
-  game.dustCol = { jungle: '#c8b088', rail: '#ffffff', refinery: '#f0c27a', citadel: '#9aa0ac' }[game.st.id];
+  game.dustCol = ART[game.st.id].dust;
   game.wx = [];
   game.nextBolt = rand(5, 9);
-  game.hideHero = false;
+  game.hideHero = false; game.autoWalk = false;
   game.downT = 0;
   setState(game.demo ? 'play' : 'intro');
-  if (!game.demo) chip.play('start');
+  if (!game.demo) { chip.play('start'); chip.ambience(game.st.id); }
 }
 
 function beginPlay() {
   setState('play');
   chip.play(game.st.song);
+}
+
+/** Start the current stage again from the pause menu: costs nothing, keeps the score from before it. */
+function restartStage() {
+  game.score = game.stageScore0 || 0;
+  game.carry = game.stageCarry0 || null;
+  chip.duck(false);
+  startStage(game.stageIdx);
 }
 
 /* ---- per frame update by state --------------------------------------------- */
@@ -69,6 +82,12 @@ function updateGame(dt, I, P) {
   game.flashT = Math.max(0, game.flashT - dt);
   game.fadeT = Math.max(0, (game.fadeT || 0) - dt);
   game.readyT = Math.max(0, (game.readyT || 0) - dt);
+  if (game.toasts.length) {
+    const q = game.toasts[0];
+    if (q.t === 0) chip.sfx('medal');
+    q.t += dt;
+    if (q.t > 2.6) game.toasts.shift();
+  }
   switch (game.state) {
     case 'intro':
       tickWorld(dt);
@@ -80,7 +99,7 @@ function updateGame(dt, I, P) {
       if (game.hitStop > 0) {
         game.hitStop -= dt;
         const h = game.hero;
-        if (P.knife) h.kbuf = 0.14; if (P.jump) h.jbuf = 0.12; if (P.special) h.sbuf = 0.12;
+        if (P.knife) h.kbuf = 0.16; if (P.jump) h.jbuf = 0.12; if (P.special) h.sbuf = 0.12;
         if (P.pause && !game.demo) openPause();
         break;
       }
@@ -109,10 +128,15 @@ function updatePlay(dt, I, P) {
   game.stageStats.time += dt;
   const h = game.hero;
   if (P.pause && !game.demo && !h.dead) { openPause(); return; }
+  if (game.time <= dt * 1.5) { game.stageScore0 = game.score; game.stageCarry0 = game.carry; }
   updateHero(h, dt, I, P);
   updateCamera(dt);
-  if (!game.autoWalk) h.x = clamp(h.x, game.camX + 8, game.camX + W - 8);
-  if (game.boss && game.boss.kind === 'ironclad' && !game.boss.dead) h.x = Math.min(h.x, game.boss.x - 6);
+  if (!game.autoWalk) {
+    const xb = h.x;
+    h.x = clamp(h.x, game.camX + 8, game.camX + W - 8);
+    if (game.boss && game.boss.kind === 'ironclad' && !game.boss.dead) h.x = Math.min(h.x, game.boss.x - 6);
+    heroWallContact(h, xb, dt);
+  }
   if (!game.bossSeq) { runEvents(); ambientSpawn(dt); }
   else runSched();
   for (const e of game.foes) updateFoe(e, dt);
@@ -135,7 +159,7 @@ function updateCamera(dt) {
   const h = game.hero, maxCam = game.st.len - W;
   if (game.lockCam) return;
   const target = clamp(h.x - 150, 0, maxCam);
-  if (target > game.camX) game.camX = Math.min(target, game.camX + 240 * dt);
+  if (target > game.camX) game.camX = Math.min(target, game.camX + 260 * dt);
   if (game.camX >= maxCam - 0.5) {
     game.camX = maxCam; game.lockCam = true;
     if (!game.bossSeq) game.bossSeq = { st: 'warn', t: 0 };
@@ -167,11 +191,12 @@ function updateBossSeq(dt) {
 
 function onBossDown(b) {
   game.bossSeq.st = 'down'; game.bossSeq.t = 0;
-  game.slowT = 0.8; game.flashT = 0.12;
+  game.slowT = Math.max(game.slowT, 0.8); game.flashT = 0.12;
   addShake(8);
   chip.stopMusic(true);
   chip.sfx('boom', { big: true });
-  addScore(BOSS_POINTS[b.kind], b.x, b.y - 60, false);
+  addScore(BOSS_POINTS[b.kind], b.x + (b.kind === 'ironclad' ? 60 : 0), b.y - 60, false);
+  award(b.kind);
   game.shots = game.shots.filter((s) => !s.foe);
   for (const e of game.foes) if (e.st !== 'dead') { setSt(e, 'dead'); e.vy = -100; e.vx = rand(-60, 60); e.ground = false; e.deadT = 0; }
 }
@@ -224,51 +249,16 @@ function ambientSpawn(dt) {
   game.spawnT = rand(A.gap[0], A.gap[1]);
   if (game.hero.dead || game.camX + W > game.st.len - 30) return;
   const alive = game.foes.filter((e) => e.st !== 'dead').length;
-  if (alive >= A.max) return;
+  if (alive >= Math.round(A.max * Math.min(1.25, Math.max(0.75, game.diff.spawn)))) return;
   const kinds = Object.keys(A.mix), total = kinds.reduce((a, k) => a + A.mix[k], 0);
   let r = Math.random() * total, kind = kinds[0];
   for (const k of kinds) { r -= A.mix[k]; if (r <= 0) { kind = k; break; } }
+  if (kind === 'ninja' && game.foes.some((e) => e.T.ninja && e.st !== 'dead')) kind = 'grunt';
   let side = chance(A.left) && game.camX > 40 ? -1 : 1;
   const x = side > 0 ? game.camX + W + 12 : game.camX - 12;
   let y = GROUND_Y;
   if (kind !== 'dog' && chance(A.deck)) { const ds = game.st.decks.filter((d) => x >= d.x0 && x <= d.x1); if (ds.length) y = pick(ds).y; }
   spawnFoe(kind, x, y, -side, { runner: kind !== 'officer' && chance(A.runner) });
-}
-
-/* ---- collisions ---------------------------------------------------------------- */
-function resolveHeroAttacks() {
-  const h = game.hero;
-  const kb = heroKnifeBox(h);
-  if (!kb) return;
-  const a = h.act;
-  for (const e of game.foes) {
-    if (e.st === 'dead' || a.hits.includes(e.id)) continue;
-    if (boxHit(kb, foeBox(e))) { a.hits.push(e.id); if (killFoe(e, 'knife', h.face, 1)) game.hitStop = Math.max(game.hitStop || 0, 0.035); }
-  }
-  for (const p of game.props) {
-    if (!propSolid(p) || p.t === 'mine' || a.hits.includes(p)) continue;
-    if (boxHit(kb, propBox(p))) { a.hits.push(p); hitProp(p, 'knife'); }
-  }
-  for (const s of game.shots) {
-    if (!s.foe || s.k !== 'bullet' || s.gone) continue;
-    if (boxHit(kb, box(s.x - 3, s.y - 3, s.x + 3, s.y + 3))) {
-      s.gone = true; chip.sfx('tink'); sparks(s.x, s.y, 4, '#ffe27a');
-      addScore(50, s.x, s.y - 10, false, true); pop(s.x, s.y - 12, 'PARRY 50', '#9fe8ff');
-    }
-  }
-  if (game.boss && !game.boss.dead && !a.bossHit && game.boss.st !== 'enter') { if (game.boss.knife(kb)) a.bossHit = true; }
-}
-
-function resolveFoeAttacks() {
-  const h = game.hero;
-  if (h.dead || h.inv > 0) return;
-  const hb = heroHurt(h);
-  for (const e of game.foes) {
-    const ab = foeAttackBox(e);
-    if (ab && boxHit(ab, hb)) { hurtHero(h, e.face, e.st + ':' + e.kind); return; }
-  }
-  const b = game.boss;
-  if (b && !b.dead && b.touches(hb)) hurtHero(h, sgn(h.x - b.x) || -1, 'boss-' + b.kind + ':' + b.st);
 }
 
 /* ---- scoring --------------------------------------------------------------------- */
@@ -279,10 +269,11 @@ function addScore(pts, x, y, chain, quiet) {
     game.chainT = game.time;
     if (game.chainN > 1) total += (game.chainN - 1) * 50;
     if (game.chainN >= 2 && !quiet) pop(x, y - 9, 'CHAIN X' + game.chainN, '#ffd27a');
+    if (game.chainN >= 5) award('chain');
   }
   game.score += total;
   if (!quiet) pop(x, y, String(total), '#ffffff');
-  if (!game.demo && game.score > game.hi) game.hi = game.score;
+  if (!game.demo && !game.invincible && game.score > game.hi) game.hi = game.score;
   while (!game.demo && game.score >= game.nextExtend) {
     game.lives = Math.min(9, game.lives + 1);
     game.nextExtend += 70000;
@@ -321,7 +312,7 @@ function updateContinue(dt, I, P) {
   if (Math.ceil(game.contT) !== before && game.contT > 0) chip.sfx('tick');
   if (game.stateT > 0.6 && (P.knife || P.jump || P.start || input.tap)) {
     chip.sfx('coin');
-    game.continues++; game.lives = 2;
+    game.continues++; game.lives = game.diff.lives;
     setState('play');
     respawn();
     return;
@@ -330,7 +321,7 @@ function updateContinue(dt, I, P) {
 }
 
 function finishRun() {
-  chip.stopMusic();
+  chip.stopMusic(); chip.ambience(null);
   const rank = qualifies(game.score);
   if (rank >= 0) startEntry(rank);
   else { setState('title'); chip.play('title'); }
@@ -340,18 +331,23 @@ function finishRun() {
 function startClear() {
   setState('clear');
   const h = game.hero;
-  h.act = null; h.vx = 0; h.inv = 0;
+  h.act = null; h.vx = 0; h.inv = 0; h.roll = null; h.flipT = -1;
   chip.play('clear');
   const cages = game.props.filter((p) => p.t === 'cage');
   const freed = cages.filter((p) => p.open).length;
   const S = game.stageStats;
+  const clean = S.hits === 0 && S.deaths === 0;
   game.tally = [
     { label: 'CAPTIVES FREED', val: freed + ' / ' + cages.length, pts: freed === cages.length && cages.length ? 5000 : 0, note: freed === cages.length ? 'ALL FREED' : '' },
     { label: 'NO MISS BONUS', val: S.deaths ? 'MISSED ' + S.deaths : 'PERFECT', pts: S.deaths ? 0 : 10000 },
     { label: 'TIME', val: fmtTime(S.time), pts: Math.max(0, Math.round((240 - S.time) / 10)) * 100 },
+    { label: 'CRITICAL HITS', val: String(S.crits), pts: S.crits * 100 },
     { label: 'ENEMIES DOWN', val: String(S.kills), pts: 0 }
   ];
   game.tallyIdx = -1; game.tallyT = 0; game.tallyDone = false;
+  if (freed === cages.length && cages.length) award('free');
+  if (clean) award('clean');
+  if (game.stageIdx + 1 < STAGES.length) reachStage(game.stageIdx + 1);
 }
 
 function fmtTime(s) { const m = Math.floor(s / 60), r = Math.floor(s % 60); return m + "'" + String(r).padStart(2, '0') + '"'; }
@@ -360,8 +356,10 @@ function updateClear(dt, I, P) {
   const h = game.hero, t = game.stateT;
   updateFx(dt); updateWeather(dt); updateProps(dt); updateItems(dt);
   if (game.boss) { game.boss.update(dt); game.boss.deathT += dt; }
-  if (t < 1.4) { h.pose = ['victory', 0]; h.vx = 0; }
-  else if (t < 3.6) {
+  if (t < 1.4) {
+    h.pose = h.ground ? ['victory', 0] : null; h.vx = 0;
+    if (!h.ground) actorPhys(h, dt);
+  } else if (t < 3.6) {
     h.pose = null; game.autoWalk = true;
     h.face = 1; h.act = null; h.crouch = false;
     if (h.climb) h.climb = null;
@@ -371,14 +369,14 @@ function updateClear(dt, I, P) {
     game.autoWalk = false; game.hideHero = true;
     game.tallyT += dt;
     if (!game.tallyDone) {
-      if (game.tallyIdx < 0 || game.tallyT > 0.7) {
+      if (game.tallyIdx < 0 || game.tallyT > 0.6) {
         game.tallyIdx++; game.tallyT = 0;
         if (game.tallyIdx < game.tally.length) {
           const row = game.tally[game.tallyIdx];
           if (row.pts) { addScore(row.pts, 0, 0, false, true); chip.sfx('pickup'); } else chip.sfx('move');
         } else { game.tallyDone = true; game.tallyT = 0; }
       }
-    } else if (game.tallyT > 2.6 || (game.tallyT > 0.5 && (P.knife || P.jump || P.start))) {
+    } else if (game.tallyT > 2.6 || (game.tallyT > 0.5 && (P.knife || P.jump || P.start || input.tap))) {
       nextStage();
     }
   }
@@ -386,10 +384,10 @@ function updateClear(dt, I, P) {
 
 function nextStage() {
   const h = game.hero;
-  game.carry = { wpn: h.wpn, ammo: h.ammo, hp: h.hp };
+  game.carry = { wpn: h.wpn, ammo: h.ammo, hp: h.hp, blade: h.blade, bladeN: h.bladeN };
   for (const k in game.stageStats) game.stats[k] += game.stageStats[k];
   if (game.stageIdx + 1 < STAGES.length) startStage(game.stageIdx + 1);
-  else startEnding();
+  else { missionCleared(); startEnding(); }
 }
 
 /* ---- ending ------------------------------------------------------------------------------- */
@@ -402,6 +400,7 @@ const ENDING_LINES = [
 ];
 function startEnding() {
   setState('ending');
+  chip.ambience(null);
   chip.play('ending');
   game.endScroll = 0;
 }
@@ -414,7 +413,7 @@ function updateEnding(dt, I, P) {
 
 /* ---- high scores ---------------------------------------------------------------------------- */
 function qualifies(score) {
-  if (game.demo || score <= 0) return -1;
+  if (game.demo || game.invincible || score <= 0) return -1;
   for (let i = 0; i < game.scores.length; i++) if (score > game.scores[i].s) return i;
   return -1;
 }
@@ -437,38 +436,51 @@ function commitEntry() {
   chip.sfx('select');
 }
 
-/* ---- demo bot: plays the attract demo ------------------------------------------------ */
-const BOT = { pressed: {}, jumpCD: 0, stabCD: 0, specCD: 0 };
+/* ---- demo bot: plays the attract demo and the automated test runs ---------------------- */
+const BOT = { pressed: {}, jumpCD: 0, stabCD: 0, specCD: 0, dashCD: 0, hold: 0 };
 function botInput(dt) {
-  const h = game.hero, I = { left: false, right: false, up: false, down: false, jump: false, knife: false, special: false };
-  const P = { jump: false, knife: false, special: false };
-  BOT.jumpCD -= dt; BOT.stabCD -= dt; BOT.specCD -= dt;
+  const h = game.hero, I = { left: false, right: false, up: false, down: false, jump: false, knife: false, special: false, dash: false };
+  const P = { jump: false, knife: false, special: false, dash: false };
+  BOT.jumpCD -= dt; BOT.stabCD -= dt; BOT.specCD -= dt; BOT.dashCD -= dt; BOT.hold -= dt;
   BOT.pressed = P;
   if (h.dead) return I;
+  if (BOT.hold > 0) I.jump = true;
   if (h.climb) { I.up = true; return I; }
   let near = null, nd = 1e9;
   for (const e of game.foes) {
-    if (e.st === 'dead' || (Math.abs(e.y - h.y) > 16 && e.st !== 'kick')) continue;
+    if (e.st === 'dead' || foeGhost(e) || (Math.abs(e.y - h.y) > 16 && e.st !== 'kick')) continue;
     const d = Math.abs(e.x - h.x);
     if (d < nd) { nd = d; near = e; }
   }
   let dir = 1;
-  if (near && nd < 30) {
+  if (near && nd < 32) {
     const side = Math.sign(near.x - h.x) || 1;
     if (h.face !== side) dir = side;
-    else if (BOT.stabCD <= 0) { P.knife = true; BOT.stabCD = 0.2; }
+    else if (BOT.stabCD <= 0) { P.knife = true; BOT.stabCD = 0.18; }
     if (near.kind === 'dog' || near.st === 'kneel' || near.st === 'snipe') I.down = true;
     if (nd < 18 && h.face === side) dir = 0;
   }
   for (const s of game.shots) {
-    if (!s.foe || s.k !== 'bullet' || s.aimed) continue;
+    if (!s.foe || (s.k !== 'bullet' && s.k !== 'star') || s.aimed) continue;
     const toward = (s.x - h.x) * -Math.sign(s.vx || 0);
     if (toward > 0 && toward < 50) {
-      if (s.y > h.y - 15 && BOT.jumpCD <= 0 && h.ground) { P.jump = true; BOT.jumpCD = 0.7; }
+      if (s.y > h.y - 15 && BOT.jumpCD <= 0 && h.ground) { P.jump = true; BOT.jumpCD = 0.7; BOT.hold = 0.3; I.jump = true; }
       else if (s.y <= h.y - 15 && h.ground) { I.down = true; dir = 0; }
     }
   }
-  if (h.wpn && near && nd < 150 && BOT.specCD <= 0 && Math.sign(near.x - h.x) === h.face) { P.special = true; BOT.specCD = 1.2; }
+  const b = game.boss;
+  if (b && !b.dead && b.st !== 'enter') {
+    // close on the boss and keep cutting
+    const bx = b.kind === 'ironclad' ? b.x + 4 : b.x, side = Math.sign(bx - h.x) || 1, d = Math.abs(bx - h.x);
+    if (!(near && nd < 30)) {
+      dir = d > (b.kind === 'gunship' ? 8 : 18) ? side : 0;
+      if (b.kind === 'gunship') {
+        if (b.y > 100 && d < 30) { if (h.ground && BOT.jumpCD <= 0) { P.jump = true; BOT.jumpCD = 0.5; BOT.hold = 0.3; } else if (!h.ground && BOT.stabCD <= 0) { P.knife = true; BOT.stabCD = 0.2; } }
+      } else if (d < 30) { if (h.face !== side) dir = side; else if (BOT.stabCD <= 0) { P.knife = true; BOT.stabCD = 0.18; } }
+    }
+  }
+  if (h.wpn && h.wpn !== 'flame' && ((near && nd < 150 && Math.sign(near.x - h.x) === h.face) || (b && !b.dead)) && BOT.specCD <= 0) { P.special = true; BOT.specCD = h.wpn === 'star' ? 0.4 : 1.2; }
+  if (h.wpn === 'flame' && near && nd < 70 && Math.sign(near.x - h.x) === h.face) I.special = true;
   if (dir > 0) I.right = true; else if (dir < 0) I.left = true;
   return I;
 }
@@ -490,10 +502,11 @@ function exitDemo() {
 /* ---- weather ------------------------------------------------------------------------------------ */
 function updateWeather(dt) {
   const kind = game.st.weather;
-  const want = { pollen: 26, snow: 110, dust: 40, rain: 140 }[kind] || 0;
+  const want = Math.round(({ pollen: 30, snow: 120, dust: 46, rain: 150 }[kind] || 0) * (QUALITY.level ? 0.6 : 1));
   while (game.wx.length < want) {
     game.wx.push({ x: rand(0, W), y: rand(HUD_H - 20, H), s: Math.random(), ph: rand(0, TAU) });
   }
+  if (game.wx.length > want) game.wx.length = want;
   for (const p of game.wx) {
     if (kind === 'snow') { p.y += (18 + p.s * 26) * dt; p.x += (-10 + Math.sin(game.t + p.ph) * 8) * dt; }
     else if (kind === 'rain') { p.y += (300 + p.s * 120) * dt; p.x -= 60 * dt; }
@@ -506,6 +519,10 @@ function updateWeather(dt) {
   }
   if (kind === 'rain' && game.state === 'play') {
     game.nextBolt -= dt;
-    if (game.nextBolt <= 0) { game.nextBolt = rand(7, 13); game.flashT = 0.16; game.bolt = { x: rand(40, W - 40), t: 0 }; setTimeout(() => chip.sfx('thunder'), 380); }
+    if (game.nextBolt <= 0) {
+      game.nextBolt = rand(7, 13); game.flashT = 0.16;
+      game.fx.push({ k: 'bolt', x: game.camX + rand(40, W - 40), y: rand(96, 128), t: 0, life: 0.22, seed: Math.random() * 99 });
+      setTimeout(() => chip.sfx('thunder'), 380);
+    }
   }
 }

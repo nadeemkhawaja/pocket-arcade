@@ -48,7 +48,7 @@ const store = {
 };
 
 const settings = Object.assign(
-  { music: 0.7, sfx: 0.85, fx: true, shake: !reducedMotion, level: 'disciple', fighter: 'tao', touch: 'auto', muted: false },
+  { music: 0.7, sfx: 0.85, fx: true, shake: !reducedMotion, level: 'disciple', fighter: 'tao', touch: 'auto', muted: false, invincible: false },
   store.get('settings', {})
 );
 function saveSettings() { store.set('settings', settings); }

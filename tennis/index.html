@@ -399,6 +399,30 @@ table.stats td.lead { color: var(--sky-deep); }
   .banner.show { opacity: 1; }
   .pop { opacity: 1; }
 }
+
+/* power meter, shield tag, medals and toasts */
+.power { position: absolute; left: 50%; bottom: calc(74px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(8, 16, 30, .62); border: 1px solid rgba(255, 255, 255, .16); font: 700 11px/1.15 var(--f-display); letter-spacing: 2px; color: rgba(255, 255, 255, .78); pointer-events: none; }
+.power i { width: 16px; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, .16); transition: background .15s, box-shadow .15s; }
+.power i.on { background: var(--optic); box-shadow: 0 0 10px var(--optic); }
+.power.ready { border-color: #ffb21e; color: #ffd98a; animation: powerPulse .7s ease-in-out infinite alternate; }
+.power.ready i.on { background: #ffb21e; box-shadow: 0 0 12px #ff8a1e; }
+@keyframes powerPulse { from { box-shadow: 0 0 0 rgba(255, 178, 30, 0); } to { box-shadow: 0 0 18px rgba(255, 178, 30, .7); } }
+.shield-tag { position: absolute; left: 14px; top: calc(96px + env(safe-area-inset-top, 0px)); padding: 5px 10px; border-radius: 999px; background: rgba(10, 40, 60, .78); border: 1px solid #7fe6ff; color: #bff2ff; font: 700 11px/1.15 var(--f-display); letter-spacing: 2px; pointer-events: none; }
+.toast { position: absolute; right: 16px; top: calc(70px + env(safe-area-inset-top, 0px)); display: grid; gap: 2px; padding: 10px 16px 10px 44px; border-radius: 14px; background: rgba(8, 16, 30, .9); border: 1px solid #ffd24a; color: #fff; pointer-events: none; z-index: 30; opacity: 0; }
+.toast::before { content: ""; position: absolute; left: 12px; top: 50%; width: 22px; height: 22px; margin-top: -11px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff3b8, #f2c94c 55%, #b8862a); box-shadow: 0 0 12px rgba(242, 201, 76, .8); }
+.toast b { font: 700 10px/1.15 var(--f-display); letter-spacing: 2px; color: #ffd98a; text-transform: uppercase; }
+.toast span { font: 700 16px/1.15 var(--f-display); }
+.toast.show { animation: toastIn 2.6s ease both; }
+@keyframes toastIn { 0% { opacity: 0; transform: translateY(-14px); } 10%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-8px); } }
+.medals { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin: 6px 0 4px; }
+.medal { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: rgba(19, 49, 79, .07); border: 1px solid rgba(19, 49, 79, .16); opacity: .78; }
+.medal i { flex: none; width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #8a94a6, #4a5264 60%, #2e3442); }
+.medal b { display: block; font: 700 15px/1.15 var(--f-display); }
+.medal small { display: block; margin-top: 3px; font-size: 12px; line-height: 1.15; opacity: .8; }
+.medal.got { opacity: 1; border-color: #d99a12; background: rgba(255, 196, 46, .22); }
+.medal.got i { background: radial-gradient(circle at 35% 30%, #fff3b8, #f2c94c 55%, #b8862a); box-shadow: 0 0 12px rgba(242, 201, 76, .7); }
+#bMedals span { opacity: .75; margin-left: 6px; font-size: .85em; }
+@media (prefers-reduced-motion: reduce) { .power.ready, .toast.show { animation: none; opacity: 1; } }
 </style>
 
 </head>
@@ -425,6 +449,8 @@ table.stats td.lead { color: var(--sky-deep); }
         </button>
       </div>
       <div id="speed" class="speed" hidden><small>SERVE</small><b id="speedVal">0</b><small>KM/H</small></div>
+      <div id="power" class="power" hidden><span>POWER</span><i></i><i></i><i></i></div>
+      <div id="shieldTag" class="shield-tag" hidden>INVINCIBLE</div>
       <div id="prompt" class="prompt" hidden></div>
       <div id="keysHint" class="keys" hidden>
         <span><i class="kbd">SPACE</i> swing</span>
@@ -438,6 +464,7 @@ table.stats td.lead { color: var(--sky-deep); }
     <div id="banner" class="banner" aria-live="assertive"></div>
     <div id="sub" class="sub"></div>
     <div id="pops"></div>
+    <div id="toast" class="toast" hidden><b></b><span></span></div>
 
     <div id="touch" class="touch" hidden>
       <div class="grp">
@@ -477,8 +504,18 @@ table.stats td.lead { color: var(--sky-deep); }
             <button class="btn" id="bHow" type="button">How to play</button>
             <button class="btn" id="bSettings" type="button">Settings</button>
           </div>
+          <button class="btn" id="bMedals" type="button">Medals <span id="medalCount"></span></button>
         </nav>
         <p class="record" id="record"></p>
+      </div>
+    </section>
+
+    <!-- medals -->
+    <section id="scrMedals" class="screen" hidden>
+      <div class="panel wide">
+        <div class="panel-head"><h2>Medals</h2><button class="btn ghost" type="button" data-back>Back</button></div>
+        <div class="medals" id="medalList"></div>
+        <p class="hint" id="medalHint"></p>
       </div>
     </section>
 
@@ -492,6 +529,7 @@ table.stats td.lead { color: var(--sky-deep); }
         <div class="field"><span class="label" id="lblMode">Mode</span><div class="opts" id="optMode" role="group" aria-labelledby="lblMode"></div></div>
         <div class="field"><span class="label" id="lblControls">Controls</span><div class="opts" id="optControls" role="group" aria-labelledby="lblControls"></div><p class="hint" id="ctrlHint"></p></div>
         <div class="field" id="fieldLevel"><span class="label" id="lblLevel">Opponent</span><div class="opts" id="optLevel" role="group" aria-labelledby="lblLevel"></div></div>
+        <div class="field" id="fieldShield"><span class="label" id="lblShield">Rules</span><div class="opts" id="optShield" role="group" aria-labelledby="lblShield"></div></div>
         <div class="field" id="fieldFormat"><span class="label" id="lblFormat">Match length</span><div class="opts" id="optFormat" role="group" aria-labelledby="lblFormat"></div></div>
         <div class="field"><span class="label" id="lblSurface">Court</span><div class="opts" id="optSurface" role="group" aria-labelledby="lblSurface"></div></div>
         <div class="field">
@@ -752,6 +790,13 @@ const SURFACES = {
     inner: '#c9693f', outer: '#bb5f37', outer2: '#c4653b', line: '#f7f1ea',
     dust: 0xd98a5f, dustAmt: 1.0, mark: 0x9c4a26, sound: 'clay',
     grassColor: '#3f8a45'
+  },
+  royal: {
+    key: 'royal', label: 'Royal', name: 'Royal indoor court', locked: 'pro',
+    e: 0.70, f: 0.80, kick: 0.04, roll: 1.6,
+    inner: '#5a3d9a', outer: '#1f2a52', outer2: '#243060', line: '#ffe9a8',
+    dust: 0xcfc4ff, dustAmt: 0.2, mark: 0x3a2870, sound: 'hard',
+    grassColor: '#2a3a6a'
   }
 };
 
@@ -780,6 +825,14 @@ const LEVELS = {
     approach: 0.28, netReach: 1.12,
     look: { shirt: '#1d2230', shirt2: '#f2c94c', shorts: '#1d2230', skin: 3, hair: 4, style: 'spiky', band: '#f2c94c' },
     look2: { shirt: '#1d2230', shirt2: '#f2c94c', shorts: '#1d2230', skin: 0, hair: 1, style: 'short', band: '#f2c94c' }
+  },
+  legend: {
+    key: 'legend', label: 'Legend', name: 'VERA', partner: 'NOX',
+    speed: 7.4, react: 0.075, pace: [22.5, 28], err: 0.035, width: 4.2, depth: [8.8, 10.9],
+    aggr: 1.0, serve: [32, 38], serveIn: [0.7, 0.96], leaveOut: 0.96, lob: 0.12, drop: 0.09,
+    approach: 0.36, netReach: 1.2,
+    look: { shirt: '#c8102e', shirt2: '#ffd9a0', shorts: '#101318', skin: 2, hair: 4, style: 'pony', band: '#ffd24a' },
+    look2: { shirt: '#c8102e', shirt2: '#ffd9a0', shorts: '#101318', skin: 4, hair: 0, style: 'buzz', band: '#ffd24a' }
   }
 };
 
@@ -808,7 +861,7 @@ const DEFAULTS = {
   sfx: true, music: true, voice: true, guides: 'auto', shake: true, quality: 'auto', mute: false,
   camSens: 55, camAim: true, camPreview: true,
   name: 'PLAYER', shirt: 0, skin: 0,
-  mode: 'singles', controls: isTouchDevice ? 'touch' : 'keys', level: 'pro', format: 'g3', surface: 'hard'
+  mode: 'singles', controls: isTouchDevice ? 'touch' : 'keys', level: 'pro', format: 'g3', surface: 'hard', invincible: false
 };
 const settings = Object.assign({}, DEFAULTS, store.get('settings', {}));
 if (!LEVELS[settings.level]) settings.level = 'pro';
@@ -3257,6 +3310,7 @@ function teardown() {
 function startMatch(cfg) {
   teardown();
   game.cfg = cfg;
+  plusReset();
   game.mode = cfg.mode === 'demo' ? 'demo' : cfg.mode === 'practice' ? 'practice' : 'match';
   game.doubles = cfg.mode === 'doubles';
   game.surf = SURFACES[cfg.surface] || SURFACES.hard;
@@ -3745,7 +3799,7 @@ function onSwingInput(inp) {
   const b = g.ball;
   const inSpeed = Math.sqrt(b.vx * b.vx + b.vz * b.vz);
   const lvl = g.mode === 'practice' ? 'rookie' : (g.cfg && g.cfg.level) || 'pro';
-  const ws = (lvl === 'rookie' ? 1.15 : lvl === 'champ' ? 0.86 : 1) * clamp(1.1 - (inSpeed - 15) / 40, 0.75, 1.1);
+  const ws = (lvl === 'rookie' ? 1.15 : lvl === 'champ' ? 0.86 : lvl === 'legend' ? 0.8 : 1) * clamp(1.1 - (inSpeed - 15) / 40, 0.75, 1.1);
   const early = W.ideal + (W.early - W.ideal) * ws, late = W.late * ws;
   const now = g.t - W.lat;
   const dtc = p.plan.t - now;
@@ -3793,7 +3847,9 @@ function performHit(p, plan) {
   audio.hit(shot.power, b.x, b.z < -2, shot.type);
   if (shot.type === 'smash') { game.shake = Math.max(game.shake, 0.25); sparkle(b.x, b.y, b.z, 1.3); }
   if (human) {
-    if (shot.perfect) { sparkle(b.x, b.y, b.z, 1.1); ui.pop('PERFECT!', 'good', p); crowdCheer(0.25); vibrate(30); }
+    plusOnHit(p, shot, b);
+    if (shot.pw) { /* the power shot has its own call */ }
+    else if (shot.perfect) { sparkle(b.x, b.y, b.z, 1.1); ui.pop('PERFECT!', 'good', p); crowdCheer(0.25); vibrate(30); }
     else if (shot.e > 0.7) ui.pop('EARLY', 'warn', p);
     else if (shot.e < -0.7) ui.pop('LATE', 'warn', p);
     else if (Math.abs(shot.e) < 0.4) { ui.pop('NICE', 'ok', p); vibrate(15); }
@@ -3880,8 +3936,11 @@ function humanShot(p, plan) {
   else if (type === 'lob') { tz = dir * rand(9.0, 10.5); spin = 0.25; clear = 2.0; tx = d * xr * 2.6; speed = 10; }
   else if (type === 'drop') { tz = dir * rand(2.0, 3.8); speed = rand(8.2, 10); spin = -0.45; clear = 0.22; tx = d * xr * 3.0; }
   else { tz = dir * (lerp(7.4, 10.1, q) + rand(-0.35, 0.35)); speed = lerp(14.5, 25.5, q * q); spin = 0.5 + q * 0.3; clear = lerp(0.7, 0.3, q); }
+  const pw = plusPowerReady() && ae < 0.5 && (type === 'drive' || type === 'volley' || type === 'smash');
+  if (pw) { speed = type === 'volley' ? 23 : type === 'smash' ? 34 : 29.5; clear = Math.min(clear, 0.3); spin = Math.max(spin, 0.7); }
   let kind = 'ok';
-  if (ae > 0.78) {
+  if (pw) { /* a charged shot never misses */ }
+  else if (ae > 0.78) {
     const k = (ae - 0.78) / 0.22;
     if (chance(0.3 + 0.55 * k)) kind = chance(0.55) ? 'wide' : (e < 0 ? 'net' : 'long');
   } else if (ae >= 0.18) {
@@ -3896,7 +3955,7 @@ function humanShot(p, plan) {
   if (kind === 'long') tz = dir * (COURT.HL + rand(0.25, 1.4));
   if (type === 'lob') speed = hyp(tx - from.x, tz - from.z) / rand(2.0, 2.4);
   const sol = kind === 'net' ? netShot(from, tx, tz, speed, spin) : aimShot(from, tx, tz, speed, spin, clear);
-  return { v: sol.v, spin, type, power: clamp(speed / 26, 0.3, 1) * (0.7 + q * 0.3), perfect: ae < 0.18, e };
+  return { v: sol.v, spin, type, power: pw ? 1 : clamp(speed / 26, 0.3, 1) * (0.7 + q * 0.3), perfect: ae < 0.18, e, pw };
 }
 
 /* ---- rally: rules ------------------------------------------------------------- */
@@ -3993,7 +4052,9 @@ function endPoint(winner, reason) {
   const loser = 1 - winner;
   const st = g.stats;
   if (g.mode === 'practice') { practicePointOver(winner, reason); return; }
+  if (plusShield(winner)) return;
   st[winner].points++;
+  plusOnPoint(winner, reason);
   if (reason === 'ace') st[winner].aces++;
   else if (reason === 'winner') st[winner].winners++;
   else if (reason === 'out' || reason === 'net') st[loser].errors++;
@@ -4082,9 +4143,12 @@ function matchOver(winner, res) {
   g.celebrate = g.teams[winner].players[0];
   g.camMode = 'celebrate'; g.camT0 = g.t;
   ui.prompt(null);
-  const rec = store.get('record', { w: 0, l: 0 });
-  if (humanWon) rec.w++; else rec.l++;
-  store.set('record', rec);
+  if (!(g.cfg && g.cfg.invincible)) {
+    const rec = store.get('record', { w: 0, l: 0 });
+    if (humanWon) rec.w++; else rec.l++;
+    store.set('record', rec);
+  }
+  plusOnMatch(!!humanWon);
   after(4.6, () => ui.showResults(winner));
 }
 
@@ -4295,6 +4359,7 @@ function updateGame(dt) {
   const g = game;
   if (g.paused || !g.teams.length) return;
   const sdt = dt * g.timeScale;
+  plusUpdate(sdt);
   g.acc += sdt;
   let steps = 0;
   while (g.acc >= PH_DT && steps < 60) {
@@ -4334,6 +4399,166 @@ function buildUmpire() {
   world.scene.add(u.root);
   game.umpire = u;
 }
+
+/* ==========================================================================
+   Extras: invincible rules, the power shot, medals and the court they unlock
+   ========================================================================== */
+
+const MEDALS = [
+  { id: 'first', name: 'First Win', desc: 'Win a match' },
+  { id: 'ace', name: 'Untouchable Serve', desc: 'Serve an ace' },
+  { id: 'power', name: 'Power Player', desc: 'Land a power shot' },
+  { id: 'rally10', name: 'Marathon', desc: 'Win a rally of 10 shots or more' },
+  { id: 'winners', name: 'Shot Maker', desc: 'Hit 5 winners in one match' },
+  { id: 'clean', name: 'Clean Sheet', desc: 'Win a match without a double fault' },
+  { id: 'doubles', name: 'Team Player', desc: 'Win a doubles match' },
+  { id: 'rally15', name: 'Wall Of Steel', desc: 'Return 15 balls in one practice rally' },
+  { id: 'pro', name: 'Pro Tour', desc: 'Beat Pro or better. Unlocks the Royal court' },
+  { id: 'champ', name: 'Giant Killer', desc: 'Beat the Champion' },
+  { id: 'legend', name: 'Living Legend', desc: 'Beat the Legend' },
+  { id: 'grand', name: 'Grand Finale', desc: 'Win a best of 3 sets match' }
+];
+const PROG = Object.assign({ ach: {} }, store.get('progress', {}));
+const plus = { streak: 0, ready: false, toastT: 0, queue: [] };
+
+function plusLive() { return game.mode !== 'demo' && !(game.cfg && game.cfg.invincible); }
+function plusCourtOpen(key) { const s = SURFACES[key]; return !!s && (!s.locked || !!PROG.ach[s.locked]); }
+function medalTotal() { return MEDALS.filter((m) => PROG.ach[m.id]).length; }
+
+function toast(title, text) {
+  plus.queue.push([title, text]);
+  if (plus.queue.length === 1) showToast();
+}
+function showToast() {
+  const el = $('toast'), q = plus.queue[0];
+  if (!q) { el.hidden = true; return; }
+  el.firstElementChild.textContent = q[0]; el.lastElementChild.textContent = q[1];
+  el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  audio.chime(true);
+  setTimeout(() => { plus.queue.shift(); showToast(); }, 2600);
+}
+
+function award(id) {
+  if (!plusLive() || PROG.ach[id]) return;
+  PROG.ach[id] = 1;
+  store.set('progress', PROG);
+  const m = MEDALS.find((k) => k.id === id);
+  if (m) toast('Medal earned', m.name);
+  if (id === 'pro') {
+    toast('New court', SURFACES.royal.name);
+    $('optShirt').innerHTML = ''; $('optSkin').innerHTML = '';
+    ui.buildSetup();
+  }
+  plusMedalCount();
+}
+function plusMedalCount() { const el = $('medalCount'); if (el) el.textContent = medalTotal() + ' / ' + MEDALS.length; }
+
+function plusShowMedals() {
+  $('medalList').innerHTML = MEDALS.map((m) => {
+    const got = !!PROG.ach[m.id];
+    return '<div class="medal' + (got ? ' got' : '') + '"><i></i><div><b>' + m.name + '</b><small>' + m.desc + '</small></div></div>';
+  }).join('');
+  $('medalHint').textContent = medalTotal() + ' of ' + MEDALS.length + ' earned. Medals are not awarded in Invincible matches.';
+}
+
+/* ---- power shot: three perfect swings in a row charge the next one ---------------- */
+function plusMeter() {
+  const el = $('power');
+  if (!el) return;
+  el.hidden = game.mode === 'demo';
+  el.classList.toggle('ready', plus.ready);
+  const pips = el.querySelectorAll('i');
+  pips.forEach((p, i) => p.classList.toggle('on', plus.ready || i < plus.streak));
+}
+function plusReset() {
+  plus.streak = 0; plus.ready = false;
+  plusMeter();
+  const tag = $('shieldTag');
+  if (tag) tag.hidden = !(game.cfg && game.cfg.invincible);
+  plusMedalCount();
+}
+function plusPowerReady() { return plus.ready; }
+
+function plusOnHit(p, shot, b) {
+  const g = game;
+  if (shot.pw) {
+    plus.ready = false; plus.streak = 0;
+    ui.pop('POWER SHOT!', 'good', p);
+    g.shake = Math.max(g.shake, 0.32);
+    sparkle(b.x, b.y, b.z, 1.9); sparkle(b.x, b.y + 0.2, b.z, 1.2);
+    crowdCheer(0.5); vibrate(50);
+    audio.powerShot();
+    b.fire = 1.2;
+    award('power');
+  } else if (shot.perfect) {
+    if (!plus.ready) {
+      plus.streak = Math.min(3, plus.streak + 1);
+      if (plus.streak >= 3) { plus.ready = true; ui.sub('POWER SHOT READY'); audio.chime(true); }
+    }
+  } else if (Math.abs(shot.e) >= 0.4 && !plus.ready) plus.streak = 0;
+  plusMeter();
+  if (g.mode === 'practice' && g.rally.humanReturns >= 15) award('rally15');
+}
+
+/** A ball struck with a power shot leaves sparks behind it for a moment. */
+function plusUpdate(dt) {
+  const b = game.ball;
+  if (!b || !b.fire) return;
+  b.fire = Math.max(0, b.fire - dt);
+  if (b.live && Math.random() < 0.7) sparkle(b.x, b.y, b.z, 0.55);
+}
+
+/* ---- invincible: a point the player would lose is replayed instead ---------------- */
+function plusShield(winner) {
+  const g = game;
+  if (!(g.cfg && g.cfg.invincible) || g.mode !== 'match' || !g.humanTeam || winner === g.humanTeam.index) return false;
+  ui.banner('SHIELD  POINT REPLAYED', 'neutral', 1.25);
+  audio.shield();
+  for (const t of g.teams) for (const p of t.players) p.anim = 'ready';
+  after(1.5, () => setupPoint(true));
+  return true;
+}
+
+function plusOnPoint(winner, reason) {
+  const g = game;
+  if (!g.humanTeam || winner !== g.humanTeam.index) return;
+  if (reason === 'ace') award('ace');
+  if (g.rally.shots >= 10) award('rally10');
+  if (g.stats[winner].winners >= 5) award('winners');
+}
+
+function plusOnMatch(won) {
+  const g = game;
+  if (!won || !g.humanTeam) return;
+  award('first');
+  const lvl = g.cfg.level, me = g.humanTeam.index;
+  if (lvl === 'pro' || lvl === 'champ' || lvl === 'legend') award('pro');
+  if (lvl === 'champ' || lvl === 'legend') award('champ');
+  if (lvl === 'legend') award('legend');
+  if (g.doubles) award('doubles');
+  if (g.stats[me].df === 0) award('clean');
+  if (g.cfg.format === 's3') award('grand');
+}
+
+/* two small sounds of its own */
+AudioEngine.prototype.powerShot = function () {
+  if (!this.ctx || !settings.sfx) return;
+  const c = this.ctx, t = c.currentTime;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = 'sawtooth'; o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(900, t + 0.16);
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.16, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+  o.connect(g); g.connect(this.sfxBus || this.master || c.destination); o.start(t); o.stop(t + 0.32);
+};
+AudioEngine.prototype.shield = function () {
+  if (!this.ctx || !settings.sfx) return;
+  const c = this.ctx, t = c.currentTime;
+  for (const [f, d] of [[660, 0], [990, 0.07], [1320, 0.14]]) {
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t + d); g.gain.linearRampToValueAtTime(0.1, t + d + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.3);
+    o.connect(g); g.connect(this.sfxBus || this.master || c.destination); o.start(t + d); o.stop(t + d + 0.32);
+  }
+};
 
 /* ==========================================================================
    Input: keyboard, mouse, touch buttons and the webcam raise-a-hand detector
@@ -4663,7 +4888,7 @@ const cam = new CamSwing();
    UI: title, setup, webcam setup, HUD, banners, pause, results, settings
    ========================================================================== */
 
-const SCREENS = ['scrTitle', 'scrSetup', 'scrCam', 'scrHow', 'scrSettings', 'scrPause', 'scrResults'];
+const SCREENS = ['scrTitle', 'scrSetup', 'scrCam', 'scrHow', 'scrSettings', 'scrPause', 'scrResults', 'scrMedals'];
 
 const ICONS = {
   webcam: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="2.6" fill="currentColor"/><path d="M7.5 20.5h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
@@ -4769,7 +4994,11 @@ const ui = {
       value: s.key, label: s.label,
       icon: '<i class="court-swatch" style="background:linear-gradient(90deg,' + s.outer + ' 0 22%,' + s.inner + ' 22% 78%,' + s.outer + ' 78%)"></i>',
       sub: s.key === 'clay' ? 'High bounce' : s.key === 'grass' ? 'Low and quick' : 'True bounce'
-    })), settings.surface, (v) => { settings.surface = v; setSurface(v); });
+    })).filter((s) => plusCourtOpen(s.value)), settings.surface, (v) => { settings.surface = v; setSurface(v); });
+    this.chips('optShield', [
+      { value: 'off', label: 'Standard', sub: 'Every point counts' },
+      { value: 'on', label: 'Invincible', sub: 'You cannot lose a point' }
+    ], settings.invincible ? 'on' : 'off', (v) => { settings.invincible = v === 'on'; });
 
     const shirts = $('optShirt');
     SHIRTS.forEach((s, i) => {
@@ -4807,6 +5036,7 @@ const ui = {
     const practice = this.setupMode === 'practice';
     $('fieldLevel').hidden = practice;
     $('fieldFormat').hidden = practice;
+    $('fieldShield').hidden = practice;
     $('setupTitle').textContent = practice ? 'Rally practice' : 'Match setup';
     $('bStart').textContent = practice ? 'Start practice' : 'Start match';
     const c = settings.controls;
@@ -4832,7 +5062,8 @@ const ui = {
   currentCfg() {
     return {
       mode: this.setupMode, controls: settings.controls, level: settings.level, format: settings.format,
-      surface: settings.surface, name: cleanName(settings.name), shirt: settings.shirt, skin: settings.skin || 0
+      surface: plusCourtOpen(settings.surface) ? settings.surface : 'hard', name: cleanName(settings.name), shirt: settings.shirt, skin: settings.skin || 0,
+      invincible: !!settings.invincible && this.setupMode !== 'practice'
     };
   },
 
@@ -5154,6 +5385,7 @@ const ui = {
     on('bPlay', () => { audio.ui('go'); this.openSetup(settings.mode === 'practice' ? 'singles' : settings.mode, 'scrTitle'); });
     on('bPractice', () => { audio.ui('go'); this.openSetup('practice', 'scrTitle'); });
     on('bHow', () => { audio.ui('move'); this.open('scrHow', this.screen); });
+    on('bMedals', () => { audio.ui('move'); plusShowMedals(); this.open('scrMedals', this.screen); });
     on('bSettings', () => { audio.ui('move'); this.open('scrSettings', this.screen); });
     on('bStart', () => this.startFromSetup());
     document.querySelectorAll('[data-back]').forEach((b) => b.addEventListener('click', () => this.back()));
@@ -5349,7 +5581,7 @@ function boot() {
       }).catch(() => {});
     }
   } catch (e) { /* font loading api unavailable */ }
-  window.__ace = { game, world, settings, startMatch, startDemo, updateGame, onSwingInput, cam, ui, audio, LEVELS, INPUT_WINDOWS, snapCamera };
+  window.__ace = { game, world, settings, startMatch, startDemo, updateGame, onSwingInput, cam, ui, audio, LEVELS, INPUT_WINDOWS, snapCamera, plus, PROG, MEDALS, SURFACES, endPoint, plusCourtOpen, plusOnHit, plusOnMatch };
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
