@@ -62,8 +62,76 @@
     if (this.ok() && !this.mute) {
       room(this);
       const m = MAP[name];
-      if (m) { const t = this.ctx.currentTime; for (const [kind, k] of m) LAYER[kind](this, t, k); }
+      if (m) { const t = this.ctx.currentTime; for (const [kind, k] of m) LAYER[kind](this, t, k * 0.5); }
     }
     return base.call(this, name, opt);
   };
+})();
+
+/* ==========================================================================
+   Modern voice: the old sound-chip square waves are replaced by warm detuned
+   saw voices through a sweeping low-pass filter, the chip hiss by clean noise,
+   and the music gets its own hall and echo. Same notes, present-day sound.
+   ========================================================================== */
+
+(function modernVoice() {
+  const baseTone = Chip.prototype.tone;
+  Chip.prototype.tone = function (t, freq, dur, wave, vol, bus, opt) {
+    if (wave === 'sin' || wave === 'tri') return baseTone.call(this, t, freq, dur, wave, vol, bus, opt);
+    const c = this.ctx, music = !!bus && bus !== this.sfxBus;
+    const f = c.createBiquadFilter();
+    f.type = 'lowpass'; f.Q.value = music ? 2.2 : 1;
+    const top = Math.min(9000, freq * (wave === 'p12' ? 9 : wave === 'p25' ? 7 : 5.5) + 700);
+    const low = Math.min(top, freq * 1.8 + 260);
+    f.frequency.setValueAtTime(top, t);
+    f.frequency.exponentialRampToValueAtTime(low, t + Math.max(0.05, dur * 0.85));
+    const g = c.createGain();
+    const a = Math.max((opt && opt.a) || 0.004, 0.006), rel = Math.max((opt && opt.r) || 0.04, 0.03);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol, t + a);
+    if (opt && opt.decay) g.gain.setTargetAtTime(vol * (opt.sus || 0.5), t + a, opt.decay);
+    g.gain.setValueAtTime(opt && opt.decay ? vol * (opt.sus || 0.5) : vol, Math.max(t + a, t + dur - rel));
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    let lfo = null;
+    if (opt && opt.vib) {
+      lfo = c.createGain(); lfo.gain.value = opt.vib[1];
+      const l = c.createOscillator(); l.frequency.value = opt.vib[0];
+      l.connect(lfo); l.start(t + (opt.vib[2] || 0.1)); l.stop(t + dur + 0.05);
+    }
+    const spread = dur > 0.09 ? [-9, 9] : [0];
+    for (const d of spread) {
+      const o = c.createOscillator();
+      o.type = 'sawtooth'; o.detune.value = d;
+      o.frequency.setValueAtTime(freq, t);
+      if (opt && opt.slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, opt.slide), t + dur);
+      if (lfo) lfo.connect(o.frequency);
+      const og = c.createGain(); og.gain.value = spread.length > 1 ? 0.62 : 0.9;
+      o.connect(og); og.connect(f);
+      o.start(t); o.stop(t + dur + 0.05);
+    }
+    // weight under the bass line
+    if (music && freq < 150 && dur > 0.08) baseTone.call(this, t, freq, dur, 'sin', vol * 0.7, bus, { a: 0.01, r: rel });
+    f.connect(g); g.connect(bus || this.sfxBus);
+  };
+
+  /** One-time wiring: clean noise instead of chip hiss, and space around the music. */
+  function space(chip) {
+    if (chip.spaced || !chip.ctx || !chip.musicBus || !chip.master) return;
+    chip.spaced = true;
+    chip.metalBuf = chip.noiseBuf;
+    try {
+      const c = chip.ctx, len = Math.floor(c.sampleRate * 2.2), buf = c.createBuffer(2, len, c.sampleRate);
+      for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8); }
+      const cv = c.createConvolver(), wet = c.createGain();
+      cv.buffer = buf; wet.gain.value = 0.24;
+      chip.musicBus.connect(cv); cv.connect(wet); wet.connect(chip.master);
+      const dl = c.createDelay(1), fb = c.createGain(), dw = c.createGain(), lp = c.createBiquadFilter();
+      dl.delayTime.value = 0.29; fb.gain.value = 0.3; dw.gain.value = 0.16; lp.type = 'lowpass'; lp.frequency.value = 2600;
+      chip.musicBus.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(dw); dw.connect(chip.master);
+    } catch (e) { /* dry music still plays */ }
+  }
+  const baseInit = Chip.prototype.initCtx;
+  Chip.prototype.initCtx = function (c) { baseInit.call(this, c); space(this); };
+  const baseSfx = Chip.prototype.sfx;
+  Chip.prototype.sfx = function (name, opt) { space(this); return baseSfx.call(this, name, opt); };
 })();
