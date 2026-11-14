@@ -398,6 +398,49 @@ function drawTitle(g) {
   T(g, 'TOP ' + pad7(game.scores[0].s) + '   ' + game.scores[0].n, W / 2, 166, C.gold, { align: 'center', weight: 700 });
   T(g, 'MEDALS ' + medalCount() + ' / ' + MEDALS.length, W / 2, 178, '#c8b8ff', { align: 'center', scale: 0.86, weight: 700 });
   T(g, controlHint(), W / 2, 200, '#9a8aa0', { align: 'center', scale: 0.85 });
+  draw3DButton(g, W - 62, 146);
+}
+
+/** The 3D switch on the title screen. Tap it, or press 3 at any time. */
+function draw3DButton(g, x, y) {
+  const on = !!settings.v3d;
+  g.fillStyle = on ? lgrad(g, 0, y, 0, y + 17, [[0, '#2aa6c8'], [1, '#12506e']]) : 'rgba(255,255,255,0.07)';
+  roundRectPath(g, x, y, 54, 17, 8.5); g.fill();
+  g.strokeStyle = on ? '#bff2ff' : '#6a5a68'; g.lineWidth = 0.6; g.stroke();
+  // the label is drawn twice, a hair apart, so the button itself looks raised
+  T(g, '3D', x + 15.6, y + 4.6, on ? '#0a2a3a' : '#2a1e28', { align: 'center', weight: 700, scale: 1.3 });
+  T(g, '3D', x + 15, y + 4, on ? '#ffffff' : C.dim, { align: 'center', weight: 700, scale: 1.3 });
+  T(g, on ? 'ON' : 'OFF', x + 38, y + 4.6, on ? '#ffffff' : C.dim, { align: 'center', weight: 700 });
+  hitArea(x - 4, y - 4, x + 58, y + 21, { v3d: true });
+}
+
+/**
+ * The 3D view. Only while playing, and only when switched on, the picture leans
+ * back a few degrees and turns gently toward the fighter, so the floor reads as a
+ * stage with depth. Menus stay flat so taps land where they are drawn.
+ */
+const tilt3 = { k: 0, ry: 0, last: '' };
+function apply3D(cv) {
+  const want = settings.v3d && game.state === 'play' ? 1 : 0;
+  tilt3.k += (want - tilt3.k) * 0.08;
+  if (tilt3.k < 0.004) tilt3.k = 0;
+  let ry = 0;
+  const h = game.hero;
+  if (want && h) ry = clamp(((h.x - game.camX) / W - 0.5) * -7 + (h.face || 0) * -0.8, -4.5, 4.5);
+  tilt3.ry += (ry - tilt3.ry) * 0.05;
+  const k = tilt3.k;
+  const css = k ? 'perspective(900px) rotateX(' + (6.5 * k).toFixed(2) + 'deg) rotateY(' + (tilt3.ry * k).toFixed(2) + 'deg) scale(' + (1 - 0.05 * k).toFixed(3) + ')' : '';
+  if (css !== tilt3.last) { tilt3.last = css; cv.style.transform = css; cv.style.filter = k > 0.5 ? 'drop-shadow(0 18px 22px rgba(0,0,0,0.6))' : ''; }
+}
+
+/** Depth light for the 3D view: the back wall falls into shade, the front edge catches light. */
+function draw3DLight(g) {
+  const k = tilt3.k;
+  if (k <= 0) return;
+  g.save(); g.globalAlpha = k;
+  g.fillStyle = lgrad(g, 0, 0, 0, H, [[0, 'rgba(0,0,10,0.34)'], [0.45, 'rgba(0,0,10,0)'], [0.86, 'rgba(255,236,200,0)'], [1, 'rgba(255,236,200,0.13)']]);
+  g.fillRect(0, -H, W, H * 3);
+  g.restore();
 }
 
 function drawSelect(g) {
@@ -423,6 +466,11 @@ function drawSelect(g) {
     T(g, S.blurb[1], x0 + w / 2, y0 + hgt + 12, sel ? C.cyan : '#6a6a7a', { align: 'center' });
     hitArea(x0, y0, x0 + w, y0 + hgt + 20, { fighter: f });
   });
+  if (game.menu === 0 && !input.usingTouch) {
+    const nx = Math.sin(game.t * 6) * 1.5;
+    T(g, '<', 38 - nx, 58, C.gold, { align: 'center', weight: 700, scale: 1.8 });
+    T(g, '>', W - 38 + nx, 58, C.gold, { align: 'center', weight: 700, scale: 1.8 });
+  }
   const y = 141;
   T(g, 'LEVEL', 22, y, game.menu === 1 ? C.ink : C.dim, { weight: 700 });
   LEVELS.forEach((lv, i) => {
@@ -452,7 +500,7 @@ function drawSelect(g) {
   if (many && sel) { T(g, '<', W / 2 - 62, by - 1.6, C.gold, { align: 'center', weight: 700 }); T(g, '>', W / 2 + 62, by - 1.6, C.gold, { align: 'center', weight: 700 }); }
   hitArea(W / 2 - 54, by - 7, W / 2 + 54, by + 14, { go: true });
   T(g, '< BACK', 8, 205, C.dim); hitArea(2, 199, 60, 216, { back: true });
-  T(g, input.usingTouch ? 'TAP TO CHOOSE' : 'UP/DOWN ROW   LEFT/RIGHT CHANGE', W - 6, 205, '#8a7a90', { align: 'right' });
+  T(g, input.usingTouch ? 'TAP TO CHOOSE' : 'LEFT/RIGHT CHANGE   UP/DOWN ROW   ENTER BEGIN', W - 6, 205, '#8a7a90', { align: 'right' });
 }
 
 function drawScores(g) {
@@ -536,7 +584,7 @@ function drawOptions(g) {
   else drawTitleBackdrop(g, 0.8);
   bigTitle(g, 'OPTIONS', W / 2, 20, 2);
   OPTION_ITEMS.forEach((it, i) => {
-    const y = 58 + i * 20, sel = game.menu === i;
+    const y = 52 + i * 19, sel = game.menu === i;
     menuBar(g, 60, y - 4, W - 120, 15, sel);
     T(g, it, 76, y - 0.5, sel ? C.ink : C.dim, { weight: 700, scale: 1.1 });
     let val = '';
@@ -545,6 +593,7 @@ function drawOptions(g) {
       for (let k = 0; k < 10; k++) rrect(g, 214 + k * 8, y, 6, 7, 1.5, k < v ? (sel ? C.gold : '#c9a463') : '#2a1e24');
     } else if (it === 'GLOW FX') val = settings.fx ? 'ON' : 'OFF';
     else if (it === 'SCREEN SHAKE') val = settings.shake ? 'ON' : 'OFF';
+    else if (it === '3D VIEW') val = settings.v3d ? 'ON' : 'OFF';
     else if (it === 'TOUCH PAD') val = (settings.touch || 'auto').toUpperCase();
     if (val) T(g, '<  ' + val + '  >', 254, y - 0.5, sel ? C.gold : C.ink, { align: 'center', weight: 700, scale: 1.1 });
     if (it !== 'BACK') { hitArea(200, y - 5, 238, y + 11, { i, dir: -1 }); hitArea(270, y - 5, 310, y + 11, { i, dir: 1 }); hitArea(60, y - 5, 199, y + 11, { i, dir: 1 }); }
@@ -732,7 +781,7 @@ function renderFrame() {
     case 'howto': drawHowTo(g); break;
     case 'options': drawOptions(g); break;
     case 'intro': drawIntro(g); break;
-    case 'play': drawWorld(g); if (!DBG.noHud) drawHUD(g); drawBanners(g); break;
+    case 'play': drawWorld(g); draw3DLight(g); if (!DBG.noHud) drawHUD(g); drawBanners(g); break;
     case 'pause': drawPause(g); break;
     case 'clear': drawClear(g); drawHUD(g); break;
     case 'continue': drawContinue(g); drawHUD(g); break;
@@ -749,6 +798,7 @@ function renderFrame() {
     else { const w = textWidth(game.toast.s) + 14; rrect(g, W / 2 - w / 2, H - 22, w, 13, 6.5, 'rgba(14,6,12,0.88)'); T(g, game.toast.s, W / 2, H - 19.6, C.gold, { align: 'center', weight: 700 }); }
   }
   g.restore();
+  apply3D(cv);
 }
 
 /** The world: zoomed and panned on upright phones, and pushed in briefly on big hits. */

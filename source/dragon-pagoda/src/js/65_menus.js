@@ -3,7 +3,7 @@
    ========================================================================== */
 
 const TITLE_ITEMS = ['START GAME', 'HOW TO PLAY', 'HIGH SCORES', 'MEDALS', 'OPTIONS'];
-const OPTION_ITEMS = ['MUSIC', 'EFFECTS', 'GLOW FX', 'SCREEN SHAKE', 'TOUCH PAD', 'BACK'];
+const OPTION_ITEMS = ['MUSIC', 'EFFECTS', 'GLOW FX', 'SCREEN SHAKE', '3D VIEW', 'TOUCH PAD', 'BACK'];
 const PAUSE_ITEMS = ['RESUME', 'RESTART FLOOR', 'OPTIONS', 'QUIT GAME'];
 const HOWTO_PAGES = 4;
 const FIGHTERS = ['tao', 'lian'];
@@ -38,8 +38,9 @@ function updateMenus(dt, I, P) {
       if (P.any || input.tap) game.idleT = 0;
       menuMove(TITLE_ITEMS.length, P);
       let act = confirm ? game.menu : -1;
-      if (hit) { game.menu = hit.i; act = hit.i; }
-      if (act === 0) { chip.sfx('select'); setState('select'); game.menu = 3; }
+      if (hit && hit.v3d) toggle3D();
+      else if (hit) { game.menu = hit.i; act = hit.i; }
+      if (act === 0) { chip.sfx('select'); setState('select'); game.menu = 0; }
       else if (act === 1) { chip.sfx('select'); setState('howto'); game.page = 0; }
       else if (act === 2) { chip.sfx('select'); setState('scores'); game.attract = false; }
       else if (act === 3) { chip.sfx('select'); setState('medals'); }
@@ -50,12 +51,13 @@ function updateMenus(dt, I, P) {
     case 'select': {
       menuMove(4, P);
       const d = P.left ? -1 : P.right ? 1 : 0;
-      if (d && game.menu === 0) { settings.fighter = FIGHTERS[(FIGHTERS.indexOf(settings.fighter) + 1) % 2]; chip.sfx('move'); saveSettings(); }
+      if (d && game.menu === 0) { settings.fighter = FIGHTERS[(FIGHTERS.indexOf(settings.fighter) + 1) % 2]; chip.sfx('select'); saveSettings(); }
       if (d && game.menu === 1) { const n = LEVELS.length; settings.level = LEVELS[(Math.max(0, LEVELS.indexOf(settings.level)) + d + n) % n]; chip.sfx('move'); saveSettings(); }
       if (d && game.menu === 3) { const n = Math.min(PROG.reached, FLOORS.length - 1) + 1; settings.floor = (startFloorPick() + d + n) % n; chip.sfx('move'); saveSettings(); }
       if (d && game.menu === 2) { settings.invincible = !settings.invincible; chip.sfx(settings.invincible ? 'chime' : 'move'); saveSettings(); }
-      let go = confirm && game.menu === 3;
-      if (confirm && game.menu < 3) { game.menu++; chip.sfx('move'); }
+      // Enter or Start begins from any row; the action buttons step down the rows first
+      let go = (confirm && game.menu === 3) || P.start;
+      if (!go && confirm && game.menu < 3) { game.menu++; chip.sfx('move'); }
       if (hit) {
         if (hit.fighter) { settings.fighter = hit.fighter; game.menu = 0; chip.sfx('move'); saveSettings(); }
         else if (hit.level) { settings.level = hit.level; game.menu = 1; chip.sfx('move'); saveSettings(); }
@@ -114,6 +116,7 @@ function adjustOption(i, d, activate) {
     case 'EFFECTS': settings.sfx = clamp(Math.round(settings.sfx * 10 + d) / 10, 0, 1); chip.applyVolumes(); chip.sfx('punch'); break;
     case 'GLOW FX': settings.fx = !settings.fx; chip.sfx('move'); break;
     case 'SCREEN SHAKE': settings.shake = !settings.shake; chip.sfx('move'); if (settings.shake) game.shake = 4; break;
+    case '3D VIEW': toggle3D(); break;
     case 'TOUCH PAD': {
       const order = ['auto', 'on', 'off'];
       settings.touch = order[(order.indexOf(settings.touch || 'auto') + (d > 0 ? 1 : 2)) % 3];
@@ -168,4 +171,10 @@ function updateEntry(dt, P, hit) {
   }
   if (P.special && E.pos > 0) { E.pos--; chip.sfx('move'); }
   if (E.t <= 0) commitEntry();
+}
+
+/** The 3D view: off unless the player switches it on (title button, options, or the 3 key). */
+function toggle3D() {
+  settings.v3d = !settings.v3d; saveSettings(); chip.sfx(settings.v3d ? 'chime' : 'move');
+  game.toast = { s: settings.v3d ? '3D VIEW ON' : '3D VIEW OFF', t: 0 };
 }

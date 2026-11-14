@@ -37,6 +37,7 @@ function initInput() {
       game.toast = { s: settings.muted ? 'SOUND OFF  (M)' : 'SOUND ON  (M)', t: 0 };
       ev.preventDefault(); return;
     }
+    if (ev.code === 'Digit3' && !ev.repeat) { chip.unlock(); toggle3D(); ev.preventDefault(); return; }
     const a = KEYMAP[ev.code];
     input.anyLatch = true;
     if (!a) return;
