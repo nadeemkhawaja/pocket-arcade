@@ -190,7 +190,7 @@ function drawMedals(g) {
 }
 
 function drawOptions(g) {
-  if (game.optFrom === 'pause') { drawWorld(g); drawHUD(g); rect(g, 0, 0, W, H, 'rgba(4,6,14,0.72)'); }
+  if (game.optFrom === 'pause') { drawWorld(g); drawHUD(g); rect(g, 0, -H, W, H * 3, 'rgba(4,6,14,0.72)'); }
   else drawTitleBackdrop(g, 0.86);
   bigTitle(g, 'OPTIONS', W / 2, 18, 2.2);
   panel(g, 52, 48, W - 104, 132);
@@ -214,7 +214,7 @@ function drawOptions(g) {
 
 function drawIntro(g) {
   drawWorld(g);
-  rect(g, 0, 0, W, H, 'rgba(4,6,14,0.74)');
+  rect(g, 0, -H, W, H * 3, 'rgba(4,6,14,0.74)');
   const t = game.stateT, st = game.st;
   const slide = Math.min(1, t / 0.35), e = 1 - (1 - slide) * (1 - slide);
   rect(g, 0, 44, W * e, 0.6, C.red); rect(g, W - W * e, 96, W * e, 0.6, C.red);
@@ -239,7 +239,7 @@ function drawClear(g) {
     }
     return;
   }
-  rect(g, 0, 0, W, H, 'rgba(4,6,14,' + Math.min(0.82, (t - 3.6) * 2) + ')');
+  rect(g, 0, -H, W, H * 3, 'rgba(4,6,14,' + Math.min(0.82, (t - 3.6) * 2) + ')');
   bigTitle(g, 'STAGE ' + (game.stageIdx + 1) + ' CLEAR', W / 2, 26, 2.2, { fill: '#ffd27a' });
   T(g, game.st.name, W / 2, 48, C.cyan, { align: 'center', weight: 700 });
   panel(g, 50, 62, W - 100, 100);
@@ -257,7 +257,7 @@ function drawClear(g) {
 
 function drawContinue(g) {
   drawWorld(g);
-  rect(g, 0, 0, W, H, 'rgba(4,6,14,0.74)');
+  rect(g, 0, -H, W, H * 3, 'rgba(4,6,14,0.74)');
   bigTitle(g, 'CONTINUE?', W / 2, 46, 2.6);
   const n = Math.max(0, Math.ceil(game.contT) - 1);
   bigTitle(g, String(n), W / 2, 78, 6, { fill: n <= 3 ? '#ff5a4a' : '#ffd27a', stroke: '#2a0808' });
@@ -268,14 +268,14 @@ function drawContinue(g) {
 
 function drawGameOver(g) {
   drawWorld(g);
-  rect(g, 0, 0, W, H, 'rgba(4,6,14,' + Math.min(0.82, game.stateT) + ')');
+  rect(g, 0, -H, W, H * 3, 'rgba(4,6,14,' + Math.min(0.82, game.stateT) + ')');
   bigTitle(g, 'GAME OVER', W / 2, 78, 4, { fill: '#ff5a4a', stroke: '#2a0808' });
   T(g, 'SCORE ' + pad7(game.score), W / 2, 124, C.ink, { align: 'center', weight: 700 });
 }
 
 function drawPause(g) {
   drawWorld(g); drawHUD(g);
-  rect(g, 0, 0, W, H, 'rgba(4,6,14,0.66)');
+  rect(g, 0, -H, W, H * 3, 'rgba(4,6,14,0.66)');
   bigTitle(g, 'PAUSED', W / 2, 40, 2.6);
   panel(g, W / 2 - 86, 70, 172, 82);
   PAUSE_ITEMS.forEach((it, i) => {

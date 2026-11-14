@@ -79,7 +79,7 @@ A kung fu climb in hand-drawn HD, inspired by 1980s arcade brawlers but with its
 
 ## Phones, tablets and computers
 
-All three games are built for current Safari on iPhone and iPad, Chrome on Android, and Chrome, Edge, Safari or Firefox on Windows and Mac. On a phone, hold it sideways for the biggest picture. The pages lock the zoom level and re-measure the screen after every rotation, so a stray double tap or pinch should not leave you looking at oversized buttons.
+All three games are built for current Safari on iPhone and iPad, Chrome on Android, and Chrome, Edge, Safari or Firefox on Windows and Mac. On a phone, hold it sideways for the biggest picture; held upright, Dagger Raid and Dragon Pagoda zoom in and follow your fighter so the picture stays large. The pages lock the zoom level and re-measure the screen after every rotation, so a stray double tap or pinch should not leave you looking at oversized buttons.
 
 ## Project layout
 
@@ -123,4 +123,4 @@ The script bundles each game's `src/` files into a single HTML page and copies i
 
 ## Credits
 
-Ace Rally Tennis renders its 3D court with [three.js](https://threejs.org) (MIT License, see `source/ace-rally-tennis/vendor/package/LICENSE`). Fonts load from Google Fonts: Press Start 2P, Chakra Petch, Fredoka, M PLUS Rounded 1c, Barlow Condensed, Black Ops One, Cinzel and Ma Shan Zheng.
+Ace Rally Tennis renders its 3D court with [three.js](https://threejs.org) (MIT License, see `source/ace-rally-tennis/vendor/package/LICENSE`). Dagger Raid and Dragon Pagoda mix recorded blade, footstep, metal, cloth and impact clips from Kenney's RPG Audio pack (CC0, kenney.nl) with sound synthesized in code. Fonts load from Google Fonts: Press Start 2P, Chakra Petch, Fredoka, M PLUS Rounded 1c, Barlow Condensed, Black Ops One, Cinzel and Ma Shan Zheng.

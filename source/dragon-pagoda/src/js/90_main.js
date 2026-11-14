@@ -43,10 +43,15 @@ function layout() {
   const B = document.body.classList;
   B.toggle('touch-on', touchOn);
   B.toggle('portrait', portrait);
-  let gx = 0, gy = 0, gw = vw, gh = vh;
+  let gx = 0, gy = 0, gw = vw, gh = vh, zoom = 1;
   if (touchOn && portrait) {
-    gy = safe.t + 8;
-    gh = Math.min((vw * 9) / 16, vh * 0.52);
+    // upright phone: zoom in on the action so the picture is taller, as far as the pad below allows
+    gy = safe.t + 6;
+    const baseH = (vw * H) / W;
+    const dp = $('dpad'), padTop = dp ? dp.getBoundingClientRect().top : 0;
+    const room = (padTop > vh * 0.4 ? padTop : vh * 0.7) - gy - 58;
+    zoom = clamp(room / baseH, 1, 1.75);
+    gh = baseH * zoom;
   } else if (touchOn) {
     // handheld landscape: the pad lives in side panels, the screen sits between them
     const pad = sizePad(vw, vh, false);
@@ -59,11 +64,13 @@ function layout() {
     gh = vh - gy - Math.max(0, safe.b * 0.5);
   }
   if (!touchOn || portrait) sizePad(vw, vh, true);
-  const s = Math.min(gw / W, gh / H) * dpr;
+  const s = Math.min(gw / W, gh / (H * zoom)) * dpr;
   view.scale = s;
+  view.zoom = zoom;
+  view.dy = (H * (zoom - 1)) / 2;
   view.ox = Math.round(gx * dpr + (gw * dpr - W * s) / 2);
-  view.oy = Math.round(gy * dpr + (gh * dpr - H * s) / 2);
-  document.documentElement.style.setProperty('--game-bottom', Math.round((view.oy + H * s) / dpr) + 'px');
+  view.oy = Math.round(gy * dpr + (gh * dpr - H * zoom * s) / 2);
+  document.documentElement.style.setProperty('--game-bottom', Math.round((view.oy + H * zoom * s) / dpr) + 'px');
 }
 function layoutTouch() { layout(); }
 

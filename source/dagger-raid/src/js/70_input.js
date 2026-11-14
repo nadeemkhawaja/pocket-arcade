@@ -56,7 +56,7 @@ function initInput() {
     const r = cv.getBoundingClientRect();
     const v = view;
     const x = ((ev.clientX - r.left) * (cv.width / r.width) - v.ox) / v.scale;
-    const y = ((ev.clientY - r.top) * (cv.height / r.height) - v.oy) / v.scale;
+    const y = ((ev.clientY - r.top) * (cv.height / r.height) - v.oy) / v.scale - (v.dy || 0);
     input.tapQueue.push({ x, y });
     input.anyLatch = true;
   });

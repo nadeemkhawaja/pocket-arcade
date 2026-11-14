@@ -3,7 +3,7 @@
    in world units under one transform (crisp at any resolution).
    ========================================================================== */
 
-const view = { scale: 2, ox: 0, oy: 0 };
+const view = { scale: 2, ox: 0, oy: 0, zoom: 1, dy: 0, pan: 0 };
 
 const C = {
   ink: '#ffffff', dim: '#a89aa8', red: '#e8392a', gold: '#ffd27a', cyan: '#9fe8ff', green: '#5ee08a', jade: '#5ef0c0', shadow: 'rgba(0,0,0,0.7)',
@@ -131,7 +131,7 @@ function drawReflections(g, cx) {
   g.globalAlpha = 1;
 }
 
-function drawWorld(g) {
+function drawWorldInner(g) {
   const L = game.L, F = game.F;
   const cx = game.camX;
   let sx = 0, sy = 0;
@@ -205,7 +205,7 @@ function drawWeather(g) {
 /* ---- HUD --------------------------------------------------------------------------- */
 function hpColor(f) { return f > 0.5 ? ['#7af0a0', '#2aa860'] : f > 0.25 ? ['#ffe08a', '#d89a20'] : ['#ff8a7a', '#c02a20']; }
 
-function drawHUD(g) {
+function drawHUDInner(g) {
   g.fillStyle = lgrad(g, 0, 0, 0, HUD_H + 2, [[0, '#14070d'], [0.8, 'rgba(20,7,13,0.95)'], [1, 'rgba(20,7,13,0.5)']]);
   g.fillRect(0, 0, W, HUD_H + 2);
   g.fillStyle = lgrad(g, 0, 0, W, 0, [[0, '#6a4410'], [0.5, '#ffe08a'], [1, '#6a4410']]); g.fillRect(0, HUD_H - 0.6, W, 0.8);
@@ -278,7 +278,8 @@ function drawHUD(g) {
   if (game.chainN >= 2 && game.time - game.chainT < 1.5 && game.state === 'play') {
     const s = 'CHAIN X' + game.chainN;
     T(g, s, 192, HUD_H + 3, Math.floor(game.t * 8) % 2 ? C.gold : '#ff9a30', { align: 'center', stroke: '#140a10', strokeW: 2, weight: 700 });
-  }  drawArmsHud(g);
+  }
+  g.save(); g.translate(0, H * (view.zoom - 1)); drawArmsHud(g); g.restore();
 }
 
 /* ---- banners --------------------------------------------------------------------- */
@@ -531,7 +532,7 @@ function drawHowTo(g) {
 }
 
 function drawOptions(g) {
-  if (game.optFrom === 'pause') { drawWorld(g); drawHUD(g); rect(g, 0, 0, W, H, 'rgba(0,0,0,0.6)'); }
+  if (game.optFrom === 'pause') { drawWorld(g); drawHUD(g); rect(g, 0, -H, W, H * 3, 'rgba(0,0,0,0.6)'); }
   else drawTitleBackdrop(g, 0.8);
   bigTitle(g, 'OPTIONS', W / 2, 20, 2);
   OPTION_ITEMS.forEach((it, i) => {
@@ -594,7 +595,7 @@ function drawIntro(g) {
 function drawClear(g) {
   drawWorld(g);
   const t = game.stateT;
-  rect(g, 0, 0, W, H, 'rgba(10,4,10,' + Math.min(0.84, t * 2) + ')');
+  rect(g, 0, -H, W, H * 3, 'rgba(10,4,10,' + Math.min(0.84, t * 2) + ')');
   bigTitle(g, 'FLOOR ' + (game.floorIdx + 1) + ' CLEAR', W / 2, 22, 2.2);
   T(g, game.F.name, W / 2, 48, C.cyan, { align: 'center', weight: 700 });
   panel(g, 48, 62, W - 96, 92);
@@ -611,7 +612,7 @@ function drawClear(g) {
 
 function drawContinue(g) {
   drawWorld(g);
-  rect(g, 0, 0, W, H, 'rgba(10,4,10,0.74)');
+  rect(g, 0, -H, W, H * 3, 'rgba(10,4,10,0.74)');
   bigTitle(g, 'CONTINUE?', W / 2, 46, 2.4);
   const n = Math.max(0, Math.ceil(game.contT) - 1);
   bigTitle(g, String(n), W / 2, 74, 5, { fill: n <= 3 ? '#ff6a5a' : undefined });
@@ -622,14 +623,14 @@ function drawContinue(g) {
 
 function drawGameOver(g) {
   drawWorld(g);
-  rect(g, 0, 0, W, H, 'rgba(10,4,10,' + Math.min(0.8, game.stateT) + ')');
+  rect(g, 0, -H, W, H * 3, 'rgba(10,4,10,' + Math.min(0.8, game.stateT) + ')');
   bigTitle(g, 'GAME OVER', W / 2, 78, 3.4, { fill: lgrad(g, 0, 78, 0, 106, [[0, '#ffb0a0'], [1, '#c02a20']]) });
   T(g, 'SCORE  ' + pad7(game.score), W / 2, 122, C.ink, { align: 'center', weight: 700, scale: 1.2 });
 }
 
 function drawPause(g) {
   drawWorld(g); drawHUD(g);
-  rect(g, 0, 0, W, H, 'rgba(10,4,10,0.66)');
+  rect(g, 0, -H, W, H * 3, 'rgba(10,4,10,0.66)');
   bigTitle(g, 'PAUSED', W / 2, 48, 2.4);
   PAUSE_ITEMS.forEach((it, i) => {
     const y = 84 + i * 17, sel = game.menu === i;
@@ -700,7 +701,7 @@ function drawEnding(g) {
 /* ---- frame ------------------------------------------------------------------------------ */
 /** Rebuild cached paintings when the screen scale changes enough to matter. */
 function ensureArtScale() {
-  const want = clamp(view.scale, 1, 4);
+  const want = clamp(view.scale * view.zoom, 1, 4);
   if (Math.abs(want - RS) <= RS * 0.12) return;
   RS = Math.round(want * 100) / 100;
   for (const k in ART_CACHE) delete ART_CACHE[k];
@@ -718,7 +719,9 @@ function renderFrame() {
   g.imageSmoothingEnabled = true;
   if ('imageSmoothingQuality' in g) g.imageSmoothingQuality = 'low';
   g.save();
-  g.beginPath(); g.rect(0, 0, W, H); g.clip();
+  g.beginPath(); g.rect(0, 0, W, H * view.zoom); g.clip();
+  // menus sit centred in a zoomed (upright phone) picture; the world and HUD undo this shift themselves
+  g.translate(0, view.dy);
   switch (game.state) {
     case 'boot': drawBoot(g); break;
     case 'title': drawTitle(g); break;
@@ -737,12 +740,33 @@ function renderFrame() {
     case 'ending': drawEnding(g); break;
     default: break;
   }
-  if (game.fadeT > 0) { g.globalAlpha = Math.min(1, game.fadeT / 0.22); rect(g, 0, 0, W, H, '#000000'); g.globalAlpha = 1; }
+  if (game.fadeT > 0) { g.globalAlpha = Math.min(1, game.fadeT / 0.22); rect(g, 0, -H, W, H * 3, '#000000'); g.globalAlpha = 1; }
   drawMedalToast(g);
   if (game.toast) {
     game.toast.t += 1 / 60;
     if (game.toast.t > 1.6) game.toast = null;
     else { const w = textWidth(game.toast.s) + 14; rrect(g, W / 2 - w / 2, H - 22, w, 13, 6.5, 'rgba(14,6,12,0.88)'); T(g, game.toast.s, W / 2, H - 19.6, C.gold, { align: 'center', weight: 700 }); }
   }
+  g.restore();
+}
+
+/** The world, zoomed in and panned to follow the hero when the picture is taller than 16:9. */
+function drawWorld(g) {
+  const z = view.zoom;
+  if (z <= 1.001) { view.pan = 0; drawWorldInner(g); return; }
+  const h = game.hero, wv = W / z;
+  let want = (W - wv) / 2;
+  if (h) { const hx = h.x - game.camX; want = hx - wv * (h.face >= 0 ? 0.42 : 1 - 0.42); }
+  want = clamp(want, 0, W - wv);
+  view.pan = Math.abs(want - view.pan) > wv ? want : view.pan + (want - view.pan) * 0.07;
+  g.save();
+  g.translate(0, -view.dy); g.scale(z, z); g.translate(-view.pan, 0);
+  g.beginPath(); g.rect(view.pan, 0, wv, H); g.clip();
+  drawWorldInner(g);
+  g.restore();
+}
+function drawHUD(g) {
+  g.save(); g.translate(0, -view.dy);
+  drawHUDInner(g);
   g.restore();
 }

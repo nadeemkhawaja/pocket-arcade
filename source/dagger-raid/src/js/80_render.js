@@ -3,7 +3,7 @@
    units under one transform, so everything stays crisp at any resolution.
    ========================================================================== */
 
-const view = { scale: 2, ox: 0, oy: 0 };
+const view = { scale: 2, ox: 0, oy: 0, zoom: 1, dy: 0, pan: 0 };
 
 const C = {
   ink: '#ffffff', dim: '#9aa6b8', red: '#e8392a', gold: '#ffd27a', cyan: '#9fe8ff', green: '#4ad16a', shadow: 'rgba(0,0,0,0.75)',
@@ -106,7 +106,7 @@ function drawWeather(g) {
   g.globalAlpha = 1;
 }
 
-function drawWorld(g) {
+function drawWorldInner(g) {
   const st = game.st, L = stageArt(st);
   game.L = L;
   const cx = game.camX, art = ART[st.id];
@@ -154,7 +154,7 @@ function drawBladeIcon(g, x, y, kat) {
   g.restore();
 }
 
-function drawHUD(g) {
+function drawHUDInner(g) {
   const h = game.hero;
   g.fillStyle = lgrad(g, 0, 0, 0, HUD_H + 5, [[0, 'rgba(6,8,16,0.92)'], [0.75, 'rgba(6,8,16,0.72)'], [1, 'rgba(6,8,16,0)']]);
   g.fillRect(0, 0, W, HUD_H + 5);
@@ -261,7 +261,7 @@ function drawBanners(g) {
 /* ---- frame ------------------------------------------------------------------------------ */
 /** Repaint cached art when the screen scale changes enough to matter. */
 function ensureArtScale() {
-  const want = clamp(view.scale, 1, 3);
+  const want = clamp(view.scale * view.zoom, 1, 3);
   if (Math.abs(want - RS) <= RS * 0.12) return;
   RS = Math.round(want * 100) / 100;
 }
@@ -277,7 +277,9 @@ function renderFrame() {
   g.imageSmoothingEnabled = true;
   if ('imageSmoothingQuality' in g) g.imageSmoothingQuality = 'low';
   g.save();
-  g.beginPath(); g.rect(0, 0, W, H); g.clip();
+  g.beginPath(); g.rect(0, 0, W, H * view.zoom); g.clip();
+  // menus sit centred in a zoomed (upright phone) picture; the world and HUD undo this shift themselves
+  g.translate(0, view.dy);
   switch (game.state) {
     case 'boot': drawBoot(g); break;
     case 'title': drawTitle(g); break;
@@ -297,6 +299,27 @@ function renderFrame() {
     default: break;
   }
   drawToasts(g);
-  if (game.fadeT > 0) { g.globalAlpha = Math.min(1, game.fadeT / 0.22); rect(g, 0, 0, W, H, '#000000'); g.globalAlpha = 1; }
+  if (game.fadeT > 0) { g.globalAlpha = Math.min(1, game.fadeT / 0.22); rect(g, 0, -H, W, H * 3, '#000000'); g.globalAlpha = 1; }
+  g.restore();
+}
+
+/** The world, zoomed in and panned to follow the hero when the picture is taller than 16:9. */
+function drawWorld(g) {
+  const z = view.zoom;
+  if (z <= 1.001) { view.pan = 0; drawWorldInner(g); return; }
+  const h = game.hero, wv = W / z;
+  let want = (W - wv) / 2;
+  if (h) { const hx = h.x - game.camX; want = hx - wv * (h.face >= 0 ? 0.34 : 1 - 0.34); }
+  want = clamp(want, 0, W - wv);
+  view.pan = Math.abs(want - view.pan) > wv ? want : view.pan + (want - view.pan) * 0.07;
+  g.save();
+  g.translate(0, -view.dy); g.scale(z, z); g.translate(-view.pan, 0);
+  g.beginPath(); g.rect(view.pan, 0, wv, H); g.clip();
+  drawWorldInner(g);
+  g.restore();
+}
+function drawHUD(g) {
+  g.save(); g.translate(0, -view.dy);
+  drawHUDInner(g);
   g.restore();
 }
