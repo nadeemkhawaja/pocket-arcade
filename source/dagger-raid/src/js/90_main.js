@@ -32,7 +32,8 @@ function sizePad(vw, vh, portrait) {
 function layout() {
   readSafe();
   const cv = $('screen');
-  const vw = window.innerWidth, vh = window.innerHeight;
+  const vw = Math.max(1, window.innerWidth || document.documentElement.clientWidth), vh = Math.max(1, window.innerHeight || document.documentElement.clientHeight);
+  laidOut = window.innerWidth + 'x' + window.innerHeight + '@' + (window.devicePixelRatio || 1);
   // full resolution, capped so huge screens stay smooth
   const dpr = Math.min(3, window.devicePixelRatio || 1, 2600 / Math.max(1, vw), 1600 / Math.max(1, vh)) * QUALITY.res[QUALITY.level];
   const tw = Math.max(1, Math.round(vw * dpr)), th = Math.max(1, Math.round(vh * dpr));
@@ -51,7 +52,8 @@ function layout() {
     const pad = sizePad(vw, vh, false);
     const side = Math.max(pad.left, pad.right);
     const full = Math.min(vw, (vh * 16) / 9);
-    gw = Math.min(vw, Math.max(vw - 2 * side, full * 0.72));
+    // the picture takes the full height; the pad may overlap its outer edges rather than shrink it
+    gw = Math.min(vw, Math.max(vw - 2 * side, full));
     gx = (vw - gw) / 2;
     gy = Math.max(0, safe.t);
     gh = vh - gy - Math.max(0, safe.b * 0.5);
@@ -64,6 +66,51 @@ function layout() {
   document.documentElement.style.setProperty('--game-bottom', Math.round((view.oy + H * s) / dpr) + 'px');
 }
 function layoutTouch() { layout(); }
+
+/* ---- keep the page from zooming or scrolling out from under the game --------------- */
+const VIEWPORT_LOCK = 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover';
+let laidOut = '';
+function viewportMeta() {
+  let m = document.querySelector('meta[name="viewport"]');
+  if (!m) { m = document.createElement('meta'); m.name = 'viewport'; document.head.appendChild(m); }
+  return m;
+}
+/** If the browser zoomed in anyway (double tap, pinch, rotation), snap back to 1:1. */
+function unzoom() {
+  const vv = window.visualViewport;
+  if (vv && Math.abs(vv.scale - 1) > 0.02) {
+    const m = viewportMeta();
+    m.setAttribute('content', VIEWPORT_LOCK + ',_r=' + Date.now() % 97);
+    setTimeout(() => m.setAttribute('content', VIEWPORT_LOCK), 60);
+  }
+  if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
+}
+function guardViewport() {
+  viewportMeta().setAttribute('content', VIEWPORT_LOCK);
+  const stop = (e) => { if (e.cancelable) e.preventDefault(); };
+  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, stop, { passive: false });
+  document.addEventListener('touchmove', (e) => { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) stop(e); }, { passive: false });
+  document.addEventListener('dblclick', stop, { passive: false });
+  document.addEventListener('wheel', (e) => { if (e.ctrlKey) stop(e); }, { passive: false });
+  // a fast second tap anywhere on the game is play, never a zoom request
+  let lastEnd = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = performance.now();
+    const t = e.target, form = t && t.closest && t.closest('input,textarea,select,a');
+    if (now - lastEnd < 350 && !form) stop(e);
+    lastEnd = now;
+  }, { passive: false });
+  const relayout = () => { unzoom(); layout(); };
+  if (window.visualViewport) { window.visualViewport.addEventListener('resize', relayout); window.visualViewport.addEventListener('scroll', unzoom); }
+  window.addEventListener('pageshow', relayout);
+  window.addEventListener('orientationchange', () => { for (const d of [60, 300, 700, 1200]) setTimeout(relayout, d); });
+  if (window.screen && screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', () => { for (const d of [60, 400, 900]) setTimeout(relayout, d); });
+  // belt and braces: some browsers report the new size late and send no event for it
+  setInterval(() => {
+    const key = window.innerWidth + 'x' + window.innerHeight + '@' + (window.devicePixelRatio || 1);
+    if (key !== laidOut) relayout(); else unzoom();
+  }, 500);
+}
 
 let lastT = 0, acc = 0, manual = false, lastTouchState = null;
 function frame(now) {
@@ -107,7 +154,7 @@ function boot() {
   initInput();
   layout();
   window.addEventListener('resize', layout);
-  window.addEventListener('orientationchange', () => setTimeout(layout, 150));
+  guardViewport();
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       if (game.state === 'play' && !game.demo) openPause();

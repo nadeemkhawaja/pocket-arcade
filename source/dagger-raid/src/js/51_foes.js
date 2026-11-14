@@ -138,7 +138,14 @@ function ninjaState(e, dt, h, alive, toward) {
     case 'slash':
       e.vx = e.t >= w && e.t < w + 0.13 ? e.face * 115 : 0;
       if (e.t >= w && !e.fired) { e.fired = true; chip.sfx('katana'); game.fx.push({ k: 'slash', x: e.x + e.face * 3, y: e.y - 17, face: e.face, r: 27, a0: -1.9, a1: 1.0, col: '#ff9a9a', t: 0, life: 0.16 }); }
-      if (e.t >= w + 0.42) { setSt(e, 'run'); e.cd = rand(0.7, 1.2); }
+      if (e.t >= w + 0.42) {
+        if (e.ground && chance(0.65)) {
+          // spring back out of reach, then come again with a star or from the smoke
+          const away = -e.face;
+          setSt(e, 'flip'); e.vy = -185; e.vx = away * 135; e.ground = false; e.evade = 0.12; e.cd = 0.3;
+          chip.sfx('whoosh');
+        } else { setSt(e, 'run'); e.cd = rand(0.7, 1.2); }
+      }
       return true;
     case 'nthrow': {
       e.vx = 0; if (alive) e.face = toward;

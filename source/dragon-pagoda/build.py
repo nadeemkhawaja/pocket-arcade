@@ -24,7 +24,7 @@ artifact = head + "\n" + body + "\n<script>\n" + game_js + "</script>\n"
 
 standalone = (
     "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
-    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">\n"
+    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover\">\n"
     + head + "\n</head>\n<body>\n" + body + "\n<script>\n" + game_js + "</script>\n</body>\n</html>\n"
 )
 (DIST / "dragon-pagoda.html").write_text(standalone)
@@ -32,7 +32,7 @@ standalone = (
 
 skeleton = (
     "<!doctype html><html><head><meta charset=utf8>"
-    "<meta name=viewport content=\"width=device-width,initial-scale=1,viewport-fit=cover\">"
+    "<meta name=viewport content=\"width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover\">"
     "<style>body{margin:0;font:14px system-ui,sans-serif}[hidden]{display:none!important}</style>"
     "</head><body>"
 )

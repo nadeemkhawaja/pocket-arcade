@@ -100,6 +100,7 @@ function plusOnHit(p, shot, b) {
 
 /** A ball struck with a power shot leaves sparks behind it for a moment. */
 function plusUpdate(dt) {
+  if (dt > 0) plusSqueaks(dt);
   const b = game.ball;
   if (!b || !b.fire) return;
   b.fire = Math.max(0, b.fire - dt);
@@ -157,3 +158,58 @@ AudioEngine.prototype.shield = function () {
     o.connect(g); g.connect(this.sfxBus || this.master || c.destination); o.start(t + d); o.stop(t + d + 0.32);
   }
 };
+
+/* ---- sound polish: stadium echo, string ping, effort grunts and shoe squeaks ---------- */
+(function tennisSound() {
+  const baseUnlock = AudioEngine.prototype.unlock;
+  AudioEngine.prototype.unlock = function () {
+    baseUnlock.call(this);
+    if (this.room || !this.ctx || !this.sfxBus) return;
+    this.room = true;
+    try {
+      const c = this.ctx, len = Math.floor(c.sampleRate * 1.6), buf = c.createBuffer(2, len, c.sampleRate);
+      for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4); }
+      const cv = c.createConvolver(), wet = c.createGain(), lp = c.createBiquadFilter();
+      cv.buffer = buf; lp.type = 'lowpass'; lp.frequency.value = 3200; wet.gain.value = 0.2;
+      this.sfxBus.connect(cv); cv.connect(lp); lp.connect(wet); wet.connect(this.master);
+    } catch (e) { /* the dry sound still plays */ }
+  };
+  const baseHit = AudioEngine.prototype.hit;
+  AudioEngine.prototype.hit = function (power, x, far, kind) {
+    baseHit.call(this, power, x, far, kind);
+    if (!this.ok()) return;
+    const t = this.ctx.currentTime, p = clamp(power, 0, 1), o = this.out((far ? 0.5 : 0.8) * (0.4 + p * 0.6), x / 9);
+    // the strings ring for a moment after the ball leaves
+    this.tone('sine', 1650 + Math.random() * 200, 1500, t + 0.004, 0.16, 0.07 + p * 0.05, o, 0.002);
+    this.tone('sine', 2480 + Math.random() * 200, 2300, t + 0.004, 0.1, 0.03, o, 0.002);
+    if (p > 0.78) {
+      // effort: a short voiced grunt on the big swings
+      const c = this.ctx, osc = c.createOscillator(), g = c.createGain();
+      osc.type = 'sawtooth'; osc.frequency.setValueAtTime((far ? 190 : 150) * (0.92 + Math.random() * 0.16), t); osc.frequency.exponentialRampToValueAtTime(95, t + 0.2);
+      this.env(g.gain, t, 0.13, 0.02, 0.2);
+      for (const f of [650, 1150]) { const b = c.createBiquadFilter(); b.type = 'bandpass'; b.frequency.value = f; b.Q.value = 5; osc.connect(b); b.connect(g); }
+      g.connect(o); osc.start(t); osc.stop(t + 0.3);
+    }
+  };
+  AudioEngine.prototype.squeak = function (x, far) {
+    if (!this.ok()) return;
+    const t = this.ctx.currentTime, o = this.out(far ? 0.1 : 0.2, x / 9), f = 2300 + Math.random() * 900;
+    this.tone('triangle', f, f * 1.25, t, 0.07, 0.5, o, 0.01);
+    this.burst(t, 0.05, 0.25, 'bandpass', f * 1.4, 6, o, 0.008);
+  };
+})();
+const squeakState = new Map();
+/** Shoes squeak when a player stops hard or changes direction on a hard court. */
+function plusSqueaks(dt) {
+  const g = game;
+  if (!g.teams || !g.surf || g.surf.sound !== 'hard' || g.state === 'menu') return;
+  for (const t of g.teams) for (const p of t.players) {
+    let s = squeakState.get(p);
+    if (!s) { s = { x: p.x, z: p.z, vx: 0, vz: 0, cd: 0 }; squeakState.set(p, s); }
+    const vx = (p.x - s.x) / Math.max(dt, 1e-3), vz = (p.z - s.z) / Math.max(dt, 1e-3);
+    const sp0 = Math.hypot(s.vx, s.vz), sp1 = Math.hypot(vx, vz);
+    s.cd -= dt;
+    if (s.cd <= 0 && sp0 > 3.2 && sp0 < 14 && (sp1 < sp0 * 0.35 || vx * s.vx + vz * s.vz < 0)) { audio.squeak(p.x, p.z < 0); s.cd = 0.45; }
+    s.x = p.x; s.z = p.z; s.vx = vx; s.vz = vz;
+  }
+}

@@ -53,6 +53,51 @@ function showFatal(text) {
   $('loading').hidden = true;
 }
 
+/* ---- keep the page from zooming or scrolling out from under the game --------------- */
+const VIEWPORT_LOCK = 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover';
+let laidOut = '';
+function viewportMeta() {
+  let m = document.querySelector('meta[name="viewport"]');
+  if (!m) { m = document.createElement('meta'); m.name = 'viewport'; document.head.appendChild(m); }
+  return m;
+}
+/** If the browser zoomed in anyway (double tap, pinch, rotation), snap back to 1:1. */
+function unzoom() {
+  const vv = window.visualViewport;
+  if (vv && Math.abs(vv.scale - 1) > 0.02) {
+    const m = viewportMeta();
+    m.setAttribute('content', VIEWPORT_LOCK + ',_r=' + Date.now() % 97);
+    setTimeout(() => m.setAttribute('content', VIEWPORT_LOCK), 60);
+  }
+  if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
+}
+function guardViewport() {
+  viewportMeta().setAttribute('content', VIEWPORT_LOCK);
+  const stop = (e) => { if (e.cancelable) e.preventDefault(); };
+  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, stop, { passive: false });
+  document.addEventListener('touchmove', (e) => { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) stop(e); }, { passive: false });
+  document.addEventListener('dblclick', stop, { passive: false });
+  document.addEventListener('wheel', (e) => { if (e.ctrlKey) stop(e); }, { passive: false });
+  // a fast second tap anywhere on the game is play, never a zoom request
+  let lastEnd = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = performance.now();
+    const t = e.target, form = t && t.closest && t.closest('input,textarea,select,a,button,label,.chip,[role=button]');
+    if (now - lastEnd < 350 && !form) stop(e);
+    lastEnd = now;
+  }, { passive: false });
+  const relayout = () => { unzoom(); laidOut = window.innerWidth + 'x' + window.innerHeight + '@' + (window.devicePixelRatio || 1); resizeRenderer(); };
+  if (window.visualViewport) { window.visualViewport.addEventListener('resize', relayout); window.visualViewport.addEventListener('scroll', unzoom); }
+  window.addEventListener('pageshow', relayout);
+  window.addEventListener('orientationchange', () => { for (const d of [60, 300, 700, 1200]) setTimeout(relayout, d); });
+  if (window.screen && screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', () => { for (const d of [60, 400, 900]) setTimeout(relayout, d); });
+  // belt and braces: some browsers report the new size late and send no event for it
+  setInterval(() => {
+    const key = window.innerWidth + 'x' + window.innerHeight + '@' + (window.devicePixelRatio || 1);
+    if (key !== laidOut) relayout(); else unzoom();
+  }, 500);
+}
+
 function boot() {
   if (!window.THREE) { showFatal(); return; }
   try {
@@ -74,7 +119,7 @@ function boot() {
   requestAnimationFrame(frame);
   setTimeout(() => { $('loading').hidden = true; }, 120);
   window.addEventListener('resize', () => { resizeRenderer(); ui.syncSetup(); });
-  window.addEventListener('orientationchange', () => setTimeout(resizeRenderer, 250));
+  guardViewport();
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       if (ui.playing()) ui.pause();

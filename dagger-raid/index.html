@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Dagger Raid</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#05060a">
@@ -997,6 +997,76 @@ const chip = new Chip();
       if (B.hum && Math.random() < 0.25) this.tone(now, 620 + Math.random() * 200, 0.3, 'tri', 0.008, null, { slide: 500 });
     }, 1700);
     this.amb = a;
+  };
+})();
+
+/* ==========================================================================
+   Sound polish: a room reverb on every effect, and extra body layered under the
+   hits, blades, shots and blasts so they land with weight.
+   ========================================================================== */
+
+(function soundPolish() {
+  const ROOM = [1.3, 2.3, 0.15];
+  const MAP = {
+    hit: [['impact', 1]], down: [['impact', 1], ['soft', 1.2]], hurt: [['impact', 0.9]], die: [['impact', 1.2], ['soft', 1.4]], chop: [['impact', 1]],
+    crate: [['impact', 0.9], ['soft', 1]], thud: [['soft', 1.2]], land: [['soft', 0.8]], clang: [['steel', 1.1], ['impact', 0.6]], tink: [['steel', 1]],
+    knife: [['air', 0.9], ['steel', 0.5]], katana: [['air', 1.1], ['steel', 0.8]], thrust: [['air', 1], ['steel', 0.7]], throw: [['air', 0.9]],
+    star: [['steel', 0.6]], dash: [['air', 1.1]], whoosh: [['air', 0.9]], jump2: [['air', 0.6]], crit: [['steel', 1], ['impact', 1.2]],
+    shot: [['shot', 1]], snipe: [['shot', 1.3]], rocket: [['shot', 0.8], ['air', 1.2]], boom: [['heavy', 1]], roar: [['heavy', 0.6]],
+    pickup: [['shine', 1]], weapon: [['shine', 1], ['steel', 0.6]], coin: [['shine', 1]], free: [['shine', 1.1]], finisher: [['heavy', 0.7], ['steel', 1.2]]
+  };
+  function impulse(c, seconds, decay) {
+    const len = Math.floor(c.sampleRate * seconds), buf = c.createBuffer(2, len, c.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
+    return buf;
+  }
+  /** Built once, the first time a sound plays: effects bus -> short hall -> master. */
+  function room(chip) {
+    if (chip.room || !chip.ctx || !chip.sfxBus || !chip.master) return;
+    chip.room = true;
+    try {
+      const c = chip.ctx, cv = c.createConvolver(), wet = c.createGain(), lp = c.createBiquadFilter();
+      cv.buffer = impulse(c, ROOM[0], ROOM[1]);
+      lp.type = 'lowpass'; lp.frequency.value = 3800;
+      wet.gain.value = ROOM[2];
+      chip.sfxBus.connect(cv); cv.connect(lp); lp.connect(wet); wet.connect(chip.master);
+    } catch (e) { /* no reverb on this browser: the dry sound still plays */ }
+  }
+  const r = (a, b) => a + Math.random() * (b - a);
+  const LAYER = {
+    impact(s, t, k) {
+      s.tone(t, 150 * r(0.88, 1.12), 0.09, 'sin', 0.24 * k, null, { slide: 52 });
+      s.noise(t, 0.028, 0.24 * k, 'bandpass', r(2200, 3200), 1.2);
+      s.noise(t + 0.012, 0.06, 0.1 * k, 'lowpass', 900, 0.7);
+    },
+    heavy(s, t, k) {
+      s.tone(t, 78, 0.42, 'sin', 0.4 * k, null, { slide: 27 });
+      s.noise(t, 0.7, 0.3 * k, 'lowpass', 240, 0.6, null, { sweep: 60 });
+      for (let i = 0; i < 5; i++) s.noise(t + 0.12 + i * r(0.05, 0.09), 0.03, 0.09 * k, 'highpass', r(2000, 5000), 0.8);
+    },
+    air(s, t, k) { s.noise(t, 0.13, 0.13 * k, 'bandpass', r(1100, 2000), 0.7, null, { sweep: r(4600, 6200) }); },
+    steel(s, t, k) {
+      s.tone(t, r(3300, 3900), 0.2, 'sin', 0.035 * k, null, { slide: 2500 });
+      s.noise(t, 0.05, 0.1 * k, 'highpass', 5200, 0.8, null, { metal: true });
+    },
+    shot(s, t, k) {
+      s.tone(t, 130, 0.08, 'sin', 0.24 * k, null, { slide: 46 });
+      s.noise(t + 0.02, 0.26, 0.09 * k, 'lowpass', 1500, 0.5, null, { sweep: 260 });
+    },
+    soft(s, t, k) { s.tone(t, 96, 0.07, 'sin', 0.14 * k, null, { slide: 50 }); },
+    shine(s, t, k) { s.tone(t + 0.02, r(2900, 3300), 0.22, 'sin', 0.03 * k, null, { decay: 0.06, sus: 0.3 }); }
+  };
+  const base = Chip.prototype.sfx;
+  Chip.prototype.sfx = function (name, opt) {
+    if (this.ok() && !this.mute) {
+      room(this);
+      const m = MAP[name];
+      if (m) { const t = this.ctx.currentTime; for (const [kind, k] of m) LAYER[kind](this, t, k); }
+    }
+    return base.call(this, name, opt);
   };
 })();
 
@@ -4194,7 +4264,14 @@ function ninjaState(e, dt, h, alive, toward) {
     case 'slash':
       e.vx = e.t >= w && e.t < w + 0.13 ? e.face * 115 : 0;
       if (e.t >= w && !e.fired) { e.fired = true; chip.sfx('katana'); game.fx.push({ k: 'slash', x: e.x + e.face * 3, y: e.y - 17, face: e.face, r: 27, a0: -1.9, a1: 1.0, col: '#ff9a9a', t: 0, life: 0.16 }); }
-      if (e.t >= w + 0.42) { setSt(e, 'run'); e.cd = rand(0.7, 1.2); }
+      if (e.t >= w + 0.42) {
+        if (e.ground && chance(0.65)) {
+          // spring back out of reach, then come again with a star or from the smoke
+          const away = -e.face;
+          setSt(e, 'flip'); e.vy = -185; e.vx = away * 135; e.ground = false; e.evade = 0.12; e.cd = 0.3;
+          chip.sfx('whoosh');
+        } else { setSt(e, 'run'); e.cd = rand(0.7, 1.2); }
+      }
       return true;
     case 'nthrow': {
       e.vx = 0; if (alive) e.face = toward;
@@ -7235,7 +7312,8 @@ function sizePad(vw, vh, portrait) {
 function layout() {
   readSafe();
   const cv = $('screen');
-  const vw = window.innerWidth, vh = window.innerHeight;
+  const vw = Math.max(1, window.innerWidth || document.documentElement.clientWidth), vh = Math.max(1, window.innerHeight || document.documentElement.clientHeight);
+  laidOut = window.innerWidth + 'x' + window.innerHeight + '@' + (window.devicePixelRatio || 1);
   // full resolution, capped so huge screens stay smooth
   const dpr = Math.min(3, window.devicePixelRatio || 1, 2600 / Math.max(1, vw), 1600 / Math.max(1, vh)) * QUALITY.res[QUALITY.level];
   const tw = Math.max(1, Math.round(vw * dpr)), th = Math.max(1, Math.round(vh * dpr));
@@ -7254,7 +7332,8 @@ function layout() {
     const pad = sizePad(vw, vh, false);
     const side = Math.max(pad.left, pad.right);
     const full = Math.min(vw, (vh * 16) / 9);
-    gw = Math.min(vw, Math.max(vw - 2 * side, full * 0.72));
+    // the picture takes the full height; the pad may overlap its outer edges rather than shrink it
+    gw = Math.min(vw, Math.max(vw - 2 * side, full));
     gx = (vw - gw) / 2;
     gy = Math.max(0, safe.t);
     gh = vh - gy - Math.max(0, safe.b * 0.5);
@@ -7267,6 +7346,51 @@ function layout() {
   document.documentElement.style.setProperty('--game-bottom', Math.round((view.oy + H * s) / dpr) + 'px');
 }
 function layoutTouch() { layout(); }
+
+/* ---- keep the page from zooming or scrolling out from under the game --------------- */
+const VIEWPORT_LOCK = 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover';
+let laidOut = '';
+function viewportMeta() {
+  let m = document.querySelector('meta[name="viewport"]');
+  if (!m) { m = document.createElement('meta'); m.name = 'viewport'; document.head.appendChild(m); }
+  return m;
+}
+/** If the browser zoomed in anyway (double tap, pinch, rotation), snap back to 1:1. */
+function unzoom() {
+  const vv = window.visualViewport;
+  if (vv && Math.abs(vv.scale - 1) > 0.02) {
+    const m = viewportMeta();
+    m.setAttribute('content', VIEWPORT_LOCK + ',_r=' + Date.now() % 97);
+    setTimeout(() => m.setAttribute('content', VIEWPORT_LOCK), 60);
+  }
+  if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
+}
+function guardViewport() {
+  viewportMeta().setAttribute('content', VIEWPORT_LOCK);
+  const stop = (e) => { if (e.cancelable) e.preventDefault(); };
+  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, stop, { passive: false });
+  document.addEventListener('touchmove', (e) => { if (e.touches.length > 1 || (e.scale && e.scale !== 1)) stop(e); }, { passive: false });
+  document.addEventListener('dblclick', stop, { passive: false });
+  document.addEventListener('wheel', (e) => { if (e.ctrlKey) stop(e); }, { passive: false });
+  // a fast second tap anywhere on the game is play, never a zoom request
+  let lastEnd = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = performance.now();
+    const t = e.target, form = t && t.closest && t.closest('input,textarea,select,a');
+    if (now - lastEnd < 350 && !form) stop(e);
+    lastEnd = now;
+  }, { passive: false });
+  const relayout = () => { unzoom(); layout(); };
+  if (window.visualViewport) { window.visualViewport.addEventListener('resize', relayout); window.visualViewport.addEventListener('scroll', unzoom); }
+  window.addEventListener('pageshow', relayout);
+  window.addEventListener('orientationchange', () => { for (const d of [60, 300, 700, 1200]) setTimeout(relayout, d); });
+  if (window.screen && screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', () => { for (const d of [60, 400, 900]) setTimeout(relayout, d); });
+  // belt and braces: some browsers report the new size late and send no event for it
+  setInterval(() => {
+    const key = window.innerWidth + 'x' + window.innerHeight + '@' + (window.devicePixelRatio || 1);
+    if (key !== laidOut) relayout(); else unzoom();
+  }, 500);
+}
 
 let lastT = 0, acc = 0, manual = false, lastTouchState = null;
 function frame(now) {
@@ -7310,7 +7434,7 @@ function boot() {
   initInput();
   layout();
   window.addEventListener('resize', layout);
-  window.addEventListener('orientationchange', () => setTimeout(layout, 150));
+  guardViewport();
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       if (game.state === 'play' && !game.demo) openPause();

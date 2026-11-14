@@ -31,7 +31,7 @@ three = (ROOT / "vendor/package/build/three.min.js").read_text()
 three = re.sub(r"</script", r"<\\/script", three, flags=re.I)
 standalone = (
     "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
-    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">\n"
+    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover\">\n"
     + head + "\n</head>\n<body>\n" + body + "\n"
     + "<script>\n" + three + "\n</script>\n"
     + "<script>\n" + game_js + "</script>\n</body>\n</html>\n"
@@ -44,7 +44,7 @@ standalone = (
 # local test copy wrapped in the same skeleton the artifact host adds
 skeleton = (
     "<!doctype html><html><head><meta charset=utf8>"
-    "<meta name=viewport content=\"width=device-width,initial-scale=1,viewport-fit=cover\">"
+    "<meta name=viewport content=\"width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover\">"
     "<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}"
     "body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>"
     "</head><body>"

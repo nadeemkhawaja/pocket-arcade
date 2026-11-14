@@ -510,10 +510,13 @@ function ninjaAI(e, dt, dx, adx, toward, h) {
 
 function snakeAI(e, dt, dx, adx, toward, h) {
   if (e.st === 'strike') { if (e.t > 0.7) { setFoeSt(e, 'walk'); e.cd = 0.8; } return; }
-  e.face = toward;
+  // a snake never turns round: it slithers straight on and off the far side
+  if (!e.dir) e.dir = e.face || toward;
+  e.face = e.dir;
   e.x += e.face * e.speed * dt;
   e.walkT += dt * 6;
-  if (adx < 20 && e.cd <= 0 && !h.dead) { setFoeSt(e, 'strike'); chip.sfx('hiss'); }
+  if (adx < 20 && toward === e.face && e.cd <= 0 && !h.dead) { setFoeSt(e, 'strike'); chip.sfx('hiss'); }
+  if (toward !== e.face && adx > 150) e.gone = true;
 }
 
 /* ---- the hero lands a blow --------------------------------------------------------- */

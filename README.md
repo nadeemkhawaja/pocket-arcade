@@ -77,6 +77,10 @@ A kung fu climb in hand-drawn HD, inspired by 1980s arcade brawlers but with its
 | Dash | V or Q, or double tap a direction | LT or RT | Double tap the pad |
 | Pause / mute | P or Esc / M | Start | II |
 
+## Phones, tablets and computers
+
+All three games are built for current Safari on iPhone and iPad, Chrome on Android, and Chrome, Edge, Safari or Firefox on Windows and Mac. On a phone, hold it sideways for the biggest picture. The pages lock the zoom level and re-measure the screen after every rotation, so a stray double tap or pinch should not leave you looking at oversized buttons.
+
 ## Project layout
 
 ```
