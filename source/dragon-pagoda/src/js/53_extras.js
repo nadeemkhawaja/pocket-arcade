@@ -38,10 +38,11 @@ function startFloorPick() { return clamp(settings.floor | 0, 0, Math.min(PROG.re
 /** Roll for a critical: sure out of a dash, otherwise one hit in ten. Returns the damage to deal. */
 function critRoll(h, dmg, x, y) {
   const sure = h && h.dashWin > 0;
-  if (!sure && !chance(0.1)) return dmg;
+  if (!sure && !chance(critChance())) return dmg;
   pop(x, y, 'CRITICAL!', '#ffd27a');
   chip.sfx('crit');
   game.hitStop = Math.max(game.hitStop || 0, 0.06);
+  game.punch = Math.max(game.punch || 0, 0.06); styleAdd(8);
   countUp('crit', 25, 'crit');
   if (sure) award('shadow');
   return dmg * 2;
@@ -85,7 +86,7 @@ function drawMedalToast(g) {
   q.t += 1 / 60;
   if (q.t > 2.6) { Q.shift(); return; }
   const k = q.t < 0.25 ? q.t / 0.25 : q.t > 2.3 ? Math.max(0, (2.6 - q.t) / 0.3) : 1;
-  const w = Math.max(96, textWidth(q.name, 0.92, { weight: 700 }) + 34), x = W - 5 - w, y = HUD_H + 5 - (1 - k) * 26;
+  const w = Math.max(96, textWidth(q.name, 0.92, { weight: 700 }) + 34), x = W - 5 - w, y = HUD_H + 23 - (1 - k) * 26;
   g.globalAlpha = k;
   panel(g, x, y, w, 19);
   drawMedalIcon(g, x + 11, y + 9.5, 1, true);

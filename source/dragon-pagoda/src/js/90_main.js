@@ -49,9 +49,11 @@ function layout() {
     gy = safe.t + 6;
     const baseH = (vw * H) / W;
     const dp = $('dpad'), padTop = dp ? dp.getBoundingClientRect().top : 0;
-    const room = (padTop > vh * 0.4 ? padTop : vh * 0.7) - gy - 58;
-    zoom = clamp(room / baseH, 1, 1.75);
+    const room = (padTop > vh * 0.4 ? padTop : vh * 0.7) - gy - 14;
+    zoom = clamp(room / baseH, 1, 1.9);
     gh = baseH * zoom;
+    // whatever height is still spare is shared above and below the picture
+    gy += Math.max(0, room - gh) * 0.5;
   } else if (touchOn) {
     // handheld landscape: the pad lives in side panels, the screen sits between them
     const pad = sizePad(vw, vh, false);
@@ -186,7 +188,7 @@ function boot() {
   const blank = () => ({ left: false, right: false, up: false, down: false, jump: false, punch: false, kick: false, special: false, start: false, pause: false, back: false, any: false });
   window.__pagoda = {
     game, input, chip, settings, FLOORS, ETYPES, BOSS_DEFS, Chip, SONGS, parseTrack, DIFFS,
-    setManual(v) { manual = v; },
+    setManual(v) { manual = v; game.skipPerks = !!v; },
     step(n, held, pressed, quiet) {
       const H0 = Object.assign(blank(), held || {});
       for (let i = 0; i < n; i++) {
@@ -198,7 +200,7 @@ function boot() {
       if (!quiet) renderFrame();
     },
     render: renderFrame, newGame, startFloor, startDemo, setState, spawnFoe, makeBoss, layout, view, beginPlay, hurtHero, killFoe, qualifies, botInput, botPressed, updateGame, drawSprite, drawPortrait, drawMonkey, drawSnake, drawVase, drawLantern, drawPickup, drawDragonHead,
-    DBG, PROG, MEDALS, award, restartFloor, critRoll
+    DBG, PROG, MEDALS, award, restartFloor, critRoll, PERKS, perk, offerPerks, takePerk, styleRank, styleAdd
   };
 }
 

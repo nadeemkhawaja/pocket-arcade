@@ -135,7 +135,7 @@ function heroNinja(h, dt, I, P, dir) {
     return true;
   }
   if (want && h.dashCD <= 0 && !h.act && !h.grabbers.length && (h.ground || !h.airDash)) {
-    h.dashT = h.ground ? 0.17 : 0.15; h.dashDir = want; h.face = want; h.dashCD = 0.4;
+    h.dashT = h.ground ? 0.17 : 0.15; h.dashDir = want; h.face = want; h.dashCD = perk('swift') ? 0.12 : 0.4;
     h.crouch = false;
     if (!h.ground) { h.airDash = true; h.vy = 0; h.flipT = -1; }
     chip.sfx('dash');

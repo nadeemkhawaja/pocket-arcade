@@ -81,9 +81,9 @@ const AMMO_CAP = { tri: 9, gren: 9, rocket: 9, star: 24, flame: 99 };
 function makeHero(x) {
   return {
     x, y: GROUND_Y, vx: 0, vy: 0, face: 1, ground: true, climb: null, dropY: null, crouch: false, act: null,
-    inv: 0, hp: game.diff.hp, dead: false, deadT: 0, coyote: 0, jbuf: 0, kbuf: 0, sbuf: 0, runT: 0, climbT: 0, hurtT: 0,
+    inv: 0, hp: heroMaxHp(), dead: false, deadT: 0, coyote: 0, jbuf: 0, kbuf: 0, sbuf: 0, runT: 0, climbT: 0, hurtT: 0,
     wpn: null, ammo: 0, blade: 'knife', bladeN: 0, flash: 0, pose: null,
-    airJumps: 1, airDash: false, flipT: -1, roll: null, dashCD: 0, counterT: 0, combo: 0, comboT: 0,
+    airJumps: maxAir(), airDash: false, flipT: -1, roll: null, dashCD: 0, counterT: 0, combo: 0, comboT: 0,
     wallSide: 0, wallT: 0, wallLock: 0, sliding: false, tapDir: 0, tapT: -9, jumpCut: true, jumpT: 0, pogo: 0,
     ghosts: [], stepD: 0, shieldT: 0, flameT: 0, flameSnd: 0
   };
@@ -108,6 +108,7 @@ function dodgeCredit(h) {
   pop(h.x, h.y - 40, 'DODGE!', '#9fe8ff');
   chip.sfx('dodge');
   game.stageStats.dodges++;
+  styleAdd(12);
 }
 
 function heroKnifeBox(h) {
@@ -116,7 +117,7 @@ function heroKnifeBox(h) {
   const M = MELEE[a.type];
   if (!M || a.t < M.a0 || a.t > M.a1) return null;
   if (a.type === 'dive') return box(h.x - 8 + h.face * 3, h.y - 13, h.x + 8 + h.face * 3, h.y + 6);
-  const r1 = M.reach + (a.kat ? 9 : 0), e = a.kat ? 3 : 0;
+  const r1 = M.reach + (a.kat ? 9 : 0) + perk('reach') * 5, e = a.kat ? 3 : 0;
   const y0 = h.y + M.y0 - e, y1 = h.y + M.y1 + e;
   return h.face > 0 ? box(h.x + 1, y0, h.x + r1, y1) : box(h.x - r1, y0, h.x - 1, y1);
 }
@@ -125,7 +126,7 @@ function startRoll(h, d) {
   const air = !h.ground;
   h.roll = { t: 0, dir: d, tuck: !air, dur: air ? 0.2 : 0.34, i0: 0.02, i1: air ? 0.18 : 0.28, dodged: false };
   h.face = d; h.act = null; h.crouch = false; h.climb = null; h.combo = 0;
-  h.dashCD = h.roll.dur + 0.34;
+  h.dashCD = h.roll.dur + (perk('swift') ? 0.06 : 0.34);
   if (air) { h.airDash = true; h.vy = 0; h.flipT = -1; h.ground = false; }
   chip.sfx('dash');
   dust(h.x, h.y - (air ? 14 : 0), 3);
@@ -259,7 +260,7 @@ function updateHero(h, dt, I, P) {
     const lockAct = !!(a && h.ground && a.type !== 'jstab' && a.type !== 'toss' && !flaming);
     h.crouch = lockAct ? a.type === 'cstab' || a.type === 'recover' : h.ground && I.down && !flaming;
     if (h.ground) {
-      h.airJumps = 1; h.airDash = false; h.sliding = false; h.pogo = 0;
+      h.airJumps = maxAir(); h.airDash = false; h.sliding = false; h.pogo = 0;
       if (h.hurtT > 0) h.vx = approach(h.vx, 0, 200 * dt);
       else if (a && a.type === 'thrust' && a.lunge && a.t < 0.15) h.vx = h.face * 150;
       else if (h.crouch || lockAct) h.vx = approach(h.vx, 0, 1500 * dt);
@@ -426,6 +427,7 @@ function hurtHero(h, dirX, src) {
   }
   game.lastCause = src || '?';
   game.stageStats.hits++;
+  styleHit();
   if (h.hp > 1) {
     h.hp--;
     h.inv = 1.5; h.hurtT = 0.32; h.flash = 0.15; h.act = null; h.roll = null; h.flipT = -1; h.combo = 0;

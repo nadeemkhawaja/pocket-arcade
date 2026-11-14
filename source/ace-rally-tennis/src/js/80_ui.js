@@ -2,7 +2,7 @@
    UI: title, setup, webcam setup, HUD, banners, pause, results, settings
    ========================================================================== */
 
-const SCREENS = ['scrTitle', 'scrSetup', 'scrCam', 'scrHow', 'scrSettings', 'scrPause', 'scrResults', 'scrMedals'];
+const SCREENS = ['scrTitle', 'scrSetup', 'scrCam', 'scrHow', 'scrSettings', 'scrPause', 'scrResults', 'scrMedals', 'scrCareer'];
 
 const ICONS = {
   webcam: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="2.6" fill="currentColor"/><path d="M7.5 20.5h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
@@ -499,6 +499,7 @@ const ui = {
     on('bPlay', () => { audio.ui('go'); this.openSetup(settings.mode === 'practice' ? 'singles' : settings.mode, 'scrTitle'); });
     on('bPractice', () => { audio.ui('go'); this.openSetup('practice', 'scrTitle'); });
     on('bHow', () => { audio.ui('move'); this.open('scrHow', this.screen); });
+    on('bCareer', () => { audio.ui('move'); careerRender(); this.open('scrCareer', this.screen); });
     on('bMedals', () => { audio.ui('move'); plusShowMedals(); this.open('scrMedals', this.screen); });
     on('bSettings', () => { audio.ui('move'); this.open('scrSettings', this.screen); });
     on('bStart', () => this.startFromSetup());

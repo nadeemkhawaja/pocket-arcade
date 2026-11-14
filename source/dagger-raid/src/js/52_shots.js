@@ -233,7 +233,8 @@ function updateItems(dt) {
   for (const it of game.items) {
     it.t += dt;
     if (!it.ground) { actorPhys(it, dt); if (it.ground) it.vx = 0; }
-    if (it.t > 9) it.gone = true;
+    if (perk('magnet') && !h.dead && it.t > 0.3) { const dx = h.x - it.x, dy = h.y - 12 - it.y, d = Math.hypot(dx, dy); if (d < 90 && d > 2) { it.x += (dx / d) * 150 * dt; it.y += (dy / d) * 150 * dt; it.ground = true; } }
+    if (it.t > (perk('magnet') ? 16 : 9)) it.gone = true;
     if (!h.dead && it.t > 0.25 && boxHit(box(it.x - 7, it.y - 13, it.x + 7, it.y), box(hb.x0 - 3, hb.y0 - 3, hb.x1 + 3, hb.y1 + 3))) {
       it.gone = true;
       collect(it);
@@ -245,8 +246,9 @@ function collect(it) {
   const h = game.hero, P = PICKUPS[it.type];
   game.fx.push({ k: 'ring', x: h.x, y: h.y - 14, t: 0, life: 0.3, r0: 4, r1: 18, col: P.color, w: 1.2 });
   if (AMMO_CAP[it.type]) {
-    if (h.wpn === it.type) h.ammo = Math.min(AMMO_CAP[it.type], h.ammo + P.ammo);
-    else { h.wpn = it.type; h.ammo = P.ammo; if (h.act && h.act.type === 'flame') h.act = null; }
+    const mul = 1 + perk('ammo');
+    if (h.wpn === it.type) h.ammo = Math.min(AMMO_CAP[it.type] * mul, h.ammo + P.ammo * mul);
+    else { h.wpn = it.type; h.ammo = P.ammo * mul; if (h.act && h.act.type === 'flame') h.act = null; }
     chip.sfx('weapon');
     pop(h.x, h.y - 40, P.label, P.color);
     addScore(200, h.x, h.y - 30, false, true);
@@ -260,7 +262,7 @@ function collect(it) {
     chip.sfx('pickup'); addScore(2000, h.x, h.y - 36, false);
   } else if (it.type === 'ration') {
     chip.sfx('pickup');
-    if (h.hp < game.diff.hp) { h.hp++; pop(h.x, h.y - 40, 'HEALTH +1', '#ff8a7a'); }
+    if (h.hp < heroMaxHp()) { h.hp++; pop(h.x, h.y - 40, 'HEALTH +1', '#ff8a7a'); }
     else addScore(500, h.x, h.y - 36, false);
   } else if (it.type === 'life') {
     game.lives = Math.min(9, game.lives + 1);
@@ -333,11 +335,12 @@ function resolveHeroAttacks() {
     a.hits.push(e.id);
     const back = e.kind !== 'dog' && e.st !== 'hurt' && e.face === (e.x >= h.x ? 1 : -1);
     const counter = h.counterT > 0;
-    const label = counter ? 'COUNTER!' : back ? 'BACKSTAB!' : chance(0.1) ? 'CRITICAL!' : null;
-    const dmg = (M.dmg + (a.kat ? 1 : 0)) * (label ? 2 : 1);
+    const label = counter ? 'COUNTER!' : back ? 'BACKSTAB!' : chance(critChance()) ? 'CRITICAL!' : null;
+    const fury = perk('fury') && h.hp === 1 && heroMaxHp() > 1 ? 2 : 1;
+    const dmg = (M.dmg + (a.kat ? 1 : 0)) * (label ? 2 : 1) * fury;
     const killed = killFoe(e, how === 'thrust' && a.kat ? 'katana' : how, h.face, dmg, label);
     game.hitStop = Math.max(game.hitStop || 0, killed ? (label ? 0.075 : 0.035) : 0.02);
-    if (label) addShake(2.5);
+    if (label) { addShake(2.5); game.punch = Math.max(game.punch || 0, killed ? 0.07 : 0.04); if (killed && perk('shock')) shockRing(e.x, e.y); }
     if (counter) { h.counterT = 0; game.slowT = Math.max(game.slowT, 0.28); }
     if (a.type === 'dive') pogo = true;
   }
@@ -349,7 +352,7 @@ function resolveHeroAttacks() {
     if (!s.foe || (s.k !== 'bullet' && s.k !== 'star') || s.gone) continue;
     if (!boxHit(kb, box(s.x - 3, s.y - 3, s.x + 3, s.y + 3))) continue;
     chip.sfx('tink'); sparks(s.x, s.y, 4, '#ffe27a');
-    if (a.kat) {
+    if (a.kat || perk('mirror')) {
       // the long blade sends it straight back
       s.foe = false; s.mine = true; s.aimed = false; s.vx = -s.vx * 1.5; s.vy = -s.vy * 1.5; s.t = 0; s.pierce = 0; s.hits = [];
       addScore(100, s.x, s.y - 10, false, true); pop(s.x, s.y - 12, 'REFLECT 100', '#bfe9ff');
@@ -358,12 +361,13 @@ function resolveHeroAttacks() {
       addScore(50, s.x, s.y - 10, false, true); pop(s.x, s.y - 12, 'PARRY 50', '#9fe8ff');
     }
     game.stageStats.parries++;
+    styleAdd(10);
     countUp('parry', 10, 'parry');
   }
   const b = game.boss;
   if (b && !b.dead && !a.bossHit && b.st !== 'enter') {
     const counter = h.counterT > 0;
-    const crit = counter || chance(0.1);
+    const crit = counter || chance(critChance());
     const dmg = (M.dmg + (a.kat && a.type === 'thrust' ? 1 : 0)) * (crit ? 2 : 1);
     const hp0 = b.hp;
     if (b.knife(kb, dmg)) {
@@ -388,6 +392,7 @@ function resolveHeroAttacks() {
 /** The blow that drops a boss: slow motion, a cross of light and a bonus. */
 function finisher(b, h) {
   game.slowT = Math.max(game.slowT, 1.3);
+  game.punch = 0.22;
   const x = (b.kind === 'ironclad' ? b.x + 15 : b.x), y = b.kind === 'ironclad' ? b.y - 26 : b.kind === 'gunship' ? b.y : b.y - 24;
   for (const [a0, a1, f] of [[-2.2, 0.9, 1], [-2.2, 0.9, -1]]) game.fx.push({ k: 'slash', x, y, face: f, r: 34, a0, a1, col: '#ffffff', t: 0, life: 0.5 });
   game.fx.push({ k: 'ring', x, y, t: 0, life: 0.6, r0: 6, r1: 60, col: '#fff2c8', w: 2 });

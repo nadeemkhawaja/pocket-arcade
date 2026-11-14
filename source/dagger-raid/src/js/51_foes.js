@@ -362,6 +362,8 @@ function killFoe(e, how, dirX, dmg, label) {
   addScore(e.T.pts * (label ? 2 : 1), e.x, e.y - 30, true);
   if (e.drop) { spawnItem(e.drop, e.x, e.y - 14); e.drop = null; }
   game.stageStats.kills++;
+  styleAdd(label ? 18 : how === 'dive' ? 16 : 11);
+  if (perk('medic')) { game.medicN = (game.medicN || 0) + 1; const h = game.hero; if (game.medicN >= 8 && h && !h.dead && h.hp < heroMaxHp()) { game.medicN = 0; h.hp++; pop(h.x, h.y - 44, 'HEALTH +1', '#7fe6a0'); chip.sfx('pickup'); } }
   award('first');
   if (e.T.ninja) countUp('ninja', 5, 'ninja');
   if (how === 'katana') countUp('katana', 20, 'sword');

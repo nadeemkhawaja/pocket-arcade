@@ -135,7 +135,7 @@ function boot() {
       }).catch(() => {});
     }
   } catch (e) { /* font loading api unavailable */ }
-  window.__ace = { game, world, settings, startMatch, startDemo, updateGame, onSwingInput, cam, ui, audio, LEVELS, INPUT_WINDOWS, snapCamera, plus, PROG, MEDALS, SURFACES, endPoint, plusCourtOpen, plusOnHit, plusOnMatch };
+  window.__ace = { game, world, settings, startMatch, startDemo, updateGame, onSwingInput, cam, ui, audio, LEVELS, INPUT_WINDOWS, snapCamera, plus, PROG, MEDALS, SURFACES, endPoint, plusCourtOpen, plusOnHit, plusOnMatch, career, careerCfg, careerRender, careerOnMatch, LADDER };
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

@@ -165,7 +165,7 @@ function drawHUDInner(g) {
   T(g, pad7(game.score), 21, 1.2, C.ink, { weight: 700 });
   T(g, 'x' + game.lives, 21, 9.6, C.steel, { scale: 0.82, weight: 700, raw: true });
   if (h) {
-    const max = game.diff.hp;
+    const max = heroMaxHp();
     for (let i = 0; i < max; i++) drawHeartV(g, 38 + i * 7.6, 13.2, 0.72, i < h.hp);
   }
   T(g, 'HI', 112, 1.2, C.red, { weight: 700 });
@@ -209,7 +209,7 @@ function drawToasts(g) {
   const q = game.toasts[0];
   if (!q) return;
   const k = q.t < 0.25 ? q.t / 0.25 : q.t > 2.3 ? Math.max(0, (2.6 - q.t) / 0.3) : 1;
-  const w = Math.max(96, textWidth(q.name, 0.92, { weight: 700 }) + 34), x = W - 5 - w, y = HUD_H + 5 - (1 - k) * 26;
+  const w = Math.max(96, textWidth(q.name, 0.92, { weight: 700 }) + 34), x = W - 5 - w, y = HUD_H + 23 - (1 - k) * 26;
   g.globalAlpha = k;
   panel(g, x, y, w, 19, { border: '#ffd27a', r: 3 });
   drawGlow(g, x + 11, y + 9.5, 12, '#ffd27a', 0.7);
@@ -284,6 +284,7 @@ function renderFrame() {
     case 'boot': drawBoot(g); break;
     case 'title': drawTitle(g); break;
     case 'setup': drawSetup(g); break;
+    case 'perk': drawPerk(g); break;
     case 'scores': drawScores(g); break;
     case 'howto': drawHowTo(g); break;
     case 'medals': drawMedals(g); break;
@@ -303,23 +304,29 @@ function renderFrame() {
   g.restore();
 }
 
-/** The world, zoomed in and panned to follow the hero when the picture is taller than 16:9. */
+/** The world: zoomed and panned on upright phones, and pushed in briefly on big hits. */
 function drawWorld(g) {
-  const z = view.zoom;
+  const p = settings.shake && game.state === 'play' ? game.punch || 0 : 0;
+  const z = view.zoom * (1 + p);
   if (z <= 1.001) { view.pan = 0; drawWorldInner(g); return; }
-  const h = game.hero, wv = W / z;
-  let want = (W - wv) / 2;
-  if (h) { const hx = h.x - game.camX; want = hx - wv * (h.face >= 0 ? 0.34 : 1 - 0.34); }
+  const h = game.hero, wv = W / z, hv = H / (1 + p);
+  let want = (W - wv) / 2, py = 0;
+  if (h) {
+    const hx = h.x - game.camX;
+    want = view.zoom > 1.001 ? hx - wv * (h.face >= 0 ? 0.34 : 0.66) : hx - wv / 2;
+    py = clamp(h.y - 14 - hv * 0.62, 0, H - hv);
+  }
   want = clamp(want, 0, W - wv);
-  view.pan = Math.abs(want - view.pan) > wv ? want : view.pan + (want - view.pan) * 0.07;
+  view.pan = view.zoom <= 1.001 || Math.abs(want - view.pan) > wv ? want : view.pan + (want - view.pan) * 0.07;
   g.save();
-  g.translate(0, -view.dy); g.scale(z, z); g.translate(-view.pan, 0);
-  g.beginPath(); g.rect(view.pan, 0, wv, H); g.clip();
+  g.translate(0, -view.dy); g.scale(z, z); g.translate(-view.pan, -py);
+  g.beginPath(); g.rect(view.pan, py, wv, hv); g.clip();
   drawWorldInner(g);
   g.restore();
 }
 function drawHUD(g) {
   g.save(); g.translate(0, -view.dy);
   drawHUDInner(g);
+  drawStyle(g);
   g.restore();
 }

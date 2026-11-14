@@ -52,7 +52,8 @@ function newGame(demo) {
   game.score = 0; game.lives = 2; game.nextExtend = 50000; game.continues = 0; game.cleared = false;
   game.stats = freshStats();
   game.carry = null;
-  startFloor(demo ? 0 : startFloorPick());
+  game.perks = {}; game.style = 0;
+  offerPerks(demo ? 0 : startFloorPick());
 }
 
 function startFloor(i) {
@@ -67,7 +68,8 @@ function startFloor(i) {
   game.foes = []; game.shots = []; game.fx = []; game.items = []; game.haz = []; game.pops = []; game.sched = [];
   game.boss = null; game.bossSeq = null; game.arena = null; game.doorOpen = 0; game.autoWalk = false; game.hideHero = false; game.freed = 0;
   game.time = 0; game.evIdx = 0; game.spawnT = 2.4; game.hazT = 3;
-  game.timeLeft = F.time + game.diff.time;
+  game.timeLeft = F.time + game.diff.time + perk('time') * 40;
+  if (perk('stars') && game.hero) game.hero.stars = Math.max(game.hero.stars || 0, 8);
   game.chainN = 0; game.chainT = -9; game.shake = 0; game.flashT = 0; game.slowT = 0; game.hitStop = 0;
   game.stageStats = freshStats();
   game.wx = [];
@@ -92,7 +94,9 @@ function updateGame(dt, I, P) {
   game.flashT = Math.max(0, game.flashT - dt);
   game.fadeT = Math.max(0, (game.fadeT || 0) - dt);
   game.readyT = Math.max(0, (game.readyT || 0) - dt);
+  updateStyle(game.state === 'play' && !(game.hitStop > 0) ? dt : 0);
   switch (game.state) {
+    case 'perk': updatePerk(dt, I, P); break;
     case 'intro':
       tickWorld(dt);
       if (game.stateT > 3.6 || (game.stateT > 0.8 && (P.punch || P.kick || P.jump || P.start))) beginPlay();
@@ -321,6 +325,7 @@ function addScore(pts, x, y, chain, quiet) {
     game.chainT = game.time;
     if (game.chainN > 1) total += (game.chainN - 1) * 50;
     if (game.chainN >= 3 && !quiet) pop(x, y - 9, 'CHAIN X' + game.chainN, '#ffd27a');
+    total = Math.round((total * RANK_MULT[styleRank()]) / 10) * 10;
   }
   game.score += total;
   if (!quiet) pop(x, y, String(total), '#ffffff');
@@ -424,7 +429,7 @@ function nextFloor() {
   game.carry = { hp: h.hp, chi: h.chi };
   for (const k in game.stageStats) game.stats[k] += game.stageStats[k];
   game.hideHero = false;
-  if (game.floorIdx + 1 < FLOORS.length) startFloor(game.floorIdx + 1);
+  if (game.floorIdx + 1 < FLOORS.length) offerPerks(game.floorIdx + 1);
   else { award('master'); if (game.diff.id === 'grandmaster') award('grand'); startEnding(); }
 }
 

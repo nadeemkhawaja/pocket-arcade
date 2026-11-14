@@ -726,6 +726,7 @@ function renderFrame() {
     case 'boot': drawBoot(g); break;
     case 'title': drawTitle(g); break;
     case 'select': drawSelect(g); break;
+    case 'perk': drawPerk(g); break;
     case 'scores': drawScores(g); break;
     case 'medals': drawMedals(g); break;
     case 'howto': drawHowTo(g); break;
@@ -750,23 +751,29 @@ function renderFrame() {
   g.restore();
 }
 
-/** The world, zoomed in and panned to follow the hero when the picture is taller than 16:9. */
+/** The world: zoomed and panned on upright phones, and pushed in briefly on big hits. */
 function drawWorld(g) {
-  const z = view.zoom;
+  const p = settings.shake && game.state === 'play' ? game.punch || 0 : 0;
+  const z = view.zoom * (1 + p);
   if (z <= 1.001) { view.pan = 0; drawWorldInner(g); return; }
-  const h = game.hero, wv = W / z;
-  let want = (W - wv) / 2;
-  if (h) { const hx = h.x - game.camX; want = hx - wv * (h.face >= 0 ? 0.42 : 1 - 0.42); }
+  const h = game.hero, wv = W / z, hv = H / (1 + p);
+  let want = (W - wv) / 2, py = 0;
+  if (h) {
+    const hx = h.x - game.camX;
+    want = view.zoom > 1.001 ? hx - wv * (h.face >= 0 ? 0.42 : 0.58) : hx - wv / 2;
+    py = clamp(h.y - 24 - hv * 0.62, 0, H - hv);
+  }
   want = clamp(want, 0, W - wv);
-  view.pan = Math.abs(want - view.pan) > wv ? want : view.pan + (want - view.pan) * 0.07;
+  view.pan = view.zoom <= 1.001 || Math.abs(want - view.pan) > wv ? want : view.pan + (want - view.pan) * 0.07;
   g.save();
-  g.translate(0, -view.dy); g.scale(z, z); g.translate(-view.pan, 0);
-  g.beginPath(); g.rect(view.pan, 0, wv, H); g.clip();
+  g.translate(0, -view.dy); g.scale(z, z); g.translate(-view.pan, -py);
+  g.beginPath(); g.rect(view.pan, py, wv, hv); g.clip();
   drawWorldInner(g);
   g.restore();
 }
 function drawHUD(g) {
   g.save(); g.translate(0, -view.dy);
   drawHUDInner(g);
+  drawStyle(g);
   g.restore();
 }

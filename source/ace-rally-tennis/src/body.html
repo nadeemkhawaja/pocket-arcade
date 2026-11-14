@@ -70,6 +70,7 @@
         <p class="tagline">Swing with your webcam, keyboard or touch screen.</p>
         <nav class="menu" aria-label="Main menu">
           <button class="btn primary big" id="bPlay" type="button">Play a match</button>
+          <button class="btn" id="bCareer" type="button">Career <span id="careerTag"></span></button>
           <button class="btn" id="bPractice" type="button">Rally practice</button>
           <div class="menu-row">
             <button class="btn" id="bHow" type="button">How to play</button>
@@ -78,6 +79,14 @@
           <button class="btn" id="bMedals" type="button">Medals <span id="medalCount"></span></button>
         </nav>
         <p class="record" id="record"></p>
+      </div>
+    </section>
+
+    <!-- career -->
+    <section id="scrCareer" class="screen" hidden>
+      <div class="panel wide">
+        <div class="panel-head"><h2>Career</h2><button class="btn ghost" type="button" data-back>Back</button></div>
+        <div id="careerBody"></div>
       </div>
     </section>
 

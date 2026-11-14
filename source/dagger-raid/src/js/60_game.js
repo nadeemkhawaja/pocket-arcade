@@ -10,7 +10,7 @@ const game = {
   score: 0, hi: 0, lives: 2, nextExtend: 30000, continues: 0, loop: 1,
   chainN: 0, chainT: -9, shake: 0, flashT: 0, slowT: 0, hitStop: 0, boomLight: 0,
   diff: DIFFS[settings.level] || DIFFS.soldier, invincible: false, startStage: 0, stats: null, stageStats: null,
-  demo: false, menu: 0, hits: [], scores: loadScores(), entry: null, idleT: 0
+  demo: false, menu: 0, hits: [], scores: loadScores(), entry: null, idleT: 0, perks: {}, perkOffer: null, style: 0, styleT: 0, punch: 0, rankPop: 0
 };
 game.hi = game.scores[0].s;
 
@@ -36,7 +36,8 @@ function newGame(demo) {
   game.stats = freshStats();
   game.carry = null; game.cheat = false;
   game.startStage = demo ? 0 : clamp(settings.stage | 0, 0, Math.min(PROG.reached, STAGES.length - 1));
-  startStage(game.startStage);
+  game.perks = {}; game.style = 0; game.medicN = 0;
+  offerPerks(game.startStage);
 }
 
 function startStage(i) {
@@ -46,7 +47,9 @@ function startStage(i) {
   game.camX = 0; game.lockCam = false;
   const keep = game.carry;
   game.hero = makeHero(48);
-  if (keep) { const h = game.hero; h.wpn = keep.wpn; h.ammo = keep.ammo; h.hp = Math.min(game.diff.hp, keep.hp || game.diff.hp); h.blade = keep.blade || 'knife'; h.bladeN = keep.bladeN || 0; }
+  if (keep) { const h = game.hero; h.wpn = keep.wpn; h.ammo = keep.ammo; h.hp = Math.min(heroMaxHp(), keep.hp || heroMaxHp()); h.blade = keep.blade || 'knife'; h.bladeN = keep.bladeN || 0; }
+  if (perk('katana')) { game.hero.blade = 'katana'; game.hero.bladeN = Math.max(game.hero.bladeN, 30); }
+  if (Object.keys(game.perks).length >= 4) award('build');
   game.foes = []; game.shots = []; game.fx = []; game.items = []; game.caps = []; game.pops = []; game.sched = [];
   game.props = game.st.props.map(makeProp);
   game.boss = null; game.bossSeq = null; game.time = 0; game.evIdx = 0; game.spawnT = 2.2;
@@ -88,7 +91,9 @@ function updateGame(dt, I, P) {
     q.t += dt;
     if (q.t > 2.6) game.toasts.shift();
   }
+  updateStyle(game.state === 'play' && game.hitStop <= 0 ? dt : 0);
   switch (game.state) {
+    case 'perk': updatePerk(dt, I, P); break;
     case 'intro':
       tickWorld(dt);
       if (game.stateT > 3.4 || (game.stateT > 0.8 && (P.knife || P.jump || P.start))) beginPlay();
@@ -270,6 +275,7 @@ function addScore(pts, x, y, chain, quiet) {
     if (game.chainN > 1) total += (game.chainN - 1) * 50;
     if (game.chainN >= 2 && !quiet) pop(x, y - 9, 'CHAIN X' + game.chainN, '#ffd27a');
     if (game.chainN >= 5) award('chain');
+    total = Math.round((total * RANK_MULT[styleRank()]) / 10) * 10;
   }
   game.score += total;
   if (!quiet) pop(x, y, String(total), '#ffffff');
@@ -386,7 +392,7 @@ function nextStage() {
   const h = game.hero;
   game.carry = { wpn: h.wpn, ammo: h.ammo, hp: h.hp, blade: h.blade, bladeN: h.bladeN };
   for (const k in game.stageStats) game.stats[k] += game.stageStats[k];
-  if (game.stageIdx + 1 < STAGES.length) startStage(game.stageIdx + 1);
+  if (game.stageIdx + 1 < STAGES.length) offerPerks(game.stageIdx + 1);
   else { missionCleared(); startEnding(); }
 }
 

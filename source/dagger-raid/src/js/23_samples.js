@@ -31,7 +31,7 @@
       const b = clips[u[0][Math.floor(Math.random() * u[0].length)]];
       if (b) {
         const c = this.ctx, s = c.createBufferSource(), g = c.createGain();
-        s.buffer = b; s.playbackRate.value = 1 + (Math.random() * 2 - 1) * (u[3] || 0.06);
+        s.buffer = b; s.playbackRate.value = 1.1 + (Math.random() * 2 - 1) * (u[3] || 0.06);
         g.gain.value = u[1] * 0.55;
         s.connect(g); g.connect(this.sfxBus); s.start();
         if (u[2]) return 0;

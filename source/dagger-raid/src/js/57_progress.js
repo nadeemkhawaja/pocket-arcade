@@ -18,7 +18,9 @@ const MEDALS = [
   { id: 'ironclad', name: 'DERAILED', desc: 'WRECK THE IRONCLAD' },
   { id: 'gunship', name: 'GROUNDED', desc: 'SHOOT DOWN SKY HAMMER' },
   { id: 'krome', name: 'END OF THE LINE', desc: 'DEFEAT GENERAL KROME' },
-  { id: 'elite', name: 'ELITE OPERATIVE', desc: 'FINISH THE MISSION ON ELITE' }
+  { id: 'elite', name: 'ELITE OPERATIVE', desc: 'FINISH THE MISSION ON ELITE' },
+  { id: 'srank', name: 'S FOR STYLE', desc: 'REACH STYLE RANK S' },
+  { id: 'build', name: 'FULLY LOADED', desc: 'CARRY 4 UPGRADES AT ONCE' }
 ];
 
 const PROG = Object.assign({ ach: {}, reached: 0, cleared: false, n: {} }, store.get('progress', {}));

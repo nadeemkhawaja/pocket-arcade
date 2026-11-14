@@ -72,7 +72,7 @@ body.touch-on.portrait #touch {
   display: none; position: absolute; left: var(--gl); right: var(--gr); top: calc(var(--game-bottom) + 18px);
   text-align: center; font-family: "Black Ops One", "Barlow Condensed", Impact, sans-serif; font-size: 20px; letter-spacing: 4px; line-height: 1.15; color: #8a96b4;
 }
-body.portrait .brand { display: block; }
+body.portrait .brand { display: none; }
 .brand b { color: #e8392a; font-weight: 400; }
 .brand span { display: block; margin-top: 10px; font-family: var(--pix); font-size: 11px; font-weight: 500; letter-spacing: 1px; line-height: 1.15; color: #56607c; }
 .grille {
@@ -84,7 +84,7 @@ body.portrait .brand { display: block; }
   content: ""; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -5px 0 0 -5px;
   transform: rotate(45deg); border: 1px solid rgba(255,120,100,0.85); background: #2a1014;
 }
-body.portrait .grille { display: block; }
+body.portrait .grille { display: none; }
 @media (max-height: 700px) { .grille { display: none !important; } .brand span { display: none; } }
 
 #dpad {
@@ -1006,13 +1006,13 @@ const chip = new Chip();
    ========================================================================== */
 
 (function soundPolish() {
-  const ROOM = [1.3, 2.3, 0.15];
+  const ROOM = [0.5, 3, 0.05];
   const MAP = {
     hit: [['impact', 1]], down: [['impact', 1], ['soft', 1.2]], hurt: [['impact', 0.9]], die: [['impact', 1.2], ['soft', 1.4]], chop: [['impact', 1]],
     crate: [['impact', 0.9], ['soft', 1]], thud: [['soft', 1.2]], land: [['soft', 0.8]], clang: [['steel', 1.1], ['impact', 0.6]], tink: [['steel', 1]],
     knife: [['air', 0.9], ['steel', 0.5]], katana: [['air', 1.1], ['steel', 0.8]], thrust: [['air', 1], ['steel', 0.7]], throw: [['air', 0.9]],
     star: [['steel', 0.6]], dash: [['air', 1.1]], whoosh: [['air', 0.9]], jump2: [['air', 0.6]], crit: [['steel', 1], ['impact', 1.2]],
-    shot: [['shot', 1]], snipe: [['shot', 1.3]], rocket: [['shot', 0.8], ['air', 1.2]], boom: [['heavy', 1]], roar: [['heavy', 0.6]],
+    rocket: [['shot', 0.8], ['air', 1.2]], roar: [['heavy', 0.6]],
     pickup: [['shine', 1]], weapon: [['shine', 1], ['steel', 0.6]], coin: [['shine', 1]], free: [['shine', 1.1]], finisher: [['heavy', 0.7], ['steel', 1.2]]
   };
   function impulse(c, seconds, decay) {
@@ -1038,9 +1038,10 @@ const chip = new Chip();
   const r = (a, b) => a + Math.random() * (b - a);
   const LAYER = {
     impact(s, t, k) {
-      s.tone(t, 150 * r(0.88, 1.12), 0.09, 'sin', 0.24 * k, null, { slide: 52 });
-      s.noise(t, 0.028, 0.24 * k, 'bandpass', r(2200, 3200), 1.2);
-      s.noise(t + 0.012, 0.06, 0.1 * k, 'lowpass', 900, 0.7);
+      // hard and metallic: a sharp crack over a short thump
+      s.tone(t, 170 * r(0.9, 1.1), 0.07, 'sin', 0.22 * k, null, { slide: 60 });
+      s.noise(t, 0.022, 0.3 * k, 'highpass', r(3200, 4600), 1);
+      s.noise(t + 0.01, 0.07, 0.1 * k, 'bandpass', 1500, 0.8, null, { metal: true });
     },
     heavy(s, t, k) {
       s.tone(t, 78, 0.42, 'sin', 0.4 * k, null, { slide: 27 });
@@ -1071,71 +1072,242 @@ const chip = new Chip();
 })();
 
 /* ==========================================================================
-   Modern voice: the old sound-chip square waves are replaced by warm detuned
-   saw voices through a sweeping low-pass filter, the chip hiss by clean noise,
-   and the music gets its own hall and echo. Same notes, present-day sound.
+   Dagger Raid's own sound: a war zone. The music is a film-style battle
+   score (marching snare cadence, war drums, urgent low strings, horns and a
+   distant choir); the effects are dry cracks, booms and long outdoor tails.
+   No synth leads, no dance beat.
    ========================================================================== */
 
-(function modernVoice() {
-  const baseTone = Chip.prototype.tone;
-  Chip.prototype.tone = function (t, freq, dur, wave, vol, bus, opt) {
-    if (wave === 'sin' || wave === 'tri') return baseTone.call(this, t, freq, dur, wave, vol, bus, opt);
-    const c = this.ctx, music = !!bus && bus !== this.sfxBus;
-    const f = c.createBiquadFilter();
-    f.type = 'lowpass'; f.Q.value = music ? 2.2 : 1;
-    const top = Math.min(9000, freq * (wave === 'p12' ? 9 : wave === 'p25' ? 7 : 5.5) + 700);
-    const low = Math.min(top, freq * 1.8 + 260);
-    f.frequency.setValueAtTime(top, t);
-    f.frequency.exponentialRampToValueAtTime(low, t + Math.max(0.05, dur * 0.85));
+(function warSound() {
+  const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function seedOf(name) { let s = 7; for (let i = 0; i < name.length; i++) s = s * 31 + name.charCodeAt(i); return s; }
+  function hall(chip, bus, seconds, decay, wetGain, echo) {
+    try {
+      const c = chip.ctx, len = Math.floor(c.sampleRate * seconds), buf = c.createBuffer(2, len, c.sampleRate);
+      for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay); }
+      const cv = c.createConvolver(), wet = c.createGain();
+      cv.buffer = buf; wet.gain.value = wetGain;
+      bus.connect(cv); cv.connect(wet); wet.connect(chip.master);
+      if (echo) {
+        const dl = c.createDelay(1), fb = c.createGain(), dw = c.createGain(), lp = c.createBiquadFilter();
+        dl.delayTime.value = echo[0]; fb.gain.value = echo[1]; dw.gain.value = echo[2]; lp.type = 'lowpass'; lp.frequency.value = 2400;
+        bus.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(dw); dw.connect(chip.master);
+      }
+    } catch (e) { /* dry sound still plays */ }
+  }
+  function envGain(c, t, dur, vol, a, rel, opt) {
     const g = c.createGain();
-    const a = Math.max((opt && opt.a) || 0.004, 0.006), rel = Math.max((opt && opt.r) || 0.04, 0.03);
     g.gain.setValueAtTime(0.0001, t);
     g.gain.linearRampToValueAtTime(vol, t + a);
     if (opt && opt.decay) g.gain.setTargetAtTime(vol * (opt.sus || 0.5), t + a, opt.decay);
     g.gain.setValueAtTime(opt && opt.decay ? vol * (opt.sus || 0.5) : vol, Math.max(t + a, t + dur - rel));
     g.gain.linearRampToValueAtTime(0.0001, t + dur);
-    let lfo = null;
-    if (opt && opt.vib) {
-      lfo = c.createGain(); lfo.gain.value = opt.vib[1];
-      const l = c.createOscillator(); l.frequency.value = opt.vib[0];
-      l.connect(lfo); l.start(t + (opt.vib[2] || 0.1)); l.stop(t + dur + 0.05);
-    }
-    const spread = dur > 0.09 ? [-9, 9] : [0];
-    for (const d of spread) {
-      const o = c.createOscillator();
-      o.type = 'sawtooth'; o.detune.value = d;
-      o.frequency.setValueAtTime(freq, t);
+    return g;
+  }
+  function startScore(chip, name, table, stepFn, make) {
+    chip.stopMusic(true);
+    const c = chip.ctx;
+    const song = { name, s: SONGS[name], step: 0, next: c.currentTime + 0.08, stepDur: 60 / table[name].bpm / 4, score: make(name, table[name]) };
+    song.gain = c.createGain(); song.gain.gain.value = 0.0001; song.gain.gain.setTargetAtTime(table[name].gain || 1, c.currentTime, 0.25);
+    song.gain.connect(chip.musicBus);
+    song.pad = c.createGain(); song.pad.connect(song.gain);
+    chip.song = song;
+    const tick = () => {
+      if (chip.song !== song) return;
+      while (song.next < c.currentTime + 0.16) { stepFn.call(chip, song, song.step, song.next); song.step++; song.next += song.stepDur; }
+    };
+    tick();
+    song.timer = setInterval(tick, 25);
+  }
+
+
+  /* Every old chip tone becomes a short horn note: saws whose filter opens with the breath. */
+  const baseTone = Chip.prototype.tone;
+  Chip.prototype.tone = function (t, freq, dur, wave, vol, bus, opt) {
+    if (wave === 'sin' || wave === 'tri') return baseTone.call(this, t, freq, dur, wave, vol, bus, opt);
+    const c = this.ctx;
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = 0.9;
+    const open = Math.min(5200, freq * 4.5 + 400);
+    f.frequency.setValueAtTime(freq * 1.1 + 150, t); f.frequency.linearRampToValueAtTime(open, t + Math.min(0.05, dur * 0.5)); f.frequency.setTargetAtTime(freq * 2.2 + 200, t + 0.06, Math.max(0.05, dur * 0.5));
+    const g = envGain(c, t, dur, vol * 1.05, Math.max((opt && opt.a) || 0.004, 0.012), Math.max((opt && opt.r) || 0.04, 0.04), opt);
+    for (const det of [-8, 7]) {
+      const o = c.createOscillator(); o.type = 'sawtooth'; o.detune.value = det; o.frequency.setValueAtTime(freq, t);
       if (opt && opt.slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, opt.slide), t + dur);
-      if (lfo) lfo.connect(o.frequency);
-      const og = c.createGain(); og.gain.value = spread.length > 1 ? 0.62 : 0.9;
-      o.connect(og); og.connect(f);
-      o.start(t); o.stop(t + dur + 0.05);
+      const og = c.createGain(); og.gain.value = 0.5; o.connect(og); og.connect(f); o.start(t); o.stop(t + dur + 0.05);
     }
-    // weight under the bass line
-    if (music && freq < 150 && dur > 0.08) baseTone.call(this, t, freq, dur, 'sin', vol * 0.7, bus, { a: 0.01, r: rel });
     f.connect(g); g.connect(bus || this.sfxBus);
   };
 
-  /** One-time wiring: clean noise instead of chip hiss, and space around the music. */
+  /** French horns: three players, a slow swell and a warm, covered tone. */
+  Chip.prototype.horn = function (t, freq, dur, vol, bus) {
+    const c = this.ctx;
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = 0.8;
+    f.frequency.setValueAtTime(freq * 1.2, t); f.frequency.linearRampToValueAtTime(Math.min(3200, freq * 4.2), t + 0.16); f.frequency.setTargetAtTime(freq * 2.4, t + 0.2, 0.5);
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.11); g.gain.setValueAtTime(vol * 0.92, Math.max(t + 0.11, t + dur - 0.16)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = 4.6; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(freq * 0.004, t + 0.5); l.connect(lg); l.start(t); l.stop(t + dur + 0.05);
+    for (const det of [-9, 0, 8]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.detune.value = det; o.frequency.setValueAtTime(freq, t); lg.connect(o.frequency); const og = c.createGain(); og.gain.value = 0.34; o.connect(og); og.connect(f); o.start(t); o.stop(t + dur + 0.05); }
+    f.connect(g); g.connect(bus);
+  };
+  /** Low strings, short bows: the engine of the battle music. */
+  Chip.prototype.spicc = function (t, freq, vol, bus, len) {
+    const c = this.ctx, dur = len || 0.13;
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = 1.4; f.frequency.setValueAtTime(Math.min(4200, freq * 7), t); f.frequency.exponentialRampToValueAtTime(freq * 2 + 150, t + dur);
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    for (const det of [-12, 0, 11]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.detune.value = det; o.frequency.value = freq; const og = c.createGain(); og.gain.value = 0.36; o.connect(og); og.connect(f); o.start(t); o.stop(t + dur + 0.03); }
+    f.connect(g); g.connect(bus);
+    this.noise(t, 0.012, vol * 0.25, 'bandpass', Math.min(5000, freq * 6), 1.5, bus);
+  };
+  /** Choir: saws through two vowel formants, far away. */
+  Chip.prototype.choir = function (t, freq, dur, vol, bus) {
+    const c = this.ctx;
+    const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.5); g.gain.setValueAtTime(vol, Math.max(t + 0.5, t + dur - 0.5)); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    const forms = [700, 1150].map((fq) => { const b = c.createBiquadFilter(); b.type = 'bandpass'; b.frequency.value = fq; b.Q.value = 4; b.connect(g); return b; });
+    for (const det of [-14, -4, 6, 13]) { const o = c.createOscillator(); o.type = 'sawtooth'; o.detune.value = det; o.frequency.value = freq; for (const b of forms) o.connect(b); o.start(t); o.stop(t + dur + 0.05); }
+    g.connect(bus);
+  };
+  /** War drum: a huge low skin with a short room slap. */
+  Chip.prototype.warDrum = function (t, vol, bus, pitch) {
+    const f0 = pitch || 86;
+    baseTone.call(this, t, f0, 0.5, 'sin', vol, bus, { slide: f0 * 0.5, r: 0.2 });
+    baseTone.call(this, t, f0 * 1.5, 0.12, 'tri', vol * 0.35, bus, { slide: f0 * 0.8, r: 0.06 });
+    this.noise(t, 0.09, vol * 0.5, 'lowpass', 520, 0.7, bus);
+  };
+  Chip.prototype.snareHit = function (t, vol, bus) {
+    this.noise(t, 0.09, vol, 'bandpass', 2300, 0.9, bus);
+    this.noise(t, 0.05, vol * 0.7, 'highpass', 5200, 0.7, bus);
+    baseTone.call(this, t, 210, 0.05, 'tri', vol * 0.5, bus, { slide: 160 });
+  };
+
+  // each chord is [semitones above the key, minor?]
+  const I = [0, 1], VI = [8, 0], VII = [10, 0], iv = [5, 1], III = [3, 0], v = [7, 1], II = [1, 0];
+  const TABLE = {
+    title: { bpm: 84, root: 38, prog: [I, VI, III, VII], solemn: true, gain: 1.25 }, entry: { bpm: 88, root: 41, prog: [I, VI, III, VII], solemn: true, gain: 1.25 }, ending: { bpm: 80, root: 43, prog: [[0, 0], [5, 0], [9, 1], [7, 0]], solemn: true, gain: 1.3 },
+    stageA: { bpm: 112, root: 38, prog: [I, I, VI, VII] }, stageB: { bpm: 118, root: 40, prog: [I, iv, I, v] },
+    stageC: { bpm: 108, root: 36, prog: [I, VI, iv, VII] }, stageD: { bpm: 124, root: 35, prog: [I, VII, VI, v] },
+    boss: { bpm: 138, root: 37, prog: [I, II, I, II], siege: true, gain: 0.74 }
+  };
+  const MINOR = [0, 2, 3, 5, 7, 8, 10];
+  function make(name, cfg) {
+    const R = rng(seedOf(name) + 4242), theme = [];
+    // a four bar horn call, answered a step lower: long notes and rising fourths and fifths
+    let d = 4;
+    for (let bar = 0; bar < 8; bar++) {
+      if (bar % 4 === 3) { theme.push({ at: bar * 16, d: bar === 7 ? 0 : 4, len: 14 }); continue; }
+      for (const s of bar % 2 ? [0, 8] : [0, 6, 12]) {
+        const x = R(); d = Math.max(0, Math.min(9, d + (x < 0.35 ? 3 : x < 0.6 ? 4 : x < 0.8 ? -2 : -1)));
+        if (d > 7) d -= 4;
+        theme.push({ at: bar * 16 + s, d, len: s === 12 ? 3.6 : bar % 2 ? 7.4 : 5.4 });
+      }
+    }
+    // the string figure: which chord tone each sixteenth plays (-1 rests)
+    const fig = [[0, 0, 2, 0, 1, 0, 2, 0, 0, 0, 2, 0, 1, 2, 1, 0], [0, -1, 0, 0, 2, -1, 0, 0, 1, -1, 0, 0, 2, 0, 1, 0], [0, 0, 0, 1, 0, 0, 2, 0, 0, 0, 0, 1, 0, 2, 1, 2]][Math.floor(R() * 3)];
+    const drum = [[0, 6, 10], [0, 3, 8, 11], [0, 8, 14]][Math.floor(R() * 3)];
+    return { cfg, theme, fig, drum };
+  }
+
+  function warStep(song, i, t) {
+    const S = song.score, cfg = S.cfg, sd = song.stepDur, bus = song.gain, pad = song.pad;
+    const bar = Math.floor(i / 16), st = i % 16, sec = Math.floor((bar % 16) / 4);
+    const ch = cfg.prog[bar % 4], root = cfg.root + ch[0], tones = [0, 7, ch[1] ? 3 : 4];
+    const build = sec >= 1 || cfg.siege, full = sec >= 2 || cfg.siege;
+    if (st === 0) {
+      // basses hold the ground; the choir enters once the battle is joined
+      baseTone.call(this, t, hz(root - 12), sd * 15.8, 'sin', 0.16, pad, { a: 0.15, r: 0.4 });
+      baseTone.call(this, t, hz(root), sd * 15.8, 'tri', 0.05, pad, { a: 0.3, r: 0.4 });
+      if (full || cfg.solemn) for (const n of [12 + tones[2], 19, 24]) this.choir(t, hz(root + n), sd * 15.6, cfg.solemn ? 0.035 : 0.028, pad);
+    }
+    // marching snare: steady taps, flams on the beat, a roll into every fourth bar
+    const roll = bar % 4 === 3 && st >= 10;
+    if (roll) { this.snareHit(t, 0.07 + (st - 10) * 0.022, bus); this.snareHit(t + sd * 0.5, 0.06 + (st - 10) * 0.02, bus); }
+    else if (cfg.solemn ? [0, 6, 8, 12, 14].includes(st) : build ? st % 2 === 0 || st === 3 || st === 11 : st % 4 === 0) {
+      const accent = st % 8 === 4 || (cfg.solemn && st === 8);
+      if (accent) this.snareHit(t - 0.02, 0.07, bus);
+      this.snareHit(t, accent ? 0.2 : 0.085, bus);
+    }
+    // war drums
+    if (!cfg.solemn || sec >= 2) {
+      if (S.drum.includes(st) && (build || st === 0)) this.warDrum(t, st === 0 ? 0.55 : 0.36, bus, st === 0 ? 82 : 98);
+      if (cfg.siege && st % 4 === 2) this.warDrum(t, 0.26, bus, 120);
+    } else if (st === 0 && bar % 2 === 0) this.warDrum(t, 0.4, bus, 74);
+    if (bar % 4 === 3 && st === 8 && full) this.noise(t, sd * 8, 0.07, 'highpass', 3000, 0.5, bus, { sweep: 9000 }); // cymbal swell
+    if (bar % 8 === 0 && st === 0 && build) { this.noise(t, 1.4, 0.12, 'highpass', 4200, 0.5, bus); this.warDrum(t, 0.6, bus, 62); }
+    // low strings: short urgent bows
+    if (!cfg.solemn) {
+      const k = S.fig[st];
+      if (k >= 0 && (build || st % 2 === 0)) this.spicc(t, hz(root + tones[k] + (full && st % 8 === 6 ? 12 : 0)), st % 4 === 0 ? 0.16 : 0.11, bus, sd * 0.95);
+      if (full && st % 4 === 0) this.spicc(t, hz(root + 12 + tones[(bar + st / 4) % 3]), 0.07, bus, sd * 1.6);
+    } else if (st % 8 === 0 && sec >= 1) this.spicc(t, hz(root), 0.1, bus, sd * 3);
+    // horns carry the theme
+    if (full || (cfg.solemn && sec >= 1)) {
+      const at = (bar % 8) * 16 + st;
+      for (const n of S.theme) if (n.at === at) {
+        const m = cfg.root + 12 + MINOR[n.d % 7] + 12 * Math.floor(n.d / 7);
+        this.horn(t, hz(m), sd * n.len, 0.1, bus);
+        if (cfg.siege || sec === 3) this.horn(t, hz(m - 12), sd * n.len, 0.06, bus);
+      }
+    }
+    // trombone stabs punch the off beats in the fights
+    if (cfg.siege && (st === 3 || st === 6 || st === 11 || st === 14)) for (const n of [0, 7]) this.horn(t, hz(root + n), sd * 1.4, 0.07, bus);
+  }
+  Chip.prototype.scoreStep = warStep;
+
+  const basePlay = Chip.prototype.play;
+  Chip.prototype.play = function (name, onEnd) {
+    const s = SONGS[name];
+    if (!this.ctx || !s || !s.loop || !TABLE[name]) return basePlay.call(this, name, onEnd);
+    startScore(this, name, TABLE, warStep, make);
+  };
+
   function space(chip) {
     if (chip.spaced || !chip.ctx || !chip.musicBus || !chip.master) return;
     chip.spaced = true;
     chip.metalBuf = chip.noiseBuf;
-    try {
-      const c = chip.ctx, len = Math.floor(c.sampleRate * 2.2), buf = c.createBuffer(2, len, c.sampleRate);
-      for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8); }
-      const cv = c.createConvolver(), wet = c.createGain();
-      cv.buffer = buf; wet.gain.value = 0.24;
-      chip.musicBus.connect(cv); cv.connect(wet); wet.connect(chip.master);
-      const dl = c.createDelay(1), fb = c.createGain(), dw = c.createGain(), lp = c.createBiquadFilter();
-      dl.delayTime.value = 0.29; fb.gain.value = 0.3; dw.gain.value = 0.16; lp.type = 'lowpass'; lp.frequency.value = 2600;
-      chip.musicBus.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(dw); dw.connect(chip.master);
-    } catch (e) { /* dry music still plays */ }
+    hall(chip, chip.musicBus, 2.4, 2.4, 0.26, null);          // scoring stage
+    hall(chip, chip.sfxBus, 1.5, 1.6, 0.12, [0.19, 0.18, 0.16]); // open ground: a slap off the far tree line
   }
   const baseInit = Chip.prototype.initCtx;
   Chip.prototype.initCtx = function (c) { baseInit.call(this, c); space(this); };
+
+  /* Gunfire and blasts rebuilt for the field: crack, body, thump, then the report rolling away. */
   const baseSfx = Chip.prototype.sfx;
-  Chip.prototype.sfx = function (name, opt) { space(this); return baseSfx.call(this, name, opt); };
+  Chip.prototype.sfx = function (name, opt) {
+    space(this);
+    if (this.ok() && !this.mute) {
+      const t = this.ctx.currentTime;
+      if (name === 'shot' || name === 'snipe') {
+        const big = name === 'snipe' ? 1.3 : 1;
+        this.noise(t, 0.012, 0.5 * big, 'highpass', 3800, 0.7);
+        this.noise(t, 0.07, 0.4 * big, 'bandpass', 900, 0.8, null, { sweep: 300 });
+        baseTone.call(this, t, 150, 0.09, 'sin', 0.3 * big, null, { slide: 45 });
+        this.noise(t + 0.03, 0.5 * big, 0.1 * big, 'lowpass', 1400, 0.5, null, { sweep: 180 });
+        return 0;
+      }
+      if (name === 'boom') {
+        const big = opt && opt.big ? 1.25 : 1;
+        this.noise(t, 0.02, 0.32, 'highpass', 2500, 0.7);
+        baseTone.call(this, t, 95, 0.7 * big, 'sin', 0.36, null, { slide: 26, r: 0.3 });
+        this.noise(t, 0.9 * big, 0.3, 'lowpass', 700, 0.6, null, { sweep: 60 });
+        for (let k = 0; k < 7; k++) this.noise(t + 0.15 + Math.random() * 0.6, 0.04, 0.06, 'bandpass', 1500 + Math.random() * 3000, 2);
+        return 0;
+      }
+    }
+    return baseSfx.call(this, name, opt);
+  };
+
+  /* The battlefield never goes quiet: distant rifle fire, bursts and far shelling under every stage. */
+  const baseAmb = Chip.prototype.ambience;
+  Chip.prototype.ambience = function (id) {
+    baseAmb.call(this, id);
+    clearInterval(this.warTimer);
+    if (!id) return;
+    this.warTimer = setInterval(() => {
+      if (!this.ok() || this.mute || document.hidden || this.ambWant !== id) return;
+      const t = this.ctx.currentTime, x = Math.random();
+      if (x < 0.4) { const n = 1 + Math.floor(Math.random() * 4); for (let k = 0; k < n; k++) this.noise(t + k * 0.11 + Math.random() * 0.03, 0.09, 0.035, 'bandpass', 600 + Math.random() * 500, 1.2, null, { sweep: 250 }); }
+      else if (x < 0.55) { baseTone.call(this, t, 60, 0.9, 'sin', 0.06, null, { slide: 30, r: 0.4 }); this.noise(t, 1.2, 0.04, 'lowpass', 300, 0.6, null, { sweep: 70 }); }
+    }, 2300);
+  };
 })();
 
 /* ==========================================================================
@@ -1171,7 +1343,7 @@ const chip = new Chip();
       const b = clips[u[0][Math.floor(Math.random() * u[0].length)]];
       if (b) {
         const c = this.ctx, s = c.createBufferSource(), g = c.createGain();
-        s.buffer = b; s.playbackRate.value = 1 + (Math.random() * 2 - 1) * (u[3] || 0.06);
+        s.buffer = b; s.playbackRate.value = 1.1 + (Math.random() * 2 - 1) * (u[3] || 0.06);
         g.gain.value = u[1] * 0.55;
         s.connect(g); g.connect(this.sfxBus); s.start();
         if (u[2]) return 0;
@@ -3787,9 +3959,9 @@ const AMMO_CAP = { tri: 9, gren: 9, rocket: 9, star: 24, flame: 99 };
 function makeHero(x) {
   return {
     x, y: GROUND_Y, vx: 0, vy: 0, face: 1, ground: true, climb: null, dropY: null, crouch: false, act: null,
-    inv: 0, hp: game.diff.hp, dead: false, deadT: 0, coyote: 0, jbuf: 0, kbuf: 0, sbuf: 0, runT: 0, climbT: 0, hurtT: 0,
+    inv: 0, hp: heroMaxHp(), dead: false, deadT: 0, coyote: 0, jbuf: 0, kbuf: 0, sbuf: 0, runT: 0, climbT: 0, hurtT: 0,
     wpn: null, ammo: 0, blade: 'knife', bladeN: 0, flash: 0, pose: null,
-    airJumps: 1, airDash: false, flipT: -1, roll: null, dashCD: 0, counterT: 0, combo: 0, comboT: 0,
+    airJumps: maxAir(), airDash: false, flipT: -1, roll: null, dashCD: 0, counterT: 0, combo: 0, comboT: 0,
     wallSide: 0, wallT: 0, wallLock: 0, sliding: false, tapDir: 0, tapT: -9, jumpCut: true, jumpT: 0, pogo: 0,
     ghosts: [], stepD: 0, shieldT: 0, flameT: 0, flameSnd: 0
   };
@@ -3814,6 +3986,7 @@ function dodgeCredit(h) {
   pop(h.x, h.y - 40, 'DODGE!', '#9fe8ff');
   chip.sfx('dodge');
   game.stageStats.dodges++;
+  styleAdd(12);
 }
 
 function heroKnifeBox(h) {
@@ -3822,7 +3995,7 @@ function heroKnifeBox(h) {
   const M = MELEE[a.type];
   if (!M || a.t < M.a0 || a.t > M.a1) return null;
   if (a.type === 'dive') return box(h.x - 8 + h.face * 3, h.y - 13, h.x + 8 + h.face * 3, h.y + 6);
-  const r1 = M.reach + (a.kat ? 9 : 0), e = a.kat ? 3 : 0;
+  const r1 = M.reach + (a.kat ? 9 : 0) + perk('reach') * 5, e = a.kat ? 3 : 0;
   const y0 = h.y + M.y0 - e, y1 = h.y + M.y1 + e;
   return h.face > 0 ? box(h.x + 1, y0, h.x + r1, y1) : box(h.x - r1, y0, h.x - 1, y1);
 }
@@ -3831,7 +4004,7 @@ function startRoll(h, d) {
   const air = !h.ground;
   h.roll = { t: 0, dir: d, tuck: !air, dur: air ? 0.2 : 0.34, i0: 0.02, i1: air ? 0.18 : 0.28, dodged: false };
   h.face = d; h.act = null; h.crouch = false; h.climb = null; h.combo = 0;
-  h.dashCD = h.roll.dur + 0.34;
+  h.dashCD = h.roll.dur + (perk('swift') ? 0.06 : 0.34);
   if (air) { h.airDash = true; h.vy = 0; h.flipT = -1; h.ground = false; }
   chip.sfx('dash');
   dust(h.x, h.y - (air ? 14 : 0), 3);
@@ -3965,7 +4138,7 @@ function updateHero(h, dt, I, P) {
     const lockAct = !!(a && h.ground && a.type !== 'jstab' && a.type !== 'toss' && !flaming);
     h.crouch = lockAct ? a.type === 'cstab' || a.type === 'recover' : h.ground && I.down && !flaming;
     if (h.ground) {
-      h.airJumps = 1; h.airDash = false; h.sliding = false; h.pogo = 0;
+      h.airJumps = maxAir(); h.airDash = false; h.sliding = false; h.pogo = 0;
       if (h.hurtT > 0) h.vx = approach(h.vx, 0, 200 * dt);
       else if (a && a.type === 'thrust' && a.lunge && a.t < 0.15) h.vx = h.face * 150;
       else if (h.crouch || lockAct) h.vx = approach(h.vx, 0, 1500 * dt);
@@ -4132,6 +4305,7 @@ function hurtHero(h, dirX, src) {
   }
   game.lastCause = src || '?';
   game.stageStats.hits++;
+  styleHit();
   if (h.hp > 1) {
     h.hp--;
     h.inv = 1.5; h.hurtT = 0.32; h.flash = 0.15; h.act = null; h.roll = null; h.flipT = -1; h.combo = 0;
@@ -4599,6 +4773,8 @@ function killFoe(e, how, dirX, dmg, label) {
   addScore(e.T.pts * (label ? 2 : 1), e.x, e.y - 30, true);
   if (e.drop) { spawnItem(e.drop, e.x, e.y - 14); e.drop = null; }
   game.stageStats.kills++;
+  styleAdd(label ? 18 : how === 'dive' ? 16 : 11);
+  if (perk('medic')) { game.medicN = (game.medicN || 0) + 1; const h = game.hero; if (game.medicN >= 8 && h && !h.dead && h.hp < heroMaxHp()) { game.medicN = 0; h.hp++; pop(h.x, h.y - 44, 'HEALTH +1', '#7fe6a0'); chip.sfx('pickup'); } }
   award('first');
   if (e.T.ninja) countUp('ninja', 5, 'ninja');
   if (how === 'katana') countUp('katana', 20, 'sword');
@@ -4916,7 +5092,8 @@ function updateItems(dt) {
   for (const it of game.items) {
     it.t += dt;
     if (!it.ground) { actorPhys(it, dt); if (it.ground) it.vx = 0; }
-    if (it.t > 9) it.gone = true;
+    if (perk('magnet') && !h.dead && it.t > 0.3) { const dx = h.x - it.x, dy = h.y - 12 - it.y, d = Math.hypot(dx, dy); if (d < 90 && d > 2) { it.x += (dx / d) * 150 * dt; it.y += (dy / d) * 150 * dt; it.ground = true; } }
+    if (it.t > (perk('magnet') ? 16 : 9)) it.gone = true;
     if (!h.dead && it.t > 0.25 && boxHit(box(it.x - 7, it.y - 13, it.x + 7, it.y), box(hb.x0 - 3, hb.y0 - 3, hb.x1 + 3, hb.y1 + 3))) {
       it.gone = true;
       collect(it);
@@ -4928,8 +5105,9 @@ function collect(it) {
   const h = game.hero, P = PICKUPS[it.type];
   game.fx.push({ k: 'ring', x: h.x, y: h.y - 14, t: 0, life: 0.3, r0: 4, r1: 18, col: P.color, w: 1.2 });
   if (AMMO_CAP[it.type]) {
-    if (h.wpn === it.type) h.ammo = Math.min(AMMO_CAP[it.type], h.ammo + P.ammo);
-    else { h.wpn = it.type; h.ammo = P.ammo; if (h.act && h.act.type === 'flame') h.act = null; }
+    const mul = 1 + perk('ammo');
+    if (h.wpn === it.type) h.ammo = Math.min(AMMO_CAP[it.type] * mul, h.ammo + P.ammo * mul);
+    else { h.wpn = it.type; h.ammo = P.ammo * mul; if (h.act && h.act.type === 'flame') h.act = null; }
     chip.sfx('weapon');
     pop(h.x, h.y - 40, P.label, P.color);
     addScore(200, h.x, h.y - 30, false, true);
@@ -4943,7 +5121,7 @@ function collect(it) {
     chip.sfx('pickup'); addScore(2000, h.x, h.y - 36, false);
   } else if (it.type === 'ration') {
     chip.sfx('pickup');
-    if (h.hp < game.diff.hp) { h.hp++; pop(h.x, h.y - 40, 'HEALTH +1', '#ff8a7a'); }
+    if (h.hp < heroMaxHp()) { h.hp++; pop(h.x, h.y - 40, 'HEALTH +1', '#ff8a7a'); }
     else addScore(500, h.x, h.y - 36, false);
   } else if (it.type === 'life') {
     game.lives = Math.min(9, game.lives + 1);
@@ -5016,11 +5194,12 @@ function resolveHeroAttacks() {
     a.hits.push(e.id);
     const back = e.kind !== 'dog' && e.st !== 'hurt' && e.face === (e.x >= h.x ? 1 : -1);
     const counter = h.counterT > 0;
-    const label = counter ? 'COUNTER!' : back ? 'BACKSTAB!' : chance(0.1) ? 'CRITICAL!' : null;
-    const dmg = (M.dmg + (a.kat ? 1 : 0)) * (label ? 2 : 1);
+    const label = counter ? 'COUNTER!' : back ? 'BACKSTAB!' : chance(critChance()) ? 'CRITICAL!' : null;
+    const fury = perk('fury') && h.hp === 1 && heroMaxHp() > 1 ? 2 : 1;
+    const dmg = (M.dmg + (a.kat ? 1 : 0)) * (label ? 2 : 1) * fury;
     const killed = killFoe(e, how === 'thrust' && a.kat ? 'katana' : how, h.face, dmg, label);
     game.hitStop = Math.max(game.hitStop || 0, killed ? (label ? 0.075 : 0.035) : 0.02);
-    if (label) addShake(2.5);
+    if (label) { addShake(2.5); game.punch = Math.max(game.punch || 0, killed ? 0.07 : 0.04); if (killed && perk('shock')) shockRing(e.x, e.y); }
     if (counter) { h.counterT = 0; game.slowT = Math.max(game.slowT, 0.28); }
     if (a.type === 'dive') pogo = true;
   }
@@ -5032,7 +5211,7 @@ function resolveHeroAttacks() {
     if (!s.foe || (s.k !== 'bullet' && s.k !== 'star') || s.gone) continue;
     if (!boxHit(kb, box(s.x - 3, s.y - 3, s.x + 3, s.y + 3))) continue;
     chip.sfx('tink'); sparks(s.x, s.y, 4, '#ffe27a');
-    if (a.kat) {
+    if (a.kat || perk('mirror')) {
       // the long blade sends it straight back
       s.foe = false; s.mine = true; s.aimed = false; s.vx = -s.vx * 1.5; s.vy = -s.vy * 1.5; s.t = 0; s.pierce = 0; s.hits = [];
       addScore(100, s.x, s.y - 10, false, true); pop(s.x, s.y - 12, 'REFLECT 100', '#bfe9ff');
@@ -5041,12 +5220,13 @@ function resolveHeroAttacks() {
       addScore(50, s.x, s.y - 10, false, true); pop(s.x, s.y - 12, 'PARRY 50', '#9fe8ff');
     }
     game.stageStats.parries++;
+    styleAdd(10);
     countUp('parry', 10, 'parry');
   }
   const b = game.boss;
   if (b && !b.dead && !a.bossHit && b.st !== 'enter') {
     const counter = h.counterT > 0;
-    const crit = counter || chance(0.1);
+    const crit = counter || chance(critChance());
     const dmg = (M.dmg + (a.kat && a.type === 'thrust' ? 1 : 0)) * (crit ? 2 : 1);
     const hp0 = b.hp;
     if (b.knife(kb, dmg)) {
@@ -5071,6 +5251,7 @@ function resolveHeroAttacks() {
 /** The blow that drops a boss: slow motion, a cross of light and a bonus. */
 function finisher(b, h) {
   game.slowT = Math.max(game.slowT, 1.3);
+  game.punch = 0.22;
   const x = (b.kind === 'ironclad' ? b.x + 15 : b.x), y = b.kind === 'ironclad' ? b.y - 26 : b.kind === 'gunship' ? b.y : b.y - 24;
   for (const [a0, a1, f] of [[-2.2, 0.9, 1], [-2.2, 0.9, -1]]) game.fx.push({ k: 'slash', x, y, face: f, r: 34, a0, a1, col: '#ffffff', t: 0, life: 0.5 });
   game.fx.push({ k: 'ring', x, y, t: 0, life: 0.6, r0: 6, r1: 60, col: '#fff2c8', w: 2 });
@@ -5814,7 +5995,9 @@ const MEDALS = [
   { id: 'ironclad', name: 'DERAILED', desc: 'WRECK THE IRONCLAD' },
   { id: 'gunship', name: 'GROUNDED', desc: 'SHOOT DOWN SKY HAMMER' },
   { id: 'krome', name: 'END OF THE LINE', desc: 'DEFEAT GENERAL KROME' },
-  { id: 'elite', name: 'ELITE OPERATIVE', desc: 'FINISH THE MISSION ON ELITE' }
+  { id: 'elite', name: 'ELITE OPERATIVE', desc: 'FINISH THE MISSION ON ELITE' },
+  { id: 'srank', name: 'S FOR STYLE', desc: 'REACH STYLE RANK S' },
+  { id: 'build', name: 'FULLY LOADED', desc: 'CARRY 4 UPGRADES AT ONCE' }
 ];
 
 const PROG = Object.assign({ ach: {}, reached: 0, cleared: false, n: {} }, store.get('progress', {}));
@@ -5859,6 +6042,147 @@ function missionCleared() {
 }
 
 /* ==========================================================================
+   Run upgrades (pick one of three before every stage), the style rank meter
+   and the camera punch that sells big hits.
+   ========================================================================== */
+
+const PERKS = [
+  { id: 'swift', name: 'QUICK ROLL', desc: ['DASH AGAIN ALMOST', 'AT ONCE'], col: '#7fd8ff' },
+  { id: 'crit', name: 'KEEN EDGE', desc: ['CRITICAL HITS LAND', '1 TIME IN 4'], col: '#ffd27a' },
+  { id: 'reach', name: 'LONG ARM', desc: ['EVERY BLADE MOVE', 'REACHES FARTHER'], col: '#c9d6e6' },
+  { id: 'ammo', name: 'QUARTERMASTER', desc: ['WEAPON PICKUPS HOLD', 'TWICE THE AMMO'], col: '#ffb060' },
+  { id: 'shock', name: 'SHOCKWAVE', desc: ['CRITICAL KILLS BLAST', 'NEARBY ENEMIES'], col: '#ff8a5a' },
+  { id: 'armor', name: 'PLATING', desc: ['ONE EXTRA HIT', 'PER LIFE'], col: '#ff7a7a' },
+  { id: 'katana', name: 'SWORD BEARER', desc: ['START EVERY STAGE', 'WITH A KATANA'], col: '#bfe9ff' },
+  { id: 'air', name: 'FEATHER STEP', desc: ['A THIRD JUMP', 'IN MID AIR'], col: '#b8ffd0' },
+  { id: 'magnet', name: 'MAGNET', desc: ['PICKUPS FLY TO YOU', 'AND LAST LONGER'], col: '#d8b8ff' },
+  { id: 'mirror', name: 'MIRROR EDGE', desc: ['EVERY PARRY SENDS', 'THE SHOT BACK'], col: '#9fe8ff' },
+  { id: 'fury', name: 'LAST STAND', desc: ['DOUBLE DAMAGE ON', 'YOUR FINAL HEART'], col: '#ff5a4a' },
+  { id: 'medic', name: 'FIELD MEDIC', desc: ['EVERY 8TH TAKEDOWN', 'RESTORES A HEART'], col: '#7fe6a0' }
+];
+function perk(id) { return game.perks && game.perks[id] ? 1 : 0; }
+function heroMaxHp() { return game.diff.hp + perk('armor'); }
+function maxAir() { return 1 + perk('air'); }
+function critChance() { return perk('crit') ? 0.25 : 0.1; }
+
+/** Show three upgrades the player does not have yet, then start the stage. */
+function offerPerks(stageIdx) {
+  const pool = PERKS.filter((p) => !game.perks[p.id]);
+  if (game.demo || game.skipPerks || pool.length < 3) { startStage(stageIdx); return; }
+  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+  game.perkOffer = { cards: pool.slice(0, 3), stage: stageIdx };
+  setState('perk');
+  game.menu = 1;
+  chip.play('title');
+}
+function takePerk(i) {
+  const O = game.perkOffer, p = O.cards[i];
+  game.perks[p.id] = 1;
+  chip.sfx('weapon'); chip.sfx('medal');
+  game.perkOffer = null;
+  chip.stopMusic();
+  startStage(O.stage);
+}
+function updatePerk(dt, I, P) {
+  if (P.left) { game.menu = (game.menu + 2) % 3; chip.sfx('move'); }
+  if (P.right) { game.menu = (game.menu + 1) % 3; chip.sfx('move'); }
+  const hit = input.tap && game.hits.find((h) => input.tap.x >= h.x0 && input.tap.x <= h.x1 && input.tap.y >= h.y0 && input.tap.y <= h.y1);
+  if (hit) { takePerk(hit.i); return; }
+  if (game.stateT > 0.35 && (P.knife || P.jump || P.start)) takePerk(game.menu);
+}
+
+function drawPerkIcon(g, id, x, y, col) {
+  g.save(); g.translate(x, y);
+  drawGlow(g, 0, 0, 20, col, 0.55);
+  disc(g, 0, 0, 12.5, '#0c1020'); ring(g, 0, 0, 12.5, 1, col);
+  g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 1.6; g.lineCap = 'round'; g.lineJoin = 'round';
+  const L = (...p) => { g.beginPath(); g.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) g.lineTo(p[i], p[i + 1]); g.stroke(); };
+  switch (id) {
+    case 'swift': L(-7, -3, 1, -3); L(-5, 1, 3, 1); L(-7, 5, 1, 5); poly(g, [2, -6, 8, 1, 2, 8], col); break;
+    case 'crit': g.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU - Math.PI / 2, r = i % 2 ? 2.6 : 8; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.fill(); break;
+    case 'reach': L(-8, 5, 5, -5); poly(g, [5, -8, 9, -8, 9, -4], col); L(-8, 1, -4, 5); break;
+    case 'ammo': for (const dx of [-5, 0, 5]) { rrect(g, dx - 1.6, -3, 3.2, 9, 1, col); disc(g, dx, -4, 1.6, col); } break;
+    case 'shock': ring(g, 0, 0, 4, 1.4, col); ring(g, 0, 0, 8.4, 1.2, col); break;
+    case 'armor': g.beginPath(); g.moveTo(0, -8); g.lineTo(7, -5); g.lineTo(6, 3); g.lineTo(0, 8); g.lineTo(-6, 3); g.lineTo(-7, -5); g.closePath(); g.stroke(); L(0, -3, 0, 3); L(-3, 0, 3, 0); break;
+    case 'katana': L(-7, 7, 7, -7); L(-6, 2, -2, 6); break;
+    case 'air': L(-6, 6, 0, 0, 6, 6); L(-6, 0, 0, -6, 6, 0); break;
+    case 'magnet': g.beginPath(); g.arc(0, -1, 6, Math.PI, 0); g.stroke(); L(-6, -1, -6, 6); L(6, -1, 6, 6); break;
+    case 'mirror': L(-7, -6, -7, 6); L(-3, 0, 7, 0); poly(g, [-4, 0, 1, -4, 1, 4], col); break;
+    case 'fury': drawHeartV(g, 0, 1, 1.5, true); break;
+    default: L(0, -7, 0, 7); L(-7, 0, 7, 0); break;
+  }
+  g.restore();
+}
+
+function drawPerk(g) {
+  drawTitleBackdrop(g, 0.88);
+  const O = game.perkOffer;
+  if (!O) return;
+  bigTitle(g, 'CHOOSE AN UPGRADE', W / 2, 12, 2.1);
+  T(g, 'STAGE ' + (O.stage + 1) + '  ' + STAGES[O.stage].name + '   IT LASTS THE WHOLE MISSION', W / 2, 36, C.cyan, { align: 'center', scale: 0.86, weight: 700 });
+  O.cards.forEach((p, i) => {
+    const sel = game.menu === i, x = 26 + i * 114, y = 54 - (sel ? 4 : 0), w = 104, h = 118;
+    if (sel) drawGlow(g, x + w / 2, y + h / 2, 86, p.col, 0.32);
+    panel(g, x, y, w, h, sel ? { border: p.col, lw: 1.2, top: 'rgba(34,40,62,0.96)', bot: 'rgba(12,14,26,0.96)', r: 5 } : { r: 5 });
+    drawPerkIcon(g, p.id, x + w / 2, y + 30, p.col);
+    T(g, p.name, x + w / 2, y + 54, sel ? '#ffffff' : C.steel, { align: 'center', weight: 700, scale: 1.05 });
+    rect(g, x + 22, y + 67, w - 44, 0.6, p.col);
+    T(g, p.desc[0], x + w / 2, y + 76, C.dim, { align: 'center', scale: 0.8 });
+    T(g, p.desc[1], x + w / 2, y + 86, C.dim, { align: 'center', scale: 0.8 });
+    if (sel && blink(3)) T(g, 'SELECT', x + w / 2, y + 103, p.col, { align: 'center', weight: 700, scale: 0.9 });
+    hitArea(x, y, x + w, y + h, { i });
+  });
+  const own = PERKS.filter((p) => game.perks[p.id]);
+  if (own.length) T(g, 'ACTIVE: ' + own.map((p) => p.name).join('  /  '), W / 2, 184, C.gold, { align: 'center', scale: 0.74, weight: 700 });
+  T(g, input.usingTouch ? 'TAP A CARD' : 'LEFT / RIGHT CHOOSE   KNIFE CONFIRM', W / 2, 198, '#6a7a94', { align: 'center', scale: 0.8 });
+}
+
+/* ---- style rank ------------------------------------------------------------------ */
+const RANKS = ['D', 'C', 'B', 'A', 'S'];
+const RANK_MULT = [1, 1.2, 1.5, 2, 3];
+const RANK_COL = ['#8a94a6', '#7fd8ff', '#7fe6a0', '#ffd27a', '#ff6a4a'];
+function styleRank() { const s = game.style || 0; return s >= 80 ? 4 : s >= 60 ? 3 : s >= 40 ? 2 : s >= 20 ? 1 : 0; }
+function styleAdd(n) {
+  if (game.demo) return;
+  const r0 = styleRank();
+  game.style = Math.min(100, (game.style || 0) + n);
+  game.styleT = 2.2;
+  const r1 = styleRank();
+  if (r1 > r0) { game.rankPop = 0.5; chip.sfx(r1 >= 4 ? 'medal' : 'pickup'); if (r1 >= 4) { game.punch = Math.max(game.punch || 0, 0.08); award('srank'); } }
+}
+function styleHit() { game.style = Math.max(0, (game.style || 0) - 45); }
+function updateStyle(dt) {
+  game.punch = (game.punch || 0) * Math.exp(-dt * 6);
+  if (game.punch < 0.002) game.punch = 0;
+  game.rankPop = Math.max(0, (game.rankPop || 0) - dt);
+  game.styleT = Math.max(0, (game.styleT || 0) - dt);
+  if (game.styleT <= 0) game.style = Math.max(0, (game.style || 0) - dt * 9);
+}
+function drawStyle(g) {
+  const s = game.style || 0;
+  if (s < 1 || game.state !== 'play') return;
+  const r = styleRank(), col = RANK_COL[r], x = W - 76, y = HUD_H + 4, k = 1 + (game.rankPop || 0) * 1.2;
+  rrect(g, x, y, 73, 15, 3, 'rgba(6,8,16,0.6)');
+  g.save(); g.translate(x + 9, y + 7.5); g.scale(k, k);
+  if (r >= 3) drawGlow(g, 0, 0, 10, col, 0.6);
+  bigTitle(g, RANKS[r], 0, -6.2, 1.5, { fill: col, stroke: '#0a0c14' });
+  g.restore();
+  T(g, 'STYLE', x + 20, y + 1.4, C.dim, { scale: 0.62, weight: 700 });
+  T(g, 'x' + RANK_MULT[r], x + 70, y + 1, col, { scale: 0.74, weight: 700, align: 'right', raw: true });
+  const lo = r * 20, f = clamp((s - lo) / 20, 0, 1);
+  rrect(g, x + 20, y + 9.4, 50, 3, 1.5, 'rgba(255,255,255,0.14)');
+  if (f > 0.03) rrect(g, x + 20, y + 9.4, 50 * (r >= 4 ? 1 : f), 3, 1.5, col);
+}
+
+/** KEEN crits with the Shockwave upgrade: a ring that drops everyone close by. */
+function shockRing(x, y) {
+  game.fx.push({ k: 'ring', x, y: y - 12, t: 0, life: 0.32, r0: 6, r1: 40, col: '#ff8a5a', w: 2 });
+  chip.sfx('boom');
+  addShake(3);
+  for (const e of game.foes) if (e.st !== 'dead' && !foeGhost(e) && Math.abs(e.x - x) < 40 && Math.abs(e.y - y) < 20) killFoe(e, 'boom', sgn(e.x - x) || 1, 2);
+}
+
+/* ==========================================================================
    Game state: flow, stage runtime, spawning, scoring
    ========================================================================== */
 
@@ -5870,7 +6194,7 @@ const game = {
   score: 0, hi: 0, lives: 2, nextExtend: 30000, continues: 0, loop: 1,
   chainN: 0, chainT: -9, shake: 0, flashT: 0, slowT: 0, hitStop: 0, boomLight: 0,
   diff: DIFFS[settings.level] || DIFFS.soldier, invincible: false, startStage: 0, stats: null, stageStats: null,
-  demo: false, menu: 0, hits: [], scores: loadScores(), entry: null, idleT: 0
+  demo: false, menu: 0, hits: [], scores: loadScores(), entry: null, idleT: 0, perks: {}, perkOffer: null, style: 0, styleT: 0, punch: 0, rankPop: 0
 };
 game.hi = game.scores[0].s;
 
@@ -5896,7 +6220,8 @@ function newGame(demo) {
   game.stats = freshStats();
   game.carry = null; game.cheat = false;
   game.startStage = demo ? 0 : clamp(settings.stage | 0, 0, Math.min(PROG.reached, STAGES.length - 1));
-  startStage(game.startStage);
+  game.perks = {}; game.style = 0; game.medicN = 0;
+  offerPerks(game.startStage);
 }
 
 function startStage(i) {
@@ -5906,7 +6231,9 @@ function startStage(i) {
   game.camX = 0; game.lockCam = false;
   const keep = game.carry;
   game.hero = makeHero(48);
-  if (keep) { const h = game.hero; h.wpn = keep.wpn; h.ammo = keep.ammo; h.hp = Math.min(game.diff.hp, keep.hp || game.diff.hp); h.blade = keep.blade || 'knife'; h.bladeN = keep.bladeN || 0; }
+  if (keep) { const h = game.hero; h.wpn = keep.wpn; h.ammo = keep.ammo; h.hp = Math.min(heroMaxHp(), keep.hp || heroMaxHp()); h.blade = keep.blade || 'knife'; h.bladeN = keep.bladeN || 0; }
+  if (perk('katana')) { game.hero.blade = 'katana'; game.hero.bladeN = Math.max(game.hero.bladeN, 30); }
+  if (Object.keys(game.perks).length >= 4) award('build');
   game.foes = []; game.shots = []; game.fx = []; game.items = []; game.caps = []; game.pops = []; game.sched = [];
   game.props = game.st.props.map(makeProp);
   game.boss = null; game.bossSeq = null; game.time = 0; game.evIdx = 0; game.spawnT = 2.2;
@@ -5948,7 +6275,9 @@ function updateGame(dt, I, P) {
     q.t += dt;
     if (q.t > 2.6) game.toasts.shift();
   }
+  updateStyle(game.state === 'play' && game.hitStop <= 0 ? dt : 0);
   switch (game.state) {
+    case 'perk': updatePerk(dt, I, P); break;
     case 'intro':
       tickWorld(dt);
       if (game.stateT > 3.4 || (game.stateT > 0.8 && (P.knife || P.jump || P.start))) beginPlay();
@@ -6130,6 +6459,7 @@ function addScore(pts, x, y, chain, quiet) {
     if (game.chainN > 1) total += (game.chainN - 1) * 50;
     if (game.chainN >= 2 && !quiet) pop(x, y - 9, 'CHAIN X' + game.chainN, '#ffd27a');
     if (game.chainN >= 5) award('chain');
+    total = Math.round((total * RANK_MULT[styleRank()]) / 10) * 10;
   }
   game.score += total;
   if (!quiet) pop(x, y, String(total), '#ffffff');
@@ -6246,7 +6576,7 @@ function nextStage() {
   const h = game.hero;
   game.carry = { wpn: h.wpn, ammo: h.ammo, hp: h.hp, blade: h.blade, bladeN: h.bladeN };
   for (const k in game.stageStats) game.stats[k] += game.stageStats[k];
-  if (game.stageIdx + 1 < STAGES.length) startStage(game.stageIdx + 1);
+  if (game.stageIdx + 1 < STAGES.length) offerPerks(game.stageIdx + 1);
   else { missionCleared(); startEnding(); }
 }
 
@@ -6919,7 +7249,7 @@ function drawHUDInner(g) {
   T(g, pad7(game.score), 21, 1.2, C.ink, { weight: 700 });
   T(g, 'x' + game.lives, 21, 9.6, C.steel, { scale: 0.82, weight: 700, raw: true });
   if (h) {
-    const max = game.diff.hp;
+    const max = heroMaxHp();
     for (let i = 0; i < max; i++) drawHeartV(g, 38 + i * 7.6, 13.2, 0.72, i < h.hp);
   }
   T(g, 'HI', 112, 1.2, C.red, { weight: 700 });
@@ -6963,7 +7293,7 @@ function drawToasts(g) {
   const q = game.toasts[0];
   if (!q) return;
   const k = q.t < 0.25 ? q.t / 0.25 : q.t > 2.3 ? Math.max(0, (2.6 - q.t) / 0.3) : 1;
-  const w = Math.max(96, textWidth(q.name, 0.92, { weight: 700 }) + 34), x = W - 5 - w, y = HUD_H + 5 - (1 - k) * 26;
+  const w = Math.max(96, textWidth(q.name, 0.92, { weight: 700 }) + 34), x = W - 5 - w, y = HUD_H + 23 - (1 - k) * 26;
   g.globalAlpha = k;
   panel(g, x, y, w, 19, { border: '#ffd27a', r: 3 });
   drawGlow(g, x + 11, y + 9.5, 12, '#ffd27a', 0.7);
@@ -7038,6 +7368,7 @@ function renderFrame() {
     case 'boot': drawBoot(g); break;
     case 'title': drawTitle(g); break;
     case 'setup': drawSetup(g); break;
+    case 'perk': drawPerk(g); break;
     case 'scores': drawScores(g); break;
     case 'howto': drawHowTo(g); break;
     case 'medals': drawMedals(g); break;
@@ -7057,24 +7388,30 @@ function renderFrame() {
   g.restore();
 }
 
-/** The world, zoomed in and panned to follow the hero when the picture is taller than 16:9. */
+/** The world: zoomed and panned on upright phones, and pushed in briefly on big hits. */
 function drawWorld(g) {
-  const z = view.zoom;
+  const p = settings.shake && game.state === 'play' ? game.punch || 0 : 0;
+  const z = view.zoom * (1 + p);
   if (z <= 1.001) { view.pan = 0; drawWorldInner(g); return; }
-  const h = game.hero, wv = W / z;
-  let want = (W - wv) / 2;
-  if (h) { const hx = h.x - game.camX; want = hx - wv * (h.face >= 0 ? 0.34 : 1 - 0.34); }
+  const h = game.hero, wv = W / z, hv = H / (1 + p);
+  let want = (W - wv) / 2, py = 0;
+  if (h) {
+    const hx = h.x - game.camX;
+    want = view.zoom > 1.001 ? hx - wv * (h.face >= 0 ? 0.34 : 0.66) : hx - wv / 2;
+    py = clamp(h.y - 14 - hv * 0.62, 0, H - hv);
+  }
   want = clamp(want, 0, W - wv);
-  view.pan = Math.abs(want - view.pan) > wv ? want : view.pan + (want - view.pan) * 0.07;
+  view.pan = view.zoom <= 1.001 || Math.abs(want - view.pan) > wv ? want : view.pan + (want - view.pan) * 0.07;
   g.save();
-  g.translate(0, -view.dy); g.scale(z, z); g.translate(-view.pan, 0);
-  g.beginPath(); g.rect(view.pan, 0, wv, H); g.clip();
+  g.translate(0, -view.dy); g.scale(z, z); g.translate(-view.pan, -py);
+  g.beginPath(); g.rect(view.pan, py, wv, hv); g.clip();
   drawWorldInner(g);
   g.restore();
 }
 function drawHUD(g) {
   g.save(); g.translate(0, -view.dy);
   drawHUDInner(g);
+  drawStyle(g);
   g.restore();
 }
 
@@ -7463,9 +7800,11 @@ function layout() {
     gy = safe.t + 6;
     const baseH = (vw * H) / W;
     const dp = $('dpad'), padTop = dp ? dp.getBoundingClientRect().top : 0;
-    const room = (padTop > vh * 0.4 ? padTop : vh * 0.7) - gy - 58;
-    zoom = clamp(room / baseH, 1, 1.6);
+    const room = (padTop > vh * 0.4 ? padTop : vh * 0.7) - gy - 14;
+    zoom = clamp(room / baseH, 1, 1.85);
     gh = baseH * zoom;
+    // whatever height is still spare is shared above and below the picture
+    gy += Math.max(0, room - gh) * 0.5;
   } else if (touchOn) {
     // handheld landscape: the pad lives in side panels, the screen sits between them
     const pad = sizePad(vw, vh, false);
@@ -7600,7 +7939,7 @@ function boot() {
   const blank = () => ({ left: false, right: false, up: false, down: false, jump: false, knife: false, special: false, dash: false, start: false, pause: false, back: false, any: false });
   window.__dagger = {
     game, input, chip, settings, STAGES, ETYPES, Chip, SONGS, parseTrack, DIFFS, MEDALS, PROG, MELEE, HERO_OUTFITS, ART, DBG, QUALITY,
-    setManual(v) { manual = v; },
+    setManual(v) { manual = v; game.skipPerks = !!v; },
     step(n, held, pressed, quiet) {
       const H0 = Object.assign(blank(), held || {});
       for (let i = 0; i < n; i++) {
@@ -7612,7 +7951,7 @@ function boot() {
       if (!quiet) renderFrame();
     },
     render: renderFrame, newGame, startStage, startDemo, setState, spawnFoe, makeBoss, layout, view, beginPlay, hurtHero, killFoe, qualifies, botInput, botPressed,
-    updateGame, spawnItem, collect, award, heroKnifeBox, foeBox, drawSprite, stageArt, restartStage, outfitOpen
+    updateGame, spawnItem, collect, award, heroKnifeBox, foeBox, drawSprite, stageArt, restartStage, outfitOpen, PERKS, perk, takePerk, offerPerks, styleAdd, styleRank, heroMaxHp
   };
 }
 

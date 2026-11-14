@@ -226,8 +226,9 @@ function releaseGrabbers(h, flung) {
 function hurtHero(h, dmg, dir, opt) {
   if (h.dead || h.inv > 0 || game.cheat || h.dashT > 0) return false;
   if (game.invincible) { h.flash = 0.06; sparks(h.x, h.y - 26, 4, '#b9a8ff'); chip.sfx('clang'); h.inv = 0.35; return false; }
-  const d = dmg * game.diff.dmg;
+  const d = dmg * game.diff.dmg * (perk('iron') ? 0.67 : 1);
   h.hp = Math.max(0, h.hp - d);
+  styleHit();
   h.flash = 0.12;
   game.stageStats.hits++;
   if (h.grabbers.length) releaseGrabbers(h, false);
@@ -265,7 +266,7 @@ function releaseWave(h) {
 function grantChi(h, n) {
   if (!h || h.dead) return;
   const before = h.chi;
-  h.chi = Math.min(MAX_CHI, h.chi + n * h.S.chiGain);
+  h.chi = Math.min(MAX_CHI, h.chi + n * h.S.chiGain * (perk('chi') ? 1.6 : 1));
   if (before < MAX_CHI && h.chi >= MAX_CHI) { chip.sfx('chifull'); pop(h.x, h.y - 70, 'CHI READY!', '#ffd84a'); }
 }
 
@@ -316,6 +317,8 @@ function killFoe(e, dir, power, quiet) {
   e.vx = dir * (power || 80) * rand(0.9, 1.15); e.vy = -rand(130, 180); e.ground = false; e.face = -dir;
   if (!quiet) chip.sfx('down');
   game.stageStats.kills++;
+  styleAdd(12);
+  if (perk('drain') && game.hero && !game.hero.dead) game.hero.hp = Math.min(MAX_HP, game.hero.hp + 1);
   award('first'); countUp('ko', 100, 'ko100');
   if (e.kind !== 'snake' && e.kind !== 'monkey' && chance(0.35)) chip.voice('grunt');
   if (e.kind === 'monk' && chance(0.4)) dropItem(chance(0.5) ? 'bun' : 'scroll', e.x, e.y - 30);
@@ -533,7 +536,7 @@ function strikeFoe(e, h, D, ab) {
     if (e.blocks >= 3) { e.blocks = 0; setFoeSt(e, 'hurt'); e.stun = 1.2; e.vx = h.face * 40; pop(e.x, e.y - 52, 'GUARD BREAK!', '#ffd27a'); chip.sfx('break'); }
     return 'block';
   }
-  let dmg = (D.dmg === 'punch' ? h.S.punch : D.dmg === 'kick' ? h.S.kick : 3) + weaponDmg(h, D);
+  let dmg = (D.dmg === 'punch' ? h.S.punch : D.dmg === 'kick' ? h.S.kick : 3) + weaponDmg(h, D) + perk('power');
   if (weaponOf(h, D)) chip.sfx('whip');
   dmg = critRoll(h, dmg, e.x, e.y - e.T.h - 16);
   e.hp -= dmg;

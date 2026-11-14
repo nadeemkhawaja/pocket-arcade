@@ -113,7 +113,7 @@ function startMatch(cfg) {
   const shirt = SHIRTS[cfg.shirt] || SHIRTS[0];
   const myLook = Object.assign({}, shirt, { skin: cfg.skin, hair: [2, 0, 1, 4, 4, 3][cfg.skin % 6], style: 'short', racket: '#1e97e0' });
   const human = game.mode !== 'demo';
-  const nearSpeed = human ? 7.0 : 6.6, nearReact = human ? 0.05 : 0.14;
+  const nearSpeed = human ? 7.0 + careerStat('speed') * 0.25 : 6.6, nearReact = human ? 0.05 : 0.14;
   const nearPlayers = [{ name: cfg.name, look: myLook, speed: nearSpeed, react: nearReact, racket: '#1e97e0' }];
   if (game.doubles) {
     nearPlayers.push({ name: 'JO', look: Object.assign({}, shirt, { skin: (cfg.skin + 3) % 6, hair: 3, style: 'pony', racket: '#ffffff' }), speed: nearSpeed, react: nearReact, racket: '#ffffff' });
@@ -593,7 +593,7 @@ function onSwingInput(inp) {
   const b = g.ball;
   const inSpeed = Math.sqrt(b.vx * b.vx + b.vz * b.vz);
   const lvl = g.mode === 'practice' ? 'rookie' : (g.cfg && g.cfg.level) || 'pro';
-  const ws = (lvl === 'rookie' ? 1.15 : lvl === 'champ' ? 0.86 : lvl === 'legend' ? 0.8 : 1) * clamp(1.1 - (inSpeed - 15) / 40, 0.75, 1.1);
+  const ws = (lvl === 'rookie' ? 1.15 : lvl === 'champ' ? 0.86 : lvl === 'legend' ? 0.8 : 1) * clamp(1.1 - (inSpeed - 15) / 40, 0.75, 1.1) * (1 + careerStat('control') * 0.06);
   const early = W.ideal + (W.early - W.ideal) * ws, late = W.late * ws;
   const now = g.t - W.lat;
   const dtc = p.plan.t - now;
@@ -729,7 +729,7 @@ function humanShot(p, plan) {
   else if (type === 'volley') { tz = dir * lerp(6.0, 9.2, q); speed = lerp(12.5, 19, q); spin = 0.12; clear = 0.12; tx = d * xr * (hw - 0.45); }
   else if (type === 'lob') { tz = dir * rand(9.0, 10.5); spin = 0.25; clear = 2.0; tx = d * xr * 2.6; speed = 10; }
   else if (type === 'drop') { tz = dir * rand(2.0, 3.8); speed = rand(8.2, 10); spin = -0.45; clear = 0.22; tx = d * xr * 3.0; }
-  else { tz = dir * (lerp(7.4, 10.1, q) + rand(-0.35, 0.35)); speed = lerp(14.5, 25.5, q * q); spin = 0.5 + q * 0.3; clear = lerp(0.7, 0.3, q); }
+  else { tz = dir * (lerp(7.4, 10.1, q) + rand(-0.35, 0.35)); speed = lerp(14.5, 25.5, q * q) * (1 + careerStat('power') * 0.03); spin = 0.5 + q * 0.3; clear = lerp(0.7, 0.3, q); }
   const pw = plusPowerReady() && ae < 0.5 && (type === 'drive' || type === 'volley' || type === 'smash');
   if (pw) { speed = type === 'volley' ? 23 : type === 'smash' ? 34 : 29.5; clear = Math.min(clear, 0.3); spin = Math.max(spin, 0.7); }
   let kind = 'ok';

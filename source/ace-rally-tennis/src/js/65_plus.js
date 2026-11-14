@@ -14,7 +14,9 @@ const MEDALS = [
   { id: 'pro', name: 'Pro Tour', desc: 'Beat Pro or better. Unlocks the Royal court' },
   { id: 'champ', name: 'Giant Killer', desc: 'Beat the Champion' },
   { id: 'legend', name: 'Living Legend', desc: 'Beat the Legend' },
-  { id: 'grand', name: 'Grand Finale', desc: 'Win a best of 3 sets match' }
+  { id: 'grand', name: 'Grand Finale', desc: 'Win a best of 3 sets match' },
+  { id: 'cup', name: 'Silverware', desc: 'Win a career cup final' },
+  { id: 'career', name: 'World Number One', desc: 'Win the Grand Slam final in Career' }
 ];
 const PROG = Object.assign({ ach: {} }, store.get('progress', {}));
 const plus = { streak: 0, ready: false, toastT: 0, queue: [] };
@@ -49,7 +51,7 @@ function award(id) {
   }
   plusMedalCount();
 }
-function plusMedalCount() { const el = $('medalCount'); if (el) el.textContent = medalTotal() + ' / ' + MEDALS.length; }
+function plusMedalCount() { const el = $('medalCount'); if (el) el.textContent = medalTotal() + ' / ' + MEDALS.length; careerTag(); }
 
 function plusShowMedals() {
   $('medalList').innerHTML = MEDALS.map((m) => {
@@ -128,6 +130,7 @@ function plusOnPoint(winner, reason) {
 
 function plusOnMatch(won) {
   const g = game;
+  careerOnMatch(won);
   if (!won || !g.humanTeam) return;
   award('first');
   const lvl = g.cfg.level, me = g.humanTeam.index;
@@ -213,3 +216,73 @@ function plusSqueaks(dt) {
     s.x = p.x; s.z = p.z; s.vx = vx; s.vz = vz;
   }
 }
+
+/* ---- career: three cups, nine matches, and skill points to spend ----------------------- */
+const CUPS = ['Club Cup', 'City Open', 'Grand Slam'];
+const ROUNDS = ['Quarter final', 'Semi final', 'Final'];
+const LADDER = [
+  ['rookie', 'hard', 'g1'], ['rookie', 'grass', 'g1'], ['pro', 'hard', 'g3'],
+  ['pro', 'clay', 'g1'], ['pro', 'grass', 'g3'], ['champ', 'hard', 'g3'],
+  ['champ', 'clay', 'g3'], ['champ', 'grass', 'g3'], ['legend', 'royal', 'g3']
+];
+const STATS = [['power', 'Power', 'Faster ground strokes'], ['speed', 'Speed', 'Quicker around the court'], ['control', 'Control', 'A wider timing window']];
+const career = Object.assign({ round: 0, pts: 0, up: { power: 0, speed: 0, control: 0 } }, store.get('career', {}));
+function careerSave() { store.set('career', career); }
+function careerStat(k) { return game.cfg && game.cfg.career ? career.up[k] || 0 : 0; }
+function careerTag() { const el = $('careerTag'); if (el) el.textContent = career.round >= LADDER.length ? 'Complete' : CUPS[Math.floor(career.round / 3)]; }
+
+function careerRender() {
+  const done = career.round >= LADDER.length;
+  let html = '<div class="cups">';
+  for (let c = 0; c < 3; c++) {
+    html += '<div class="cup"><h3>' + CUPS[c] + '</h3>';
+    for (let r = 0; r < 3; r++) {
+      const i = c * 3 + r, L = LADDER[i], st = i < career.round ? 'won' : i === career.round ? 'next' : 'lock';
+      html += '<div class="rnd ' + st + '"><b>' + ROUNDS[r] + '</b><span>' + LEVELS[L[0]].name + ' on ' + SURFACES[L[1]].label + '</span><i>' + (st === 'won' ? 'Won' : st === 'next' ? 'Next' : '') + '</i></div>';
+    }
+    html += '</div>';
+  }
+  html += '</div><div class="skills"><p class="pts">Skill points: <b>' + career.pts + '</b> <small>Win a match for 1, a cup final for 2.</small></p>';
+  for (const [k, name, desc] of STATS) {
+    const v = career.up[k] || 0;
+    html += '<div class="skill"><div><b>' + name + '</b><small>' + desc + '</small></div><span class="pips">' + [0, 1, 2, 3, 4].map((n) => '<i class="' + (n < v ? 'on' : '') + '"></i>').join('') + '</span>' +
+      '<button class="btn" type="button" data-stat="' + k + '"' + (career.pts > 0 && v < 5 ? '' : ' disabled') + '>+</button></div>';
+  }
+  html += '</div><div class="career-go">' +
+    (done ? '<p class="pts"><b>Career complete.</b> You are world number one.</p><button class="btn" type="button" data-career="reset">Start a new career</button>'
+      : '<button class="btn primary big" type="button" data-career="play">Play the ' + CUPS[Math.floor(career.round / 3)] + ' ' + ROUNDS[career.round % 3].toLowerCase() + '</button>') + '</div>';
+  $('careerBody').innerHTML = html;
+  careerTag();
+}
+
+function careerCfg() {
+  const L = LADDER[career.round];
+  const base = ui.currentCfg ? ui.currentCfg() : {};
+  let controls = settings.controls;
+  if (controls === 'webcam') controls = isTouchDevice ? 'touch' : 'keys';
+  return Object.assign({}, base, { mode: 'singles', controls, level: L[0], surface: L[1], format: L[2], invincible: false, career: true, careerRound: career.round });
+}
+
+function careerOnMatch(won) {
+  const g = game;
+  if (!g.cfg || !g.cfg.career || g.cfg.careerRound !== career.round || !won) return;
+  const final = career.round % 3 === 2;
+  career.round++;
+  career.pts += final ? 2 : 1;
+  careerSave();
+  toast(final ? CUPS[Math.floor((career.round - 1) / 3)] + ' won' : 'Round won', '+' + (final ? 2 : 1) + ' skill point' + (final ? 's' : ''));
+  if (final) award('cup');
+  if (career.round >= LADDER.length) award('career');
+  careerTag();
+}
+
+document.addEventListener('click', (e) => {
+  const t = e.target && e.target.closest ? e.target.closest('[data-stat],[data-career]') : null;
+  if (!t || !$('careerBody') || !$('careerBody').contains(t)) return;
+  if (t.dataset.stat) {
+    const k = t.dataset.stat;
+    if (career.pts > 0 && (career.up[k] || 0) < 5) { career.up[k] = (career.up[k] || 0) + 1; career.pts--; careerSave(); audio.ui('go'); careerRender(); }
+  } else if (t.dataset.career === 'play') { audio.ui('go'); ui.beginMatch(careerCfg()); }
+  else if (t.dataset.career === 'reset') { career.round = 0; career.pts = 0; career.up = { power: 0, speed: 0, control: 0 }; careerSave(); careerRender(); }
+});
+setTimeout(() => { try { plusMedalCount(); } catch (e) { /* page not ready */ } }, 0);

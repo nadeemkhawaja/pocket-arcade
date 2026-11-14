@@ -24,7 +24,10 @@ A side-scrolling commando game in the classic arcade style, drawn in sharp vecto
 - Captives to free, crates, explosive barrels and mines
 - Chain bonuses, extra lives at 30,000 points and every 70,000 after, continues and a top-5 high score table
 - Four levels (Recruit, Soldier, Veteran, Elite) and an Invincible mode for a no-damage playthrough (scores and medals are off)
-- 16 medals, stage select for stages you have reached, two unlockable outfits and Restart Stage in the pause menu
+- 18 medals, stage select for stages you have reached, two unlockable outfits and Restart Stage in the pause menu
+- Upgrade cards: pick one of three power-ups before every stage (12 in all), so each run plays differently
+- Style rank from D to S that multiplies chain scores, with a camera push-in on critical hits and finishing blows
+- A war-zone film score: marching snare cadence, war drums, urgent low strings, horns and a distant choir, with field gunfire, rolling blasts and far-off battle ambience
 
 | Action | Keyboard | Gamepad | Touch |
 | --- | --- | --- | --- |
@@ -46,7 +49,8 @@ Bright stadium tennis with full tennis scoring. Your player runs to the ball on 
 - Four opponents (Rookie, Pro, Champion and Legend), courts on Hard, Grass and Clay plus an unlockable Royal indoor court, and match lengths from one game to best of three sets
 - Power shot: three perfectly timed swings in a row charge a faster shot that cannot miss
 - Invincible rules: a point you would lose is replayed instead (wins do not count toward your record or medals)
-- 12 medals to earn
+- 14 medals to earn
+- Career: three cups and nine matches against rising opponents, with skill points to spend on Power, Speed and Control
 
 Keyboard: Space, Enter or a click swings. Hold Left or Right while swinging to aim, Up for a lob, Down for a drop shot. P pauses, M mutes.
 
@@ -65,6 +69,8 @@ A kung fu climb in hand-drawn HD, inspired by 1980s arcade brawlers but with its
 - Weapons to pick up: nunchaku, bo staff and shuriken, plus enemy ninjas on the upper floors
 - Four levels (Novice, Disciple, Master, Grandmaster) and an Invincible mode
 - 10 medals, a quick start from any floor you have reached and Restart Floor in the pause menu
+- Upgrade cards before every floor (8 in all) and a style rank from D to S
+- Its own temple sound: plucked strings, bamboo flute, taiko, woodblock and gong in pentatonic modes
 - Floor timer, tally bonuses, continues and a top-5 score table
 
 | Action | Keyboard | Gamepad | Touch |
