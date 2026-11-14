@@ -429,6 +429,14 @@ function drawHeadV(g, d, hx, hy, nx, ny, tilt, k, expr, ph, seed) {
       disc(g, 0.9 * u, -2.7 * u, 0.75 * u, d.ink); disc(g, 0.9 * u, -2.7 * u, 0.58 * u, d.accent);
       break;
     }
+    case 'beret':
+      // a soldier's beret, pulled down over the back of the head, with a cap badge
+      hairBand(g, d, u); face(d.hair);
+      celFill(g, () => { g.beginPath(); g.moveTo(-3.3 * u, -0.5 * u); g.quadraticCurveTo(-4.2 * u, -3.0 * u, -1.0 * u, -3.7 * u); g.quadraticCurveTo(2.2 * u, -4.2 * u, 2.75 * u, -2.4 * u); g.lineTo(2.5 * u, -1.25 * u); g.lineTo(-2.5 * u, -0.95 * u); g.closePath(); }, -0.6 * u, -2.6 * u, shade(d.beret, -0.3), shade(d.beret, 0.12), d, u);
+      limbs(g, [[-2.6 * u, -1.0 * u, 2.5 * u, -1.25 * u, 0.42 * u, 0.42 * u, shade(d.beret, -0.45), shade(d.beret, -0.2)]], d);
+      disc(g, 1.55 * u, -2.2 * u, 0.72 * u, d.ink); disc(g, 1.55 * u, -2.2 * u, 0.55 * u, d.badge || '#e8c24a');
+      ellipse(g, 1.2 * u, 1.7 * u, 1.3 * u, 0.7 * u, 0, 'rgba(60,40,30,0.16)');
+      break;
     case 'beanie':
       face(d.hair);
       celFill(g, () => { g.beginPath(); g.moveTo(-2.7 * u, -0.9 * u); g.quadraticCurveTo(-2.8 * u, -3.6 * u, 0 * u, -3.5 * u); g.quadraticCurveTo(2.7 * u, -3.5 * u, 2.45 * u, -1.1 * u); g.closePath(); }, 0, -2.2 * u, shade(d.beanie, -0.3), shade(d.beanie, 0.1), d, u);

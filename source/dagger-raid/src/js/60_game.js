@@ -67,6 +67,7 @@ function startStage(i) {
 function beginPlay() {
   setState('play');
   chip.play(game.st.song);
+  if (!game.demo) { chip.sfx('siren'); if (!game.caps.some((c) => c.st === 'ally')) deploySquad(); }
 }
 
 /** Start the current stage again from the pause menu: costs nothing, keeps the score from before it. */
@@ -178,7 +179,7 @@ function updateBossSeq(dt) {
   if (!S) return;
   S.t += dt;
   if (S.st === 'warn') {
-    if (S.t < dt * 1.5) { chip.sfx('alarm'); }
+    if (S.t < dt * 1.5) { chip.sfx('siren'); }
     if (S.t > 2.4) {
       S.st = 'fight'; S.t = 0;
       game.boss = makeBoss(game.st.boss);
@@ -211,7 +212,7 @@ function runEvents() {
   const st = game.st, center = game.camX + W / 2;
   while (game.evIdx < st.events.length && center >= st.events[game.evIdx].at) {
     const ev = st.events[game.evIdx++];
-    if (ev.wave) for (const [kind, side, lv, delay] of ev.wave) game.sched.push({ t: game.time + delay, kind, side, lv });
+    if (ev.wave) { for (const [kind, side, lv, delay] of ev.wave) game.sched.push({ t: game.time + delay, kind, side, lv }); if (ev.wave.length >= 3) chip.sfx('siren', { short: true }); }
     if (ev.e) game.sched.push({ t: game.time, kind: ev.e, side: ev.side, lv: ev.lv, x: ev.x, drop: ev.drop });
     if (ev.dogs) for (let i = 0; i < ev.dogs; i++) game.sched.push({ t: game.time + 0.4 + i * 0.5, kind: 'dog', side: 'R', lv: 0 });
     if (ev.para) for (let i = 0; i < ev.para; i++) game.sched.push({ t: game.time + i * 0.7, kind: 'para', para: true });

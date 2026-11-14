@@ -296,8 +296,18 @@ PAL.heroCrimson = {
   skin: '#ecb68c', skin2: '#c88a62', hair: '#2b1a12', top: '#9a222b', top2: '#6e161e', vest: '#2e2824', vest2: '#1c1816',
   pants: '#322d34', pants2: '#231f25', boot: '#161316', boot2: '#3e383c', band: '#f2c94c', gear: '#c9a24a', head: 'band'
 };
+PAL.heroSoldier = {
+  skin: '#e6b088', skin2: '#c2865f', hair: '#2b1a12', top: '#66753d', top2: '#4a5629', vest: '#4a5530', vest2: '#343c20',
+  pants: '#56633a', pants2: '#3d4728', boot: '#1e1a16', boot2: '#473d33', band: '#2f6a3c', gear: '#3a3222', beret: '#2c6e3e', badge: '#e8c24a', head: 'beret'
+};
+PAL.ally = {
+  skin: '#d9a27c', skin2: '#b47c5b', hair: '#2a2420', top: '#66753d', top2: '#4a5629', pants: '#56633a', pants2: '#3d4728',
+  boot: '#1e1a16', boot2: '#473d33', helmet: '#4f6a3a', helmet2: '#36492a', accent: '#e8c24a', gear: '#3a3222', head: 'helmet'
+};
+CHARS.ally = { pal: PAL.ally, poses: 'soldier', k: 1 };
 const HERO_OUTFITS = {
-  commando: { name: 'COMMANDO', pal: PAL.hero, note: 'STANDARD ISSUE' },
+  commando: { name: 'SOLDIER', pal: PAL.heroSoldier, note: 'STANDARD ISSUE' },
+  classic: { name: 'COMMANDO', pal: PAL.hero, note: 'THE OLD HEADBAND' },
   raven: { name: 'RAVEN', pal: PAL.heroRaven, need: 'stage3', note: 'REACH STAGE 3 TO UNLOCK' },
   crimson: { name: 'CRIMSON', pal: PAL.heroCrimson, need: 'clear', note: 'FINISH THE MISSION TO UNLOCK' }
 };

@@ -273,6 +273,21 @@
     space(this);
     if (this.ok() && !this.mute) {
       const t = this.ctx.currentTime;
+      if (name === 'siren') {
+        // a hand-cranked air raid siren winding up and running down
+        if (t < (this.sirenUntil || 0)) return 0;
+        const c = this.ctx, dur = opt && opt.short ? 2.4 : 4.2, up = dur * 0.36;
+        this.sirenUntil = t + dur + 1;
+        const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 2200; f.Q.value = 1.5;
+        const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.11, t + up * 0.7); g.gain.setValueAtTime(0.11, t + dur * 0.62); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+        for (const [mul, det] of [[1, -7], [1, 8], [2, 0]]) {
+          const o = c.createOscillator(); o.type = 'sawtooth'; o.detune.value = det;
+          o.frequency.setValueAtTime(190 * mul, t); o.frequency.exponentialRampToValueAtTime(620 * mul, t + up); o.frequency.setValueAtTime(620 * mul, t + dur * 0.55); o.frequency.exponentialRampToValueAtTime(210 * mul, t + dur);
+          const og = c.createGain(); og.gain.value = mul === 2 ? 0.25 : 0.5; o.connect(og); og.connect(f); o.start(t); o.stop(t + dur + 0.05);
+        }
+        f.connect(g); g.connect(this.sfxBus);
+        return 0;
+      }
       if (name === 'shot' || name === 'snipe') {
         const big = name === 'snipe' ? 1.3 : 1;
         this.noise(t, 0.012, 0.5 * big, 'highpass', 3800, 0.7);

@@ -17,6 +17,8 @@ A side-scrolling commando game in the classic arcade style, drawn in sharp vecto
 
 - Four stages: Jungle Outpost, Frozen Rail Line, Desert Refinery and Iron Citadel, each with its own weather and music
 - Four bosses: Mauler, Ironclad, Sky Hammer and General Krome
+- You play a beret soldier leading a squad: two allied riflemen deploy with you each stage, and freed captives pick up a rifle and join the fight
+- An air raid siren winds up at the start of a stage, before big enemy waves and when a boss approaches
 - Knife combos (stab, slash, thrust), crouch and jump attacks, parries that cut bullets out of the air, critical hits and backstabs
 - Ninja movement: dash roll with a dodge window, counter strikes, double jump somersault, air dash, dive stab and wall kick
 - Weapons: Katana (reflects shots), Tri-Knife, Shuriken, Grenade, Rocket and Flamethrower

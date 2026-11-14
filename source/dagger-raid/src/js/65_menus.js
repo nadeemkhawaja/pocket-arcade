@@ -7,7 +7,7 @@ const SETUP_ITEMS = ['LEVEL', 'STAGE', 'OUTFIT', 'INVINCIBLE', 'DEPLOY'];
 const OPTION_ITEMS = ['MUSIC', 'EFFECTS', 'GLOW FX', 'SCREEN SHAKE', 'TOUCH PAD', 'BACK'];
 const PAUSE_ITEMS = ['RESUME', 'RESTART STAGE', 'OPTIONS', 'QUIT GAME'];
 const HOWTO_PAGES = 4;
-const OUTFIT_ORDER = ['commando', 'raven', 'crimson'];
+const OUTFIT_ORDER = ['commando', 'classic', 'raven', 'crimson'];
 
 function menuMove(n, P) {
   let m = game.menu;

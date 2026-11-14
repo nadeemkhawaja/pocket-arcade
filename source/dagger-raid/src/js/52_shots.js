@@ -190,11 +190,15 @@ function updateProps(dt) {
   for (const c of game.caps) {
     c.t += dt;
     if (c.st === 'salute' && c.t > 0.9) {
-      c.st = 'run'; c.t = 0;
       if (c.item) { spawnItem(c.item, c.x + c.face * 6, c.y - 16); c.item = null; }
-      pop(c.x, c.y - 44, 'THANKS!', '#9fe8ff');
       chip.voice('thanks');
-      c.face = c.x - game.camX > W / 2 ? 1 : -1;
+      if (game.caps.filter((k) => k.st === 'ally').length < 3) {
+        // a freed soldier grabs a rifle and joins the fight
+        c.st = 'ally'; c.t = 0; c.life = 26; c.cd = 0.8; c.slot = game.caps.filter((k) => k.st === 'ally').length - 1;
+        pop(c.x, c.y - 44, 'WITH YOU!', '#b8ffb0');
+      } else { c.st = 'run'; c.t = 0; pop(c.x, c.y - 44, 'THANKS!', '#9fe8ff'); c.face = c.x - game.camX > W / 2 ? 1 : -1; }
+    } else if (c.st === 'ally') {
+      updateAlly(c, dt);
     } else if (c.st === 'run') {
       c.x += c.face * 84 * dt; c.dist += 84 * dt;
       if (!onScreen(c.x, 30)) c.gone = true;
@@ -218,7 +222,42 @@ function drawProp(g, p, cx, front) {
   }
 }
 
+/** An allied soldier: keeps a few paces behind the hero and shoots at whoever is closest. */
+function updateAlly(c, dt) {
+  const h = game.hero;
+  c.life -= dt; c.cd -= dt; c.fireT = Math.max(0, (c.fireT || 0) - dt);
+  if (c.life <= 0 || h.dead) { c.st = 'run'; c.t = 0; c.face = -1; pop(c.x, c.y - 44, 'FALLING BACK', '#b8ffb0'); return; }
+  const tx = clamp(h.x - h.face * (24 + (c.slot || 0) * 16), game.camX + 10, game.camX + W - 10);
+  const d = tx - c.x;
+  c.moving = Math.abs(d) > 8 && c.fireT <= 0;
+  if (c.moving) { const v = Math.min(Math.abs(d) * 4, 92) * dt; c.x += sgn(d) * v; c.dist += v; c.face = sgn(d); }
+  else if (c.fireT <= 0) c.face = h.face;
+  if (c.cd <= 0) {
+    let best = null, bd = 190;
+    for (const e of game.foes) {
+      if (e.st === 'dead' || e.st === 'para' || foeGhost(e) || Math.abs(e.y - c.y) > 14 || !onScreen(e.x, -6)) continue;
+      const k = Math.abs(e.x - c.x); if (k < bd && k > 14) { bd = k; best = e; }
+    }
+    if (best) {
+      c.face = sgn(best.x - c.x) || 1; c.fireT = 0.34; c.cd = rand(1.1, 1.8);
+      game.shots.push({ k: 'bullet', x: c.x + c.face * 15, y: c.y - 21, vx: c.face * 270, vy: 0, t: 0, mine: true });
+      muzzle(c.x + c.face * 15, c.y - 21); chip.sfx('shot');
+    } else c.cd = 0.3;
+  }
+}
+/** Two riflemen deploy with the hero at the start of every stage. */
+function deploySquad() {
+  if (game.demo) return;
+  const h = game.hero;
+  for (let i = 0; i < 2; i++) game.caps.push({ x: h.x - 18 - i * 16, y: h.y, st: 'ally', t: 0, face: 1, dist: 0, life: 34 + i * 4, cd: 1 + i * 0.5, slot: i });
+}
+
 function drawCaptive(g, c, cx) {
+  if (c.st === 'ally') {
+    const fade = c.life < 1.5 && Math.floor(c.life * 10) % 2;
+    if (!fade) drawSprite(g, 'ally', c.fireT > 0 ? 'aim' : c.moving ? 'run' : 'idle', c.fireT > 0 ? 0 : c.moving ? c.dist / 6 : game.t * 1.6 + (c.slot || 0), c.face, c.x - cx, c.y);
+    return;
+  }
   if (c.st === 'salute') drawSprite(g, 'captive', 'salute', 0, c.face, c.x - cx, c.y);
   else drawSprite(g, 'captive', 'run', c.dist / 6, c.face, c.x - cx, c.y);
 }
