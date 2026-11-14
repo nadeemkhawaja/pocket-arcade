@@ -178,11 +178,11 @@ function drawMedals(g) {
   T(g, medalCount() + ' / ' + MEDALS.length, W - 20, 14, C.gold, { align: 'right', weight: 700 });
   panel(g, 10, 30, W - 20, 150);
   MEDALS.forEach((m, i) => {
-    const col = i % 2, row = Math.floor(i / 2), x = 18 + col * 180, y = 35 + row * 17.6, got = !!PROG.ach[m.id];
-    if (got) drawGlow(g, x + 6, y + 6.6, 9, '#ffd27a', 0.5);
-    drawMedalIcon(g, x + 6, y + 6.6, 0.82, got);
+    const col = i % 2, row = Math.floor(i / 2), x = 18 + col * 180, y = 34 + row * 14.4, got = !!PROG.ach[m.id];
+    if (got) drawGlow(g, x + 6, y + 6, 8, '#ffd27a', 0.5);
+    drawMedalIcon(g, x + 6, y + 6, 0.7, got);
     T(g, m.name, x + 16, y, got ? C.gold : '#7a869c', { scale: 0.9, weight: 700 });
-    T(g, m.desc, x + 16, y + 7.6, got ? C.steel : '#56627a', { scale: 0.68 });
+    T(g, m.desc, x + 16, y + 7.2, got ? C.steel : '#56627a', { scale: 0.62 });
   });
   const un = ['STAGE SELECT: ' + (Math.min(PROG.reached, STAGES.length - 1) + 1) + ' / ' + STAGES.length, 'RAVEN OUTFIT: ' + (outfitOpen('raven') ? 'OPEN' : 'REACH STAGE 3'), 'CRIMSON OUTFIT: ' + (outfitOpen('crimson') ? 'OPEN' : 'FINISH THE MISSION')];
   un.forEach((s, i) => T(g, s, 20 + i * 122, 185, C.cyan, { scale: 0.74, weight: 700 }));

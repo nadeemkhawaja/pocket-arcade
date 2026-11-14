@@ -52,6 +52,8 @@ function startStage(i) {
   if (Object.keys(game.perks).length >= 4) award('build');
   game.foes = []; game.shots = []; game.fx = []; game.items = []; game.caps = []; game.pops = []; game.sched = [];
   game.props = game.st.props.map(makeProp);
+  applyUniform(game.st);
+  if (keep && keep.team) deploySquad(keep.team);
   game.boss = null; game.bossSeq = null; game.time = 0; game.evIdx = 0; game.spawnT = 2.2;
   game.chainN = 0; game.chainT = -9; game.shake = 0; game.flashT = 0; game.slowT = 0; game.hitStop = 0;
   game.stageStats = freshStats();
@@ -67,7 +69,7 @@ function startStage(i) {
 function beginPlay() {
   setState('play');
   chip.play(game.st.song);
-  if (!game.demo) { chip.sfx('siren'); if (!game.caps.some((c) => c.st === 'ally')) deploySquad(); }
+  if (!game.demo) chip.sfx('siren');
 }
 
 /** Start the current stage again from the pause menu: costs nothing, keeps the score from before it. */
@@ -259,7 +261,7 @@ function ambientSpawn(dt) {
   const kinds = Object.keys(A.mix), total = kinds.reduce((a, k) => a + A.mix[k], 0);
   let r = Math.random() * total, kind = kinds[0];
   for (const k of kinds) { r -= A.mix[k]; if (r <= 0) { kind = k; break; } }
-  if (kind === 'ninja' && game.foes.some((e) => e.T.ninja && e.st !== 'dead')) kind = 'grunt';
+  if (kind === 'ninja' && game.foes.some((e) => e.T.ninja && e.st !== 'dead')) kind = ROSTER[game.st.id].runner;
   let side = chance(A.left) && game.camX > 40 ? -1 : 1;
   const x = side > 0 ? game.camX + W + 12 : game.camX - 12;
   let y = GROUND_Y;
@@ -290,7 +292,11 @@ function addScore(pts, x, y, chain, quiet) {
 }
 
 /* ---- death, respawn, continue -------------------------------------------------------- */
-function onHeroDown() { game.downT = 0; game.stageStats.deaths++; }
+function onHeroDown() {
+  game.downT = 0; game.stageStats.deaths++;
+  // the team scatters when its leader falls
+  for (const c of game.caps) if (c.st === 'ally') { c.st = 'run'; c.t = 0; c.face = -1; }
+}
 
 function heroLost() {
   if (game.lives > 0) { game.lives--; respawn(); }
@@ -391,7 +397,7 @@ function updateClear(dt, I, P) {
 
 function nextStage() {
   const h = game.hero;
-  game.carry = { wpn: h.wpn, ammo: h.ammo, hp: h.hp, blade: h.blade, bladeN: h.bladeN };
+  game.carry = { wpn: h.wpn, ammo: h.ammo, hp: h.hp, blade: h.blade, bladeN: h.bladeN, team: game.caps.filter((c) => c.st === 'ally').length };
   for (const k in game.stageStats) game.stats[k] += game.stageStats[k];
   if (game.stageIdx + 1 < STAGES.length) offerPerks(game.stageIdx + 1);
   else { missionCleared(); startEnding(); }

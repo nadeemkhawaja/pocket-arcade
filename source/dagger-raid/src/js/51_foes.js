@@ -247,8 +247,24 @@ function updateFoe(e, dt) {
         else if (T.melee === 'kick' && adx > 34 && adx < 72) { setSt(e, 'kick'); e.vy = -160; e.vx = e.face * 135; e.ground = false; }
         else if (T.mg && adx > 50 && adx < 230) setSt(e, 'kneel');
         else if (T.lob && adx > 48 && adx < 170) setSt(e, 'throw');
+        else if (T.flamer && adx > 16 && adx < 64) { setSt(e, 'burn'); e.vx = 0; }
         else if (T.gun && adx > 56 && adx < 210) { if (Math.random() < T.gunP) setSt(e, 'aim'); else e.cd = rand(0.7, 1.4); }
       }
+      break;
+    }
+    case 'burn': {
+      // flame trooper: a hiss of warning, then a sustained jet
+      e.vx = 0;
+      const w0 = tw(0.42);
+      if (e.t >= w0 && e.t < w0 + 0.7) {
+        e.emit = (e.emit || 0) - dt;
+        while (e.emit <= 0) {
+          e.emit += 0.06;
+          game.shots.push({ k: 'flame', x: e.x + e.face * 16, y: e.y - 17 + rand(-1, 1), vx: e.face * rand(105, 150), vy: rand(-12, 8), t: 0, life: rand(0.3, 0.38), foe: true, hits: [] });
+        }
+        if (!e.fired) { e.fired = true; chip.sfx('flameJet'); }
+      }
+      if (e.t >= w0 + 0.95) { setSt(e, 'run'); e.cd = rand(1.6, 2.4); }
       break;
     }
     case 'jab':
@@ -361,6 +377,7 @@ function killFoe(e, how, dirX, dmg, label) {
   }
   addScore(e.T.pts * (label ? 2 : 1), e.x, e.y - 30, true);
   if (e.drop) { spawnItem(e.drop, e.x, e.y - 14); e.drop = null; }
+  if (e.T.flamer) { const fx = e.x, fy = e.y; setTimeout(() => { if (game.state === 'play') explode(fx, fy - 10, 26, { foes: true, props: true }); }, 140); }
   game.stageStats.kills++;
   styleAdd(label ? 18 : how === 'dive' ? 16 : 11);
   if (perk('medic')) { game.medicN = (game.medicN || 0) + 1; const h = game.hero; if (game.medicN >= 8 && h && !h.dead && h.hp < heroMaxHp()) { game.medicN = 0; h.hp++; pop(h.x, h.y - 44, 'HEALTH +1', '#7fe6a0'); chip.sfx('pickup'); } }
@@ -384,6 +401,7 @@ function foeAnim(e) {
     case 'flip': return ['flip', 0];
     case 'leap': return ['fall', 0];
     case 'aim': return [e.T.pistol ? 'pistol' : 'aim', 0];
+    case 'burn': return ['aim', 0];
     case 'throw': return ['throw', t < tw(0.38) ? 0 : 1];
     case 'kneel': return ['mg', 0];
     case 'snipe': return ['snipe', 0];
@@ -434,6 +452,7 @@ function drawFoe(g, e, cx) {
   else if (e.st === 'kneel' && e.shotN === 0 && e.t > tw(0.5) - 0.2) drawGlint(g, sx + e.face * 15, sy - 11, 3.2, '#ff6a4a');
   else if ((e.st === 'jab' || e.st === 'slash') && e.t < w && e.t > w - 0.16) drawGlint(g, sx + e.face * 8, sy - (e.st === 'slash' ? 27 : 17), 3, '#ffffff');
   else if (e.st === 'appear') drawGlint(g, sx + e.face * 2, sy - 23, 2.4, '#ff3a3a');
+  else if (e.st === 'burn' && e.t < tw(0.42)) drawGlint(g, sx + e.face * 15, sy - 19, 3.4, '#ffb040');
   else if (e.st === 'throw' && !e.fired) drawGlint(g, sx - e.face * 5, sy - 31, 2.2, '#ff6a4a');
   if (e.st === 'snipe' && e.aiming) {
     const mx = sx + e.face * 15, my = sy - 12, tx = e.ax - cx, ty = e.ay;

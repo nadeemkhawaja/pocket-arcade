@@ -17,7 +17,8 @@ A side-scrolling commando game in the classic arcade style, drawn in sharp vecto
 
 - Four stages: Jungle Outpost, Frozen Rail Line, Desert Refinery and Iron Citadel, each with its own weather and music
 - Four bosses: Mauler, Ironclad, Sky Hammer and General Krome
-- You play a beret soldier leading a squad: two allied riflemen deploy with you each stage, and freed captives pick up a rifle and join the fight
+- You play a beret soldier who builds a team of three: each captive you free picks up a rifle, the first taking point ahead of you and the second covering behind
+- Every stage fields its own army in its own uniform: rust guerrillas with machetes and dogs in the jungle, winter riflemen, snipers and paratroopers on the rail line, tan flame troopers at the refinery, black-clad guards and ninjas in the citadel
 - An air raid siren winds up at the start of a stage, before big enemy waves and when a boss approaches
 - Knife combos (stab, slash, thrust), crouch and jump attacks, parries that cut bullets out of the air, critical hits and backstabs
 - Ninja movement: dash roll with a dodge window, counter strikes, double jump somersault, air dash, dive stab and wall kick
@@ -26,7 +27,7 @@ A side-scrolling commando game in the classic arcade style, drawn in sharp vecto
 - Captives to free, crates, explosive barrels and mines
 - Chain bonuses, extra lives at 30,000 points and every 70,000 after, continues and a top-5 high score table
 - Four levels (Recruit, Soldier, Veteran, Elite) and an Invincible mode for a no-damage playthrough (scores and medals are off)
-- 18 medals, stage select for stages you have reached, two unlockable outfits and Restart Stage in the pause menu
+- 19 medals, stage select for stages you have reached, two unlockable outfits and Restart Stage in the pause menu
 - Upgrade cards: pick one of three power-ups before every stage (12 in all), so each run plays differently
 - Style rank from D to S that multiplies chain scores, with a camera push-in on critical hits and finishing blows
 - A war-zone film score: marching snare cadence, war drums, urgent low strings, horns and a distant choir, with field gunfire, rolling blasts and far-off battle ambience

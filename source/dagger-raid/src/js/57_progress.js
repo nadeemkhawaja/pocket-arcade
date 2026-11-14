@@ -20,6 +20,7 @@ const MEDALS = [
   { id: 'krome', name: 'END OF THE LINE', desc: 'DEFEAT GENERAL KROME' },
   { id: 'elite', name: 'ELITE OPERATIVE', desc: 'FINISH THE MISSION ON ELITE' },
   { id: 'srank', name: 'S FOR STYLE', desc: 'REACH STYLE RANK S' },
+  { id: 'team', name: 'BAND OF THREE', desc: 'FREE TWO SOLDIERS TO FILL YOUR TEAM' },
   { id: 'build', name: 'FULLY LOADED', desc: 'CARRY 4 UPGRADES AT ONCE' }
 ];
 
