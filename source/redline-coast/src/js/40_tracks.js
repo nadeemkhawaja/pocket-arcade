@@ -17,7 +17,7 @@ const THEMES = {
     id: 'coast', seed: 11, sky: ['#2b1b6b', '#b23a8a', '#ff8a4a', '#ffd27a'], sun: [0.62, 0.74, 26, '#fff2c0', '#ff9a4a'],
     far: ['#6a3a8a', '#8a3a6a', '#b85a7a', '#a8486a'], cloud: ['#ffb0a0', '#e86a8a'], fog: '#ffb07a', fogK: 0.75,
     road: ['#5a5560', '#54505a'], rumble: ['#f4f0e6', '#e8392a'], lane: '#f8f0d8',
-    left: 'sea', gl: ['#2a7ac8', '#2470ba'], gr: ['#3aa04a', '#349444'], sand: '#f0d090'
+    left: 'sea', gl: ['#2a7ac8', '#2470ba'], gr: ['#3aa04a', '#349444'], sand: '#f0d090', sand2: '#e4c586'
   },
   mesa: {
     id: 'mesa', seed: 23, sky: ['#1a6ad0', '#5aa8e8', '#ffd9a0', '#ffe9c0'], sun: [0.3, 0.3, 16, '#ffffff', '#ffe9a0'], jag: true,
@@ -74,25 +74,25 @@ const STAGES = [
   {
     id: 'mesa', name: 'MESA RUN', sub: 'RED ROCK CANYON', theme: 'mesa', song: 'mesa', traffic: 42, t0: 35, t1: 33,
     rival: { name: 'DUSTY', car: 'sedan', col: '#d86a2a', pace: 0.89 },
-    road: [[80, 0, 0], [170, 4, 30], [110, 0, -50], [160, -4, 40], [90, 0, 0], [140, 5, -30], [130, -3, 60], [120, 0, -60], [180, -5, 0], [100, 0, 30], [150, 4, -30], [130, -4, 0], [120, 0, 0],
-      'check', [170, 5, 50], [100, 0, -50], [150, -5, 0], [140, 3, 40], [120, -3, -40], [180, 5, 0], [100, 0, 0], [150, -6, 30], [120, 0, -30], [160, 4, 50], [130, -4, -50], [150, 5, 0], [120, 0, 0]]
+    road: [[80, 0, 0], [170, 4, 30], [110, 0, -50], [160, -4, 40], [90, 0, 0], [140, 5, -30], [130, -3, 60], [120, 0, -60], ['tunnel', 150], [180, -5, 0], [100, 0, 30], [150, 4, -30], [130, -4, 0], [120, 0, 0],
+      'check', [170, 5, 50], [100, 0, -50], [150, -5, 0], [140, 3, 40], [120, -3, -40], ['tunnel', 140], [180, 5, 0], [100, 0, 0], [150, -6, 30], [120, 0, -30], [160, 4, 50], [130, -4, -50], [150, 5, 0], [120, 0, 0]]
   },
   {
     id: 'pine', name: 'PINE PASS', sub: 'UP INTO THE SNOW', theme: 'pine', song: 'pine', traffic: 44, t0: 35, t1: 32,
     rival: { name: 'FROST', car: 'coupe', col: '#8ad8ff', pace: 0.91 },
-    road: [[80, 0, 0], [130, 3, 60], [110, -4, 40], [120, 4, 60], [110, -5, -40], [130, 5, 80], [90, 0, -60], [150, -5, 60], [120, 4, 40], [110, -4, -80], [140, 5, 80], [120, 0, 40], [110, -3, 0],
+    road: [[80, 0, 0], [130, 3, 60], [110, -4, 40], [120, 4, 60], [110, -5, -40], [130, 5, 80], [90, 0, -60], [150, -5, 60], [120, 4, 40], [110, -4, -80], [140, 5, 80], [120, 0, 40], ['tunnel', 90], [110, -3, 0],
       'check', [150, 5, 80], [110, -5, -60], [130, 5, 60], [120, -6, 40], [100, 0, -80], [150, 5, 60], [120, -5, 60], [130, 4, -60], [140, -5, 80], [110, 6, 0], [130, -4, 60], [120, 0, -40], [120, 0, 0]]
   },
   {
     id: 'neon', name: 'NEON HARBOR', sub: 'MIDNIGHT RUSH HOUR', theme: 'neon', song: 'neon', traffic: 70, t0: 39, t1: 37,
     rival: { name: 'NOVA', car: 'gt', col: '#b03aff', pace: 0.93 },
-    road: [[100, 0, 0], [220, 0, 0], [130, 5, 0], [180, 0, 20], [130, -5, -20], [240, 0, 0], [140, 6, 0], [120, -4, 30], [200, 0, -30], [150, -5, 0], [110, 4, 0], [180, 0, 0],
-      'check', [140, 5, 0], [220, 0, 30], [140, -6, -30], [130, 4, 0], [240, 0, 0], [150, -5, 20], [120, 5, -20], [200, 0, 0], [140, 6, 0], [130, -5, 0], [220, 0, 0], [130, 4, 0], [120, 0, 0]]
+    road: [[100, 0, 0], [220, 0, 0], [130, 5, 0], [180, 0, 20], [130, -5, -20], ['tunnel', 200], [240, 0, 0], [140, 6, 0], [120, -4, 30], [200, 0, -30], [150, -5, 0], [110, 4, 0], [180, 0, 0],
+      'check', [140, 5, 0], [220, 0, 30], [140, -6, -30], [130, 4, 0], ['tunnel', 200], [240, 0, 0], [150, -5, 20], [120, 5, -20], [200, 0, 0], [140, 6, 0], [130, -5, 0], [220, 0, 0], [130, 4, 0], [120, 0, 0]]
   },
   {
     id: 'aurora', name: 'AURORA RIDGE', sub: 'THE LAST CLIMB', theme: 'aurora', song: 'aurora', traffic: 56, t0: 37, t1: 35,
     rival: { name: 'ZENITH', car: 'gt', col: '#18181e', pace: 0.95 },
-    road: [[80, 0, 0], [150, 5, 60], [120, -5, 40], [130, 6, -60], [100, 0, 80], [160, -6, 40], [120, 5, -80], [140, -4, 60], [110, 6, 60], [150, -5, -60], [120, 4, 80], [130, -6, 0], [110, 0, 40],
+    road: [[80, 0, 0], [150, 5, 60], [120, -5, 40], [130, 6, -60], [100, 0, 80], [160, -6, 40], [120, 5, -80], [140, -4, 60], [110, 6, 60], [150, -5, -60], [120, 4, 80], ['tunnel', 110], [130, -6, 0], [110, 0, 40],
       'check', [150, 6, 80], [120, -6, -80], [140, 5, 60], [110, -5, 60], [160, 6, -60], [100, 0, 80], [150, -6, 40], [120, 5, 60], [140, -5, -80], [130, 6, 80], [120, -6, 40], [140, 4, 60], [140, 0, 0]]
   }
 ];
@@ -102,10 +102,10 @@ const ease = (a, b, t) => a + (b - a) * (-Math.cos(t * Math.PI) / 2 + 0.5);
 /** Build the segment list for one stage. */
 function buildTrack(si, diff) {
   const st = STAGES[si], th = THEMES[st.theme], segs = [], rnd = seeded(1000 + si * 77);
-  let y = 0, check = 0;
+  let y = 0, check = 0, tunLeft = 0;
   const push = (curve, yy) => {
     const n = segs.length;
-    segs.push({ i: n, curve, y1: y, y2: yy, sprites: [], cars: [], c: Math.floor(n / 3) % 2, clip: 0 });
+    segs.push({ i: n, curve, y1: y, y2: yy, sprites: [], cars: [], c: Math.floor(n / 3) % 2, clip: 0, tun: tunLeft-- > 0 });
     y = yy;
   };
   const piece = (n, curve, hill) => {
@@ -117,6 +117,7 @@ function buildTrack(si, diff) {
   let startN = 0;
   for (const row of st.road) {
     if (row === 'check') { check = segs.length; continue; }
+    if (row[0] === 'tunnel') { tunLeft = row[1]; continue; }
     startN = segs.length; piece(row[0], row[1], row[2]);
   }
   const goal = segs.length - 70;
@@ -147,11 +148,14 @@ function decorate(T, rnd) {
     const c = T.segs[i].curve, c0 = T.segs[i - 1].curve;
     if (Math.abs(c) >= 2.2 && Math.abs(c0) < 2.2 && Math.abs(T.segs[Math.min(n - 1, i + 40)].curve) >= 4.5) {
       const right = c > 0;
+      if (T.segs[i].tun) continue;
       for (let k = 0; k < 5; k++) addSprite(T, i - 6 + k * 13, 'chevR', right ? -1.5 : 1.5, 760, { solid: 0.12, flip: !right, sign: true });
     }
   }
   for (let i = 20; i < n; i++) {
     const r = rnd(), s = side(), snow = i > T.snowFrom;
+    if (T.segs[i].tun) continue;
+    if (i % 5 === 0 && id !== 'pine') { addSprite(T, i, 'post', 1.16, 150); addSprite(T, i, 'post', -1.16, 150); }
     if (id === 'coast') {
       if (i % 9 === 0) addSprite(T, i, 'palm', 1.35 + rnd() * 0.2, 1500, { solid: 0.12 });
       if (i % 9 === 4 && rnd() < 0.8) addSprite(T, i, 'palm', -1.3 - rnd() * 0.15, 1500, { solid: 0.12 });
@@ -201,13 +205,15 @@ function layHazards(T, rnd, diff) {
     if (r < 0.2) { for (let k = 0; k < 5; k++) addSprite(T, i + k * 5, 'coin', LANE_X[l], 300, { pick: 'coin' }); }
     else if (r < 0.3) addSprite(T, i, 'nitro', LANE_X[l], 420, { pick: 'nitro' });
     else if (r < 0.37) addSprite(T, i, 'clock', LANE_X[l], 420, { pick: 'clock' });
-    else if (r < 0.58) {
+    else if (r < 0.45) addSprite(T, i, 'boost', LANE_X[l], 1300, { hit: 'boost', hw: 0.2, flat: true });
+    else if (r < 0.51 && !T.segs[i].tun) { addSprite(T, i, 'ramp', LANE_X[l], 1150, { hit: 'ramp', hw: 0.2 }); for (let k = 1; k < 5; k++) addSprite(T, i + 6 + k * 5, 'coin', LANE_X[l], 300, { pick: 'coin', high: true }); }
+    else if (r < 0.68) {
       if (id === 'coast') { const l2 = l === 1 ? 0 : l; for (let k = 0; k < 6; k++) addSprite(T, i + k * 4, 'cone', LANE_X[l2] + (l2 === 0 ? 0.3 : -0.3) * (k / 5), 330, { hit: 'cone' }); }
       else if (id === 'mesa') addSprite(T, i, 'boulder', LANE_X[l] * 1.1, 900, { hit: 'solid', hw: 0.15 });
       else if (id === 'pine') addSprite(T, i, 'ice', LANE_X[l], 1700, { hit: 'ice', hw: 0.36, flat: true });
       else if (id === 'neon') addSprite(T, i, rnd() < 0.5 ? 'puddle' : 'oil', LANE_X[l], 1500, { hit: rnd() < 0.5 ? 'puddle' : 'oil', hw: 0.3, flat: true });
       else addSprite(T, i, rnd() < 0.5 ? 'ice' : 'oil', LANE_X[l], 1600, { hit: rnd() < 0.5 ? 'ice' : 'oil', hw: 0.32, flat: true });
-    } else if (r < 0.66 && id !== 'coast') {
+    } else if (r < 0.76 && id !== 'coast') {
       // roadworks: one lane closed by a barrier with cones leading in
       const l2 = l === 1 ? 2 : l;
       for (let k = 0; k < 4; k++) addSprite(T, i + k * 5, 'cone', LANE_X[l2], 300, { hit: 'cone' });
@@ -217,6 +223,9 @@ function layHazards(T, rnd, diff) {
   }
   // fix up hazard kinds that were picked with a second roll
   for (const s of T.segs) for (const sp of s.sprites) if (sp.hit && sp.flat) sp.hit = sp.name;
+  // where the police join in
+  T.cops = { mesa: [0.3], neon: [0.22, 0.66], aurora: [0.45] }[id] || [];
+  T.cops = T.cops.map((f) => Math.round(T.start + (T.goal - T.start) * f));
 }
 
 const TRAFFIC_COLS = ['#e8e4d8', '#3a8ad8', '#d8a020', '#3aa860', '#c84a4a', '#8a8e9a', '#e87a2a', '#6a4ac8'];

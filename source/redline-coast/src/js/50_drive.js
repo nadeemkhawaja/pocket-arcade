@@ -9,7 +9,7 @@ function newPlayer(carId) {
   return {
     car: c, x: 0, speed: 0, steer: 0, lean: 0, nitro: 0.34, nitroOn: false, nitroT: 0,
     drift: 0, driftDir: 0, driftT: 0, boostT: 0, spin: 0, spinDir: 0, slick: 0, safe: 0, bumpT: 0,
-    slip: 0, slipOn: false, brake: false, gas: false, off: false, skid: 0, crashT: 0, air: 0
+    slip: 0, slipOn: false, brake: false, gas: false, off: false, skid: 0, crashT: 0, air: 0, airT: 1
   };
 }
 
@@ -31,6 +31,7 @@ function updatePlayer(dt, I) {
 
   // spin-out on oil: no steering until it ends
   if (p.spin > 0) { p.spin -= dt; steerIn = 0; p.x += p.spinDir * dt * 0.55 * sp; gas = false; }
+  if (p.air > 0) { p.air -= dt; steerIn *= 0.35; if (p.air <= 0) { g.shake = Math.max(g.shake, 4); chip.sfx('bump'); spawnDust(0, T.th); spawnSmoke(); } }
   p.steer = approach(p.steer, steerIn, dt * (steerIn ? 5.5 : 8));
   p.lean = approach(p.lean, p.steer * (p.drift ? 2 : 1.25), dt * 9);
 
@@ -39,7 +40,7 @@ function updatePlayer(dt, I) {
   if (wantN && !p.nitroOn && p.nitro > 0.1) { p.nitroOn = true; chip.sfx('nitro'); g.punch = 0.05; }
   if (p.nitroOn) {
     p.nitro -= dt / 3.4; p.nitroT += dt; g.stats.nitroT += dt;
-    if (!wantN || p.nitro <= 0) { p.nitroOn = false; p.nitro = Math.max(0, p.nitro); }
+    if (!wantN || p.nitro <= 0) { p.nitroOn = false; p.nitro = Math.max(0, p.nitro); chip.sfx('blow'); }
   }
 
   // drift: tap the brake while turning at speed, then hold the turn
@@ -69,7 +70,7 @@ function updatePlayer(dt, I) {
   p.speed += acc * dt;
   if (p.speed > top) p.speed = approach(p.speed, top, (MAX_SPEED / 2.2) * dt);
   // off the road: sand, grass and snow drag the car down
-  p.off = Math.abs(p.x) > 1.02;
+  p.off = Math.abs(p.x) > 1.02 && p.air <= 0;
   if (p.off) { const lim = MAX_SPEED * 0.38; if (p.speed > lim) p.speed = approach(p.speed, lim, (MAX_SPEED / 0.9) * dt); if (g.chain) breakChain(); }
   p.speed = clamp(p.speed, 0, MAX_SPEED * 1.4);
 
@@ -104,6 +105,7 @@ function updatePlayer(dt, I) {
 
 function autoGasOn() {
   const m = settings.autoGas || 'auto';
+  if (input.usingTouch) return true;          // touch screens have no gas pedal: the car always pulls
   if (m === 'on') return true;
   if (m === 'off') return false;
   return input.usingTouch || (isTouch && coarse && !input.usingPad);
@@ -120,17 +122,20 @@ function roadsideHits(z0, z1) {
     for (const s of seg.sprites) {
       if (s.gone || s.over) continue;
       const dx = Math.abs(p.x - s.off);
-      if (s.pick) { if (dx < CAR_HW + 0.14) { s.gone = true; collect(s.pick); } continue; }
+      if (s.pick) { if (dx < CAR_HW + 0.14 && (!!s.high === p.air > 0 || s.pick !== 'coin')) { s.gone = true; collect(s.pick); } continue; }
+      if (p.air > 0) continue;
       if (s.hit) {
         if (dx > CAR_HW + (s.hw || 0.07)) continue;
-        if (s.hit === 'cone') { s.gone = true; p.speed *= 0.9; chip.sfx('cone'); spawnDebris(s.off, '#ff6a2a', 5); breakChain(); g.shake = Math.max(g.shake, 2); g.stats.hits++; }
+        if (s.hit === 'ramp') { p.air = p.airT = 0.5 + 0.5 * Math.min(1.2, p.speed / MAX_SPEED); p.drift = 0; g.stats.jumps = (g.stats.jumps || 0) + 1; chip.sfx('nitro'); popText('BIG AIR!', '#ffd27a'); addScore(2000 * mult()); g.punch = 0.04; }
+        else if (s.hit === 'boost') { if (p.boostT < 1) { p.boostT = 1.3; p.speed = Math.max(p.speed, MAX_SPEED * 0.9); chip.sfx('drift'); popText('BOOST', '#7fe9ff'); g.punch = 0.03; } }
+        else if (s.hit === 'cone') { s.gone = true; p.speed *= 0.9; chip.sfx('cone'); spawnDebris(s.off, '#ff6a2a', 5); breakChain(); g.shake = Math.max(g.shake, 2); g.stats.hits++; }
         else if (s.hit === 'oil') { if (p.spin <= 0 && p.safe <= 0) { p.spin = 0.9; p.spinDir = p.steer ? sgn(p.steer) : (Math.random() < 0.5 ? -1 : 1); p.drift = 0; chip.sfx('oil'); popText('OIL!', '#c08aff'); breakChain(); g.stats.hits++; } }
         else if (s.hit === 'ice') { p.slick = 1.3; if (!s.said) { s.said = true; chip.sfx('slip'); popText('ICE!', '#bfeaff'); } }
         else if (s.hit === 'puddle') { p.slick = 0.6; p.speed *= 0.93; if (!s.said) { s.said = true; chip.sfx('splash'); spawnSplash(); } }
         else if (s.hit === 'solid') { if (p.safe <= 0) { s.gone = s.name === 'barrier'; if (s.gone) spawnDebris(s.off, '#f2f0e6', 8); crash(0.3, p.x < s.off ? -1 : 1); } }
         continue;
       }
-      if (s.solid && p.off && dx < s.solid + CAR_HW * 0.8 && p.safe <= 0) crash(0.12, s.off > 0 ? -1 : 1);
+      if (s.solid && p.off && p.air <= 0 && dx < s.solid + CAR_HW * 0.8 && p.safe <= 0) crash(0.12, s.off > 0 ? -1 : 1);
     }
   }
 }
@@ -147,7 +152,7 @@ function crash(keep, dir) {
 
 function collect(kind) {
   const g = game, p = g.p;
-  if (kind === 'coin') { g.coins++; g.stats.coins++; addScore(300 * mult()); chip.sfx('coin'); if (g.stats.coins >= 150) award('gold'); }
+  if (kind === 'coin') { g.coins++; g.stats.coins++; addScore(300 * mult()); chip.sfx('coin'); }
   else if (kind === 'nitro') { p.nitro = Math.min(1, p.nitro + 0.5); chip.sfx('pickup'); popText('NITRO', '#7fe9ff'); addScore(500); }
   else if (kind === 'clock') { g.time += 3; g.timeFlash = 1; chip.sfx('time'); popText('+3 SECONDS', '#ffd27a'); addScore(500); }
   spawnSparkle();
@@ -170,7 +175,7 @@ function updateTraffic(dt) {
     if (g.finished) continue;
     const dx = p.x - c.off, adx = Math.abs(dx), w = CAR_HW + c.hw;
     // contact
-    if (dz > -260 && dz < 300 && adx < w && p.safe <= 0) {
+    if (dz > -260 && dz < 300 && adx < w && p.safe <= 0 && p.air <= 0) {
       if (p.speed > c.speed) {
         const hard = p.speed - c.speed > MAX_SPEED * 0.3;
         p.speed = c.speed * (hard ? 0.72 : 0.92); c.speed *= 1.06; c.bump = 0.4; c.bumpDir = -sgn(dx) || 1;
@@ -211,19 +216,51 @@ function nearMiss() {
 function mult() { return 1 + Math.min(8, game.chain); }
 function breakChain() { if (game.chain > 2) popText('CHAIN LOST', '#9aa6b8'); game.chain = 0; game.chainT = 0; }
 
-/* ---- the rival --------------------------------------------------------------------- */
-function newRival(T, diff) {
-  const r = T.st.rival;
-  return { name: r.name, style: r.car, col: r.col, z: (T.start - 4) * SEG, off: 0.5, speed: 0, pace: r.pace * diff.rival, hw: 0.13, lean: 0, ahead: true, done: false, tgt: 0.5, think: 0 };
+/* ---- the race: a named rival leading a pack of six ---------------------------------------- */
+const PACK_COLS = ['#f2a020', '#2fb86a', '#e8e4d8', '#c83ad0', '#3ac8d8', '#d84a2a'];
+const PLACE = ['1ST', '2ND', '3RD', '4TH', '5TH', '6TH', '7TH', '8TH'];
+const PLACE_BONUS = [30000, 18000, 12000, 8000, 5000, 3000, 1500, 0];
+function newRacers(T, diff) {
+  const r = T.st.rival, lead = r.pace * diff.rival, out = [];
+  // the grid: you start last, the rival starts on pole
+  for (let k = 0; k < 7; k++) {
+    const isLead = k === 0, row = 6 - k;
+    out.push({
+      racer: true, lead: isLead, name: isLead ? r.name : '', style: isLead ? r.car : ['coupe', 'sedan', 'gt'][k % 3], col: isLead ? r.col : PACK_COLS[k - 1],
+      z: (T.start - 5 + row * 4) * SEG, off: row % 2 ? -0.45 : 0.45, speed: 0, pace: lead - k * 0.024 - (isLead ? 0 : 0.01), hw: 0.13, lean: 0,
+      ahead: true, done: false, tgt: row % 2 ? -0.45 : 0.45, think: k * 0.04
+    });
+  }
+  return out;
 }
-function updateRival(dt) {
-  const g = game, r = g.rival, T = g.T, p = g.p;
-  if (!r) return;
+function racePlace() {
+  const g = game, pz = g.pos + PLAYER_Z;
+  let n = 1;
+  for (const r of g.racers) if (r.done || r.z > pz) n++;
+  return n;
+}
+function updateRacers(dt) {
+  const g = game;
+  for (const r of g.racers) updateRacer(r, dt);
+  if (g.finished || g.count > 0 || g.demo) return;
+  const pl = racePlace();
+  if (pl !== g.place) {
+    if (g.playT > 1.5) {
+      if (pl < g.place) { popText(pl === 1 ? 'YOU LEAD THE RACE!' : PLACE[pl - 1] + ' PLACE', '#7dffa0'); chip.sfx(pl === 1 ? 'win' : 'pass'); addScore(1500); }
+      else { popText('DOWN TO ' + PLACE[pl - 1], '#ff8a8a'); chip.sfx('rival'); }
+      g.placeFlash = 1;
+    }
+    g.place = pl;
+  }
+}
+function updateRacer(r, dt) {
+  const g = game, T = g.T, p = g.p;
   const pz = g.pos + PLAYER_Z, seg = segAt(T, r.z), gap = (r.z - pz) / SEG;
-  if (g.count > 0) { seg.cars.push(r); g.carSegs.push(seg); return; }
-  // pace: a touch slower through hard corners, and a rubber band so the duel stays close
+  if (g.count > 0 || dt === 0) { seg.cars.push(r); g.carSegs.push(seg); return; }
+  // pace: a touch slower through hard corners; the rival also stretches or eases so the duel stays close
   let want = MAX_SPEED * r.pace * (1 - Math.min(0.14, Math.abs(seg.curve) * 0.02));
-  if (gap > 110) want *= 0.9; else if (gap > 50) want *= 0.96; else if (gap < -160) want *= 1.07; else if (gap < -50) want *= 1.035;
+  if (r.lead) { if (gap > 110) want *= 0.9; else if (gap > 50) want *= 0.96; else if (gap < -160) want *= 1.07; else if (gap < -50) want *= 1.035; }
+  else if (gap < -120) want *= 1.03;
   if (r.done) want = MAX_SPEED * 0.3;
   r.speed = approach(r.speed, want, (MAX_SPEED / 4) * dt);
   r.z += r.speed * dt;
@@ -235,6 +272,7 @@ function updateRival(dt) {
     for (const lx of LANE_X) {
       let sc = -Math.abs(lx - r.off) * 0.6 - Math.abs(lx + seg.curve * 0.08) * 0.3;
       for (const c of T.cars) { const dz = c.z - r.z; if (dz > -200 && dz < 2600 && Math.abs(c.off - lx) < 0.4) sc -= 3 - dz / 1300; }
+      for (const o of g.racers) { if (o === r) continue; const dz = o.z - r.z; if (dz > -200 && dz < 1500 && Math.abs(o.off - lx) < 0.35) sc -= 2; }
       for (let i = 1; i < 12; i++) { const s2 = T.segs[Math.min(T.n - 1, seg.i + i)]; for (const sp of s2.sprites) if (sp.hit && sp.hit !== 'cone' && Math.abs(sp.off - lx) < 0.4) sc -= 2; }
       if (sc > bestScore) { bestScore = sc; best = lx; }
     }
@@ -242,20 +280,56 @@ function updateRival(dt) {
   }
   const d = clamp(r.tgt - r.off, -1, 1);
   r.off += d * dt * 1.4; r.lean = approach(r.lean, clamp(d * 3 + seg.curve * 0.25, -2, 2), dt * 6);
-  if (!r.done && r.z >= T.goal * SEG) { r.done = true; if (!g.finished) { g.rivalWon = true; popText(r.name + ' TAKES THE LINE', '#ff8a8a'); } }
+  if (!r.done && r.z >= T.goal * SEG) { r.done = true; if (r.lead && !g.finished) { g.rivalWon = true; if (!g.demo) popText(r.name + ' TAKES THE WIN', '#ff8a8a'); } }
   // contact with the player: a shove, never a wreck
   const dz = r.z - pz, dx = p.x - r.off;
   if (!g.finished && dz > -260 && dz < 300 && Math.abs(dx) < CAR_HW + r.hw && p.safe <= 0) {
     if (p.speed > r.speed) p.speed = r.speed * 0.95; p.x += sgn(dx || 1) * 0.08; p.safe = 0.4; p.bumpT = 0.3;
     g.shake = 4; chip.sfx('bump'); spawnSparks(5);
   }
-  const ahead = r.z > pz;
-  if (ahead !== r.ahead && !g.finished && g.playT > 2) {
-    r.ahead = ahead;
-    if (!ahead) { popText('PASSED ' + r.name + '!', '#7dffa0'); chip.sfx('win'); addScore(2000); }
-    else { popText(r.name + ' IS BACK IN FRONT', '#ff8a8a'); chip.sfx('rival'); }
-  } else r.ahead = ahead;
   seg.cars.push(r); g.carSegs.push(seg);
+}
+
+/* ---- the police ---------------------------------------------------------------------------- */
+function startChase() {
+  const g = game;
+  g.cop = { cop: true, style: 'sedan', col: '#f2f4f8', z: g.pos + PLAYER_Z - 2600, off: 0, speed: g.p.speed, hw: 0.13, lean: 0, t: 14, hits: 0, wail: 0, back: 0 };
+  g.banner = { s: 'POLICE!', sub: 'OUTRUN THEM OR DODGE THE RAM', t: 0 };
+  chip.sfx('rival');
+}
+function updateCop(dt) {
+  const g = game, c = g.cop, p = g.p, T = g.T;
+  if (!c) {
+    if (!g.demo && !g.finished && T.cops.length && (g.pos + PLAYER_Z) / SEG > T.cops[0]) { T.cops.shift(); startChase(); }
+    return;
+  }
+  const pz = g.pos + PLAYER_Z, dz = c.z - pz;
+  c.t -= dt; c.wail -= dt;
+  if (c.wail <= 0 && c.t > 0) { c.wail = 0.42; c.hi = !c.hi; chip.sfx(c.hi ? 'sirenHi' : 'sirenLo', { vol: clamp(1 - Math.abs(dz) / 4000, 0.25, 1) }); }
+  if (g.finished || g.timeUp) c.t = Math.min(c.t, 0);
+  const over = c.t <= 0;
+  // faster than you unless you are on nitro; it drops back after a ram or if it overshoots
+  let want = over ? MAX_SPEED * 0.4 : c.back > 0 ? p.speed * 0.9 : dz > 300 ? p.speed * 0.9 : Math.min(MAX_SPEED * 1.17, Math.max(MAX_SPEED * 0.55, p.speed * 1.1));
+  if (c.back > 0) c.back -= dt;
+  c.speed = approach(c.speed, want, MAX_SPEED * 0.6 * dt);
+  c.z += c.speed * dt;
+  const d = clamp(p.x - c.off, -1, 1);
+  if (!over) c.off = clamp(c.off + d * dt * 0.95, -0.9, 0.9);
+  c.lean = approach(c.lean, clamp(d * 3, -2, 2), dt * 6);
+  if (!over && dz > -300 && dz < 260 && Math.abs(p.x - c.off) < CAR_HW + c.hw + 0.02 && p.air <= 0 && c.back <= 0) {
+    c.hits++; c.back = 1.3; p.speed *= 0.84; p.x = clamp(p.x + (p.x >= c.off ? 0.12 : -0.12), -1.4, 1.4); p.drift = 0; p.nitroOn = false;
+    g.shake = 8; g.flash = 0.15; chip.sfx('crash'); spawnSparks(10); breakChain(); popText('RAMMED!', '#ff5a5a');
+  }
+  if (!over && dz < -3400) c.t = 0;                      // left for dust
+  if (over && !c.paid && !g.finished && !g.timeUp) {
+    c.paid = true; g.stats.escapes = (g.stats.escapes || 0) + 1;
+    const bonus = c.hits === 0 ? 15000 : 5000;
+    addScore(bonus); chip.sfx('win'); popText(c.hits === 0 ? 'CLEAN GETAWAY  +' + Math.round(bonus * g.diff.score) : 'ESCAPED  +' + Math.round(bonus * g.diff.score), '#7dffa0');
+    if (c.hits === 0) award('ghost');
+  }
+  if (over && (dz < -2500 || c.t < -5)) { g.cop = null; return; }
+  const seg = segAt(T, c.z);
+  seg.cars.push(c); g.carSegs.push(seg);
 }
 
 /* ---- small effects: screen-space particles around the car ---------------------------- */
@@ -297,7 +371,7 @@ function botInput() {
   for (const lx of [-0.66, -0.33, 0, 0.33, 0.66]) {
     let sc = -Math.abs(lx - p.x) * 0.5 - Math.abs(lx + clamp(curve, -4, 4) * 0.1) * 0.5;
     for (const c of T.cars) { const dz = c.z - pz; if (dz > -100 && dz < 3400 && p.speed > c.speed && Math.abs(c.off - lx) < 0.36) sc -= 4 - dz / 1200; }
-    if (g.rival) { const dz = g.rival.z - pz; if (dz > -100 && dz < 2000 && Math.abs(g.rival.off - lx) < 0.4) sc -= 3; }
+    for (const r of g.racers) { const dz = r.z - pz; if (dz > -100 && dz < 2000 && p.speed > r.speed && Math.abs(r.off - lx) < 0.36) sc -= 3; }
     for (let i = 0; i < 16; i++) {
       const s2 = T.segs[Math.min(T.n - 1, seg.i + i)];
       for (const sp of s2.sprites) { if (sp.gone) continue; const d = Math.abs(sp.off - lx); if (sp.hit && d < 0.4) sc -= sp.hit === 'cone' ? 1 : 3; if (sp.pick && d < 0.2) sc += 0.6; }

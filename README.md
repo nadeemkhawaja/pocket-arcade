@@ -92,7 +92,9 @@ An open-road arcade racer in sharp HD, inspired by the great 1980s driving cabin
 
 - Five stages: Sunset Bay, Mesa Run, Pine Pass, Neon Harbor and Aurora Ridge, each with its own scenery, weather and hazards
 - Race the clock: reach the checkpoint and the goal before time runs out; spare seconds become score
-- A named rival on every stage: Marlo, Dusty, Frost, Nova and Zenith
+- A race on every stage: you start 8th behind a pack led by a named rival (Marlo, Dusty, Frost, Nova, Zenith) and score by finishing place
+- Tunnels, jump ramps, boost pads and police chases that you can outrun or dodge
+- On a phone held upright the race fills the whole screen, with arrow, brake and nitro buttons under your thumbs
 - Drift (tap brake while turning) for a boost, nitro, slipstream, and near-miss chains that multiply the score
 - Three cars with different speed, acceleration and grip; four levels from Cruise to Legend
 - Pick-ups, twelve medals, high scores, and a touch pad with automatic gas on phones

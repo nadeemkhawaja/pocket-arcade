@@ -58,10 +58,7 @@ noscript { position: absolute; inset: 0; display: grid; place-items: center; pad
   --bs: min(14vw, 10vh, 58px);
 }
 body.touch-on #touch { display: block; }
-body.touch-on.portrait #touch {
-  background:
-    linear-gradient(180deg, rgba(0,0,0,0) 0, rgba(0,0,0,0) var(--game-bottom), var(--body) calc(var(--game-bottom) + 1px), #0a0c13 100%);
-}
+
 .brand {
   display: none; position: absolute; left: var(--gl); right: var(--gr); top: calc(var(--game-bottom) + 18px);
   text-align: center; font-family: "Racing Sans One", "Barlow Condensed", Impact, sans-serif; font-size: 20px; letter-spacing: 4px; line-height: 1.15; color: #8a96b4;
@@ -115,10 +112,19 @@ body.portrait #btns { bottom: calc(var(--gb) + 40px); }
 .tbtn b { font-size: 20px; font-weight: 700; text-shadow: 0 2px 0 rgba(0,0,0,0.45); }
 .tbtn small { font-size: 10px; letter-spacing: 1px; font-weight: 600; opacity: 0.92; }
 .tbtn.on { transform: translateY(3px) scale(0.96); filter: brightness(1.25); box-shadow: inset 0 -2px 0 rgba(0,0,0,0.35), 0 1px 0 rgba(0,0,0,0.55); }
+#dpad { display: none !important; }
+#touch { --sk: min(20vw, 20vh, 100px); --bk: min(19vw, 18vh, 90px); }
+body.portrait #tPause { top: calc(var(--gt) + 132px); }
+#steer { position: absolute; left: var(--gl); bottom: calc(var(--gb) + 14px); width: calc(var(--sk) * 2 + 12px); height: var(--sk); pointer-events: none; }
+.tbtn.sq { width: var(--sk); height: var(--sk); bottom: 0; border-radius: 24%; background: linear-gradient(180deg, rgba(60,70,100,0.9), rgba(20,24,38,0.9)); border: 2px solid rgba(160,176,214,0.55); }
+.tbtn.sq b { font-size: calc(var(--sk) * 0.42); line-height: 1; }
+#bLeft { left: 0; } #bRight { right: 0; }
+#btns { height: var(--bk) !important; bottom: calc(var(--gb) + 14px) !important; }
 #bBrake { width: var(--bk); height: var(--bk); left: 0; bottom: 0; background: radial-gradient(circle at 40% 32%, #ff7a8c, #ff3d5a 55%, #8f1430); }
-#bGas { width: var(--bk); height: var(--bk); right: 0; bottom: calc(var(--bk) * 0.3); background: radial-gradient(circle at 40% 32%, #9df0b4, #2fc86a 55%, #12703a); color: #04240f; }
-#bGas b { text-shadow: none; }
-#bNitro { width: var(--bj); height: var(--bj); right: calc((var(--bk) - var(--bj)) / 2 + var(--bk) * 0.55); bottom: calc(var(--bk) * 1.18 + 10px); background: radial-gradient(circle at 40% 32%, #a8ecff, #2fa8e8 55%, #124a8a); }
+#bNitro { width: var(--bk); height: var(--bk); right: 0; bottom: 0; background: radial-gradient(circle at 40% 32%, #a8ecff, #2fa8e8 55%, #124a8a); }
+body.touch-on .tctl { opacity: 0.8; }
+body.touch-on .tbtn.on { opacity: 1; }
+body.touch-on:not(.driving) .tctl, body:not(.driving) #tPause { display: none; }
 
 #tPause {
   position: absolute; pointer-events: auto; touch-action: none;
@@ -126,7 +132,7 @@ body.portrait #btns { bottom: calc(var(--gb) + 40px); }
   color: #c9d2e4; font-family: var(--pix); font-size: 13px; font-weight: 700; letter-spacing: 1px;
   right: var(--gr); top: var(--gt);
 }
-body.portrait #tPause { top: auto; right: auto; left: calc(50% - 22px); bottom: calc(var(--gb) + 6px); width: 58px; }
+
 
 /* landscape: a handheld layout with the pad in side panels; slightly translucent in case it overlaps the screen edge */
 body.touch-on:not(.portrait) #dpad, body.touch-on:not(.portrait) .tbtn { opacity: 0.82; }

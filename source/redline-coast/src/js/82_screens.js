@@ -18,7 +18,7 @@ function menuBar(g, x, y, w, h, on) {
   if (on) { slab(g, x, y, w, h, lgrad(g, x, 0, x + w, 0, [[0, '#ff3d5a'], [0.7, '#c81e4a'], [1, 'rgba(200,30,74,0.2)']])); rect(g, x - 2, y + h - 1, w * 0.4, 1, '#ffd27a'); }
   else slab(g, x, y, w, h, 'rgba(10,6,22,0.5)');
 }
-function dimAll(g, a) { rect(g, 0, -H, W, H * 3, 'rgba(6,4,14,' + a + ')'); }
+function dimAll(g, a) { rect(g, -W * 2, -H * 6, W * 5, H * 13, 'rgba(6,4,14,' + a + ')'); }
 function bigTitle(g, s, x, y, scale, o) {
   return T(g, s, x, y, (o && o.fill) || '#ffffff', Object.assign({ scale, display: true, stroke: (o && o.stroke) || 'rgba(0,0,0,0.7)', strokeW: scale * 0.9, align: 'center' }, o || {}));
 }
@@ -38,7 +38,7 @@ function drawLogo(g, cx, y, s) {
 }
 
 function controlHint() {
-  if (input.usingTouch || (isTouch && coarse && !input.usingPad)) return 'STEER WITH THE PAD   B BRAKE   N NITRO   GAS IS AUTOMATIC';
+  if (input.usingTouch || (isTouch && coarse && !input.usingPad)) return 'ARROWS STEER   B BRAKE AND DRIFT   N NITRO   GAS IS AUTOMATIC';
   if (input.usingPad) return 'STICK STEER   A GAS   X BRAKE   B NITRO';
   return 'ARROWS STEER AND GAS   Z BRAKE   SPACE NITRO   M MUTE';
 }
@@ -55,7 +55,7 @@ function drawBoot(g) {
 }
 
 function drawTitle(g) {
-  g.fillStyle = lgrad(g, 0, -view.dy, 0, 120, [[0, 'rgba(6,4,14,0.86)'], [1, 'rgba(6,4,14,0.1)']]); g.fillRect(0, -view.dy, W, 120 + view.dy);
+  dimAll(g, isTall() ? 0.5 : 0.34);
   drawLogo(g, W / 2, 8, 0.84);
   const y0 = 84;
   TITLE_ITEMS.forEach((it, i) => {
@@ -65,7 +65,7 @@ function drawTitle(g) {
     hitArea(W / 2 - 90, y - 5, W / 2 + 90, y + 11, { i });
   });
   T(g, 'TOP ' + String(Math.floor(game.scores[0].s)).padStart(7, '0') + '  ' + game.scores[0].n + '     MEDALS ' + medalCount() + ' / ' + MEDALS.length, W / 2, 166, C.gold, { align: 'center', weight: 700 });
-  T(g, controlHint(), W / 2, 202, '#e8e0f0', { align: 'center', scale: 0.85 });
+  wrapText(controlHint(), isTall() ? 190 : 380, 0.85).forEach((ln, i) => T(g, ln, W / 2, (isTall() ? 180 : 202) + i * 9, '#e8e0f0', { align: 'center', scale: 0.85 }));
 }
 
 function statBar(g, x, y, label, v, on) {
@@ -73,6 +73,7 @@ function statBar(g, x, y, label, v, on) {
   for (let k = 0; k < 8; k++) slab(g, x + 30 + k * 7.4, y + 1.2, 5.6, 4.6, k < v ? (on ? (k > 5 ? C.red : C.gold) : '#8a7a5a') : 'rgba(255,255,255,0.1)', 1.2);
 }
 function drawGarage(g) {
+  if (isTall()) return drawGarageTall(g);
   dimAll(g, 0.74);
   bigTitle(g, 'CHOOSE YOUR CAR', W / 2, 5, 1.9);
   CAR_ORDER.forEach((id, i) => {
@@ -121,6 +122,53 @@ function drawGarage(g) {
   T(g, input.usingTouch ? 'TAP TO CHOOSE' : 'LEFT/RIGHT CHANGE   UP/DOWN ROW   ENTER START', W - 6, 204, '#b8b0c8', { align: 'right', scale: 0.85 });
 }
 
+/** Upright phone: one car at a time, large, with arrows to change it. */
+function drawGarageTall(g) {
+  dimAll(g, 0.74);
+  bigTitle(g, 'CHOOSE YOUR CAR', W / 2, 2, 1.5);
+  const id = settings.car, car = CARS[id], x0 = W / 2 - 58, y0 = 20, w = 116, hgt = 96, idx = CAR_ORDER.indexOf(id);
+  panel(g, x0, y0, w, hgt, { border: game.menu === 0 && blink(3) ? '#ffe08a' : '#ff3d5a', lw: 1.1, fill: 'rgba(26,10,38,0.92)' });
+  const c = carArt(car.style, car.col, Math.round(Math.sin(game.t * 1.6) * 2), '', car.stripe);
+  g.save(); g.translate(W / 2, y0 + 50); g.scale(1, 0.3); drawGlow(g, 0, 0, 56, '#ff3d8a', 0.5); g.restore();
+  g.drawImage(shadowSprite(), W / 2 - 44, y0 + 44, 88, 13);
+  const cw = c.uw * 0.98, ch = c.uh * 0.98; g.drawImage(c, W / 2 - cw / 2, y0 + 53 - ch + 14, cw, ch);
+  T(g, CAR_STYLES[car.style].name, W / 2, y0 + 4, '#ffffff', { align: 'center', scale: 1.25, display: true });
+  statBar(g, x0 + 10, y0 + 60, 'SPEED', Math.round(car.top * 6.2 - 0.3), true); statBar(g, x0 + 10, y0 + 68, 'ACCEL', Math.round(car.acc * 5.6), true); statBar(g, x0 + 10, y0 + 76, 'GRIP', Math.round(car.grip * 5.6), true);
+  T(g, car.blurb, W / 2, y0 + 85.5, C.cyan, { align: 'center', scale: 0.74, weight: 700 });
+  const nx = Math.sin(game.t * 6) * 1.5;
+  for (const dir of [-1, 1]) {
+    const ax = W / 2 + dir * 72;
+    disc(g, ax, y0 + 48, 9, 'rgba(255,61,90,0.9)'); T(g, dir < 0 ? '<' : '>', ax + dir * nx * 0.5, y0 + 42, '#ffffff', { align: 'center', weight: 700, scale: 1.6 });
+    hitArea(ax - 13, y0 + 30, ax + 13, y0 + 66, { car: CAR_ORDER[(idx + dir + 3) % 3] });
+  }
+  for (let k = 0; k < 3; k++) disc(g, W / 2 - 8 + k * 8, y0 + hgt + 5, 1.7, k === idx ? C.gold : 'rgba(255,255,255,0.3)');
+  const y = y0 + hgt + 14;
+  LEVELS.forEach((lv, i) => {
+    const sel = settings.level === lv, x = W / 2 - 76 + (i % 2) * 80, yy = y + Math.floor(i / 2) * 17;
+    slab(g, x, yy, 72, 14, sel ? lgrad(g, x, 0, x + 72, 0, [[0, '#ff3d5a'], [1, '#a8143a']]) : 'rgba(255,255,255,0.1)');
+    T(g, DIFFS[lv].name, x + 36, yy + 3, sel ? C.ink : C.dim, { align: 'center', weight: 700, scale: 1.1 });
+    hitArea(x - 3, yy - 1, x + 75, yy + 15, { level: lv });
+  });
+  wrapText((DIFFS[settings.level] || DIFFS.sport).blurb, 170, 0.8).forEach((ln, i) => T(g, ln, W / 2, y + 37 + i * 8, '#c8c0d8', { align: 'center', scale: 0.8 }));
+  let by = y + 58;
+  if (PROG.reached > 0) {
+    const n = Math.min(PROG.reached, STAGES.length - 1) + 1, sf = startFrom();
+    T(g, 'START AT', W / 2, by - 3, C.dim, { align: 'center', weight: 700, scale: 0.8 });
+    for (let i = 0; i < n; i++) {
+      const x = W / 2 - n * 16 + i * 32, sel = sf === i;
+      slab(g, x + 2, by + 6, 26, 13, sel ? 'rgba(127,233,255,0.9)' : 'rgba(255,255,255,0.1)');
+      T(g, String(i + 1), x + 15, by + 8.6, sel ? '#0a1a2a' : C.dim, { align: 'center', weight: 700, scale: 1.1, shadow: sel ? 'rgba(0,0,0,0)' : C.shadow });
+      hitArea(x, by + 4, x + 30, by + 21, { stage: i });
+    }
+    by += 26;
+  }
+  slab(g, W / 2 - 56, by, 112, 20, lgrad(g, 0, by, 0, by + 20, [[0, blink(3) ? '#4aff8a' : '#2fc86a'], [1, '#12703a']]));
+  g.strokeStyle = '#d8ffe4'; g.lineWidth = 0.9; g.stroke();
+  T(g, 'START ENGINE', W / 2, by + 4.6, C.ink, { align: 'center', weight: 700, scale: 1.4 });
+  hitArea(W / 2 - 62, by - 3, W / 2 + 62, by + 24, { go: true });
+  T(g, '< BACK', W / 2, by + 30, '#d4d8e8', { align: 'center' }); hitArea(W / 2 - 40, by + 26, W / 2 + 40, by + 42, { back: true });
+}
+
 function drawOptions(g) {
   dimAll(g, game.optFrom === 'pause' ? 0.7 : 0.78);
   bigTitle(g, 'OPTIONS', W / 2, 16, 2.1);
@@ -138,16 +186,20 @@ function drawOptions(g) {
     if (it !== 'BACK') { hitArea(200, y - 5, 238, y + 11, { i, dir: -1 }); hitArea(270, y - 5, 320, y + 11, { i, dir: 1 }); hitArea(64, y - 5, 199, y + 11, { i, dir: 1 }); }
     else hitArea(64, y - 5, W - 64, y + 11, { i });
   });
-  T(g, 'AUTO GAS: THE CAR ACCELERATES BY ITSELF. AUTO TURNS IT ON FOR TOUCH SCREENS.', W / 2, 186, '#b8b0c8', { align: 'center', scale: 0.8 });
-  T(g, input.usingTouch ? 'TAP < > TO CHANGE' : 'LEFT / RIGHT TO CHANGE    Z TO GO BACK', W / 2, 198, '#b8b0c8', { align: 'center', scale: 0.85 });
+  wrapText('AUTO GAS: THE CAR ACCELERATES BY ITSELF. IT IS ALWAYS ON FOR TOUCH SCREENS.', isTall() ? 250 : 380, 0.8).forEach((ln, i) => T(g, ln, W / 2, 186 + i * 8, '#b8b0c8', { align: 'center', scale: 0.8 }));
+  T(g, input.usingTouch ? 'TAP < > TO CHANGE' : 'LEFT / RIGHT TO CHANGE    Z TO GO BACK', W / 2, isTall() ? 206 : 198, '#b8b0c8', { align: 'center', scale: 0.85 });
 }
 
 function drawHowTo(g) {
   dimAll(g, 0.8);
   const pg = game.page;
-  bigTitle(g, ['THE CONTROLS', 'DRIVE LIKE A PRO', 'THE RULES OF THE ROAD'][pg], W / 2, 12, 2);
-  panel(g, 30, 40, W - 60, 138);
-  const row = (i, head, body, col) => { const y = 50 + i * 24; slab(g, 44, y, 4, 15, col || C.red, 1.4); T(g, head, 56, y - 1, col || C.gold, { weight: 700, scale: 1.15 }); T(g, body, 56, y + 9.4, '#e0dcec', { scale: 0.86 }); };
+  bigTitle(g, ['THE CONTROLS', 'DRIVE LIKE A PRO', 'THE RULES OF THE ROAD'][pg], W / 2, isTall() ? 6 : 12, isTall() ? 1.6 : 2);
+  const tall = isTall(), px = tall ? 70 : 30, rh = tall ? 30 : 24, py = tall ? 30 : 40;
+  panel(g, px, py, W - px * 2, tall ? 160 : 138);
+  const row = (i, head, body, col) => {
+    const y = py + 10 + i * rh; slab(g, px + 14, y, 4, tall ? 22 : 15, col || C.red, 1.4); T(g, head, px + 26, y - 1, col || C.gold, { weight: 700, scale: 1.15 });
+    wrapText(body, W - px * 2 - 36, 0.86).forEach((ln, k) => T(g, ln, px + 26, y + 9.4 + k * 8.4, '#e0dcec', { scale: 0.86 }));
+  };
   if (pg === 0) {
     row(0, 'STEER', 'LEFT AND RIGHT ARROWS, A AND D, THE STICK, OR THE TOUCH PAD.');
     row(1, 'GAS', 'UP ARROW OR X. ON TOUCH SCREENS THE CAR ACCELERATES BY ITSELF.', C.green);
@@ -162,14 +214,15 @@ function drawHowTo(g) {
     row(4, 'STAY ON THE TARMAC', 'SAND, GRASS AND SNOW KILL YOUR SPEED AND YOUR CHAIN.', C.green);
   } else {
     row(0, 'BEAT THE CLOCK', 'REACH EACH CHECKPOINT BEFORE TIME RUNS OUT. SPARE TIME IS SCORE.', C.gold);
-    row(1, 'BEAT THE RIVAL', 'EVERY STAGE HAS A NAMED RIVAL. REACH THE GOAL FIRST FOR A BONUS.', C.red);
+    row(1, 'WIN THE RACE', 'YOU START 8TH. PASS THE PACK AND THE NAMED RIVAL TO FINISH 1ST.', C.red);
     row(2, 'PICK UPS', 'BLUE CANS REFILL NITRO, CLOCKS ADD 3 SECONDS, COINS ARE SCORE.', C.cyan);
     row(3, 'HAZARDS', 'CONES, BARRIERS, BOULDERS, OIL, ICE AND PUDDLES. READ THE ROAD.', '#c08aff');
     row(4, 'FIVE STAGES', 'SUNSET BAY, MESA RUN, PINE PASS, NEON HARBOR, AURORA RIDGE.', C.green);
   }
-  for (let i = 0; i < HOWTO_PAGES; i++) slab(g, W / 2 - 20 + i * 14, 184, 9, 3.4, i === pg ? C.gold : 'rgba(255,255,255,0.25)', 1);
-  T(g, '< BACK', 8, 204, '#d4d8e8'); hitArea(2, 198, 60, 216, { back: true });
-  T(g, pg < HOWTO_PAGES - 1 ? 'NEXT >' : 'DONE >', W - 8, 204, C.gold, { align: 'right', weight: 700 }); hitArea(W - 70, 196, W, 216, { next: true });
+  const fy = tall ? 196 : 184, bx = tall ? px : 8;
+  for (let i = 0; i < HOWTO_PAGES; i++) slab(g, W / 2 - 20 + i * 14, fy, 9, 3.4, i === pg ? C.gold : 'rgba(255,255,255,0.25)', 1);
+  T(g, '< BACK', bx, fy + (tall ? -4 : 20), '#d4d8e8'); hitArea(bx - 6, fy + (tall ? -10 : 14), bx + 52, fy + (tall ? 12 : 32), { back: true });
+  T(g, pg < HOWTO_PAGES - 1 ? 'NEXT >' : 'DONE >', W - bx, fy + (tall ? -4 : 20), C.gold, { align: 'right', weight: 700 }); hitArea(W - bx - 62, fy + (tall ? -10 : 12), W - bx + 6, fy + (tall ? 12 : 32), { next: true });
 }
 
 function drawScores(g) {
@@ -189,16 +242,17 @@ function drawScores(g) {
 
 function drawMedals(g) {
   dimAll(g, 0.8);
-  bigTitle(g, 'MEDALS  ' + medalCount() + ' / ' + MEDALS.length, W / 2, 10, 1.9);
+  const tall = isTall();
+  bigTitle(g, 'MEDALS  ' + medalCount() + ' / ' + MEDALS.length, W / 2, tall ? -62 : 10, tall ? 1.5 : 1.9);
   MEDALS.forEach((m, i) => {
-    const col = i % 2, rowI = Math.floor(i / 2), x = 16 + col * 178, y = 36 + rowI * 25.5, got = !!PROG.ach[m.id];
+    const col = tall ? 0 : i % 2, rowI = tall ? i : Math.floor(i / 2), x = tall ? W / 2 - 87 : 16 + col * 178, y = tall ? -44 + rowI * 24.6 : 36 + rowI * 25.5, got = !!PROG.ach[m.id];
     panel(g, x, y, 174, 22, { border: got ? 'rgba(255,210,122,0.9)' : 'rgba(110,104,140,0.5)', fill: got ? 'rgba(40,24,20,0.9)' : 'rgba(10,6,22,0.8)' });
     if (got) drawGlow(g, x + 13, y + 11, 13, '#ffd27a', 0.6);
     disc(g, x + 13, y + 11, 6.6, got ? '#e89a10' : '#3a3648'); disc(g, x + 13, y + 11, 5, got ? '#ffd24a' : '#4a4660');
     T(g, got ? 'R' : '?', x + 13, y + 6.2, got ? '#a85a00' : '#7a7690', { align: 'center', scale: 1.05, display: true, shadow: 'rgba(0,0,0,0)' });
     T(g, m.name, x + 25, y + 2.6, got ? C.gold : '#b0acc4', { weight: 700, scale: 1.02 }); T(g, m.how, x + 25, y + 12.4, got ? '#f0e8d8' : '#8a86a0', { scale: 0.76 });
   });
-  T(g, 'PRESS A BUTTON TO GO BACK', W / 2, 202, '#d4d8e8', { align: 'center' });
+  T(g, tall ? 'TAP TO GO BACK' : 'PRESS A BUTTON TO GO BACK', W / 2, tall ? 254 : 202, '#d4d8e8', { align: 'center' });
 }
 
 function drawMedalToast(g) {
@@ -234,7 +288,7 @@ function drawPause(g) {
     T(g, it, W / 2, y - 0.4, sel ? '#ffffff' : '#d4d8e8', { align: 'center', scale: 1.2, weight: 700 });
     hitArea(W / 2 - 90, y - 5, W / 2 + 90, y + 12, { i });
   });
-  T(g, 'RESTARTING A STAGE PUTS YOUR SCORE BACK TO WHERE THE STAGE BEGAN', W / 2, 166, '#b8b0c8', { align: 'center', scale: 0.82 });
+  wrapText('RESTARTING A STAGE PUTS YOUR SCORE BACK TO WHERE THE STAGE BEGAN', isTall() ? 200 : 380, 0.82).forEach((ln, i) => T(g, ln, W / 2, 166 + i * 8, '#b8b0c8', { align: 'center', scale: 0.82 }));
 }
 
 function drawClear(g) {
@@ -254,7 +308,7 @@ function drawClear(g) {
   panel(g, 82, 66, W - 164, 96);
   const rows = [
     ['TIME LEFT  ' + t.time.toFixed(1) + ' SEC', t.timeBonus, C.ink],
-    [gm.rivalBeat ? 'BEAT ' + st.rival.name + ' TO THE LINE' : st.rival.name + ' GOT THERE FIRST', t.rivalBonus, gm.rivalBeat ? C.green : '#ff8a8a'],
+    ['FINISHED ' + PLACE[gm.place - 1] + ' OF 8' + (gm.rivalBeat ? ', BEAT ' + st.rival.name : ''), t.rivalBonus, gm.place <= 3 ? C.green : '#ffffff'],
     [gm.stageCrash === 0 ? 'CLEAN RUN, NO CRASHES' : gm.stageCrash + (gm.stageCrash === 1 ? ' CRASH' : ' CRASHES'), t.cleanBonus, gm.stageCrash === 0 ? C.green : C.dim],
     ['STAGE TIME  ' + t.stageT.toFixed(1) + ' SEC', null, C.dim]
   ];
@@ -282,7 +336,7 @@ function drawContinue(g) {
 
 function statLines(g, y0) {
   const s = game.stats;
-  const rows = [['TOP SPEED', kmh(s.top) + ' KM/H'], ['OVERTAKES', s.passes], ['NEAR MISSES', s.near + '   BEST CHAIN X' + s.bestChain], ['RIVALS BEATEN', s.rivals + ' / ' + STAGES.length], ['COINS', s.coins], ['CRASHES', s.crashes + s.hits]];
+  const rows = [['TOP SPEED', kmh(s.top) + ' KM/H'], ['OVERTAKES', s.passes], ['NEAR MISSES', s.near + '   BEST CHAIN X' + s.bestChain], ['STAGE WINS', s.rivals + ' / ' + STAGES.length], ['COINS', s.coins], ['CRASHES', s.crashes + s.hits]];
   rows.forEach((r, i) => { const x = 96 + (i % 2) * 100, y = y0 + Math.floor(i / 2) * 17; T(g, r[0], x, y, C.dim, { scale: 0.78, weight: 700 }); T(g, String(r[1]), x, y + 6.6, '#ffffff', { weight: 700, scale: 1.05 }); });
 }
 function drawGameOver(g) {
@@ -304,7 +358,7 @@ function drawEnding(g) {
   const gm = game, t = gm.stateT;
   dimAll(g, Math.min(0.66, t * 0.5));
   bigTitle(g, 'COAST TO COAST', W / 2, 12, 3, { fill: C.gold });
-  T(g, 'FIVE STAGES, FIVE RIVALS, ONE ROAD. YOU MADE IT TO THE TOP OF THE RIDGE.', W / 2, 44, '#ffffff', { align: 'center', scale: 0.9, weight: 700 });
+  T(g, 'FIVE STAGES, FIVE RIVALS, ONE ROAD.', W / 2, 44, '#ffffff', { align: 'center', scale: 0.9, weight: 700 });
   panel(g, 60, 58, W - 120, 112);
   T(g, 'FINAL SCORE', 74, 64, C.ink, { weight: 700, scale: 1.3 }); T(g, String(Math.floor(gm.score)), 262, 64, C.gold, { align: 'right', weight: 700, scale: 1.3 });
   const gr = gradeOf();
@@ -329,5 +383,5 @@ function drawEntry(g) {
     hitArea(x - 22, 74, x + 22, 114, { slot: i, dl: 1 }); hitArea(x - 22, 116, x + 22, 154, { slot: i, dl: -1 });
   }
   slab(g, W / 2 - 40, 162, 80, 17, '#2fc86a'); T(g, 'OK', W / 2, 165.6, '#04240f', { align: 'center', weight: 700, scale: 1.25, shadow: 'rgba(0,0,0,0)' }); hitArea(W / 2 - 48, 158, W / 2 + 48, 184, { ok: true });
-  T(g, input.usingTouch ? 'TAP ABOVE OR BELOW A LETTER TO CHANGE IT' : 'UP/DOWN LETTER   LEFT/RIGHT MOVE   GAS OR ENTER TO CONFIRM', W / 2, 198, '#b8b0c8', { align: 'center', scale: 0.85 });
+  wrapText(input.usingTouch || isTall() ? 'TAP ABOVE OR BELOW A LETTER TO CHANGE IT' : 'UP/DOWN LETTER   LEFT/RIGHT MOVE   GAS OR ENTER TO CONFIRM', isTall() ? 200 : 380, 0.85).forEach((ln, i) => T(g, ln, W / 2, 198 + i * 8, '#b8b0c8', { align: 'center', scale: 0.85 }));
 }

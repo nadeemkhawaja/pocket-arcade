@@ -18,16 +18,8 @@ function readSafe() {
 }
 
 /** Size the touch pad for landscape and report how much side room it needs. */
-function sizePad(vw, vh, portrait) {
-  const root = $('touch');
-  if (!root) return { left: 0, right: 0 };
-  if (portrait) { for (const k of ['--dp', '--bk', '--bj', '--bs']) root.style.removeProperty(k); return { left: 0, right: 0 }; }
-  const dp = Math.round(clamp(Math.min(vh, 520) * 0.33, 100, 160));
-  const bk = Math.round(dp * 0.44), bj = Math.round(dp * 0.37), bs = Math.round(dp * 0.32);
-  root.style.setProperty('--dp', dp + 'px'); root.style.setProperty('--bk', bk + 'px');
-  root.style.setProperty('--bj', bj + 'px'); root.style.setProperty('--bs', bs + 'px');
-  return { left: Math.max(16, safe.l) + dp + 14, right: Math.max(16, safe.r) + bk * 2 + 12 + 14 };
-}
+/** The controls float over the picture in every orientation, so they never take room from it. */
+function sizePad() { return { left: 0, right: 0 }; }
 
 function layout() {
   readSafe();
@@ -45,15 +37,12 @@ function layout() {
   B.toggle('portrait', portrait);
   let gx = 0, gy = 0, gw = vw, gh = vh, zoom = 1;
   if (touchOn && portrait) {
-    // upright phone: zoom in on the action so the picture is taller, as far as the pad below allows
-    gy = safe.t + 6;
+    // upright phone: the race fills the whole screen and the controls float over its lower corners
+    gy = Math.max(0, safe.t);
     const baseH = (vw * H) / W;
-    const dp = $('dpad'), padTop = dp ? dp.getBoundingClientRect().top : 0;
-    const room = (padTop > vh * 0.4 ? padTop : vh * 0.7) - gy - 14;
-    zoom = clamp(room / baseH, 1, 2.1);
+    gh = vh - gy;
+    zoom = clamp(gh / baseH, 1, 4.6);
     gh = baseH * zoom;
-    // whatever height is still spare is shared above and below the picture
-    gy += Math.max(0, room - gh) * 0.5;
   } else if (touchOn) {
     // handheld landscape: the pad lives in side panels, the screen sits between them
     const pad = sizePad(vw, vh, false);
@@ -134,6 +123,7 @@ function frame(now) {
   pollInput();
   const tv = touchVisible();
   if (tv !== lastTouchState) { lastTouchState = tv; layout(); }
+  document.body.classList.toggle('driving', (game.state === 'play' || game.state === 'intro') && !game.demo);
   let steps = 0;
   while (acc >= STEP && steps < 8) {
     if (steps === 0) updateGame(STEP, input.held, takeInput());

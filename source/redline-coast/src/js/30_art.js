@@ -47,7 +47,7 @@ function drawCar(g, style, col, lean, o) {
   // rear tyres
   for (const sx of [-1, 1]) {
     rrect(g, sx * (hw - S.tw / 2 - 1) - S.tw / 2, -12, S.tw, 12, 2.6, '#121318');
-    rect(g, sx * (hw - S.tw / 2 - 1) - S.tw / 2 + 1.5, -11, S.tw - 3, 1.2, '#2a2c36');
+    for (let k = 0; k < 4; k++) rect(g, sx * (hw - S.tw / 2 - 1) - S.tw / 2 + 1.2 + k * ((S.tw - 2.4) / 3.4), -11.4, 1.1, 10.6, '#22242c');
   }
   // underbody and exhausts
   rect(g, -hw + 6, -8, S.bw - 12, 5, '#0b0c10');
@@ -88,6 +88,15 @@ function drawCar(g, style, col, lean, o) {
   // heads of the two people in the car
   if (style !== 'van') for (const sx of [-1, 1]) { disc(g, sx * cw * 0.42 + cs * 0.8, wy1 - 2.5, 3.6, '#0a0f18'); rect(g, sx * cw * 0.42 + cs * 0.8 - 4, wy1 - 1, 8, 4, '#0a0f18'); }
   g.restore();
+  // side mirrors, wheel-arch flares and a diffuser under the bumper
+  for (const sx of [-1, 1]) {
+    rrect(g, sx * (cw + 1.5) + cs * 0.5 - 2.6, -S.bt - 5.2, 5.2, 3.4, 1.2, dark);
+    g.fillStyle = rgba('#000000', 0.22); g.beginPath(); g.ellipse(sx * (hw - S.tw / 2 - 1), -11.5, S.tw / 2 + 2.4, 4.2, 0, Math.PI, TAU); g.fill();
+  }
+  if (style !== 'van') for (let i = -2; i <= 2; i++) rect(g, i * 6.2 - 0.6, -7.6, 1.2, 3.4, '#2a2c36');
+  // a band of reflected sky across the tail
+  g.fillStyle = lgrad(g, 0, -S.bt + 1, 0, -S.bt + 9, [[0, rgba('#ffffff', 0.26)], [1, rgba('#ffffff', 0)]]);
+  g.fillRect(-hw + 4, -S.bt + 1, S.bw - 8, 8);
   // crease of light along the shoulder
   rect(g, -hw + 6, -S.bt + 0.6, S.bw - 12, 0.9, rgba('#ffffff', 0.35));
   if (o.stripe) { for (const sx of [-1, 1]) rect(g, sx * 5 - 2 + cs * 0.2, -S.bt + 0.6, 4, S.bt - 9, rgba(o.stripe, 0.85)); }
@@ -216,6 +225,7 @@ const SCENERY = {
     rrect(g, -31, -45, 62, 27, 2.5, '#14161c'); rrect(g, -29.5, -43.5, 59, 24, 1.8, '#ffc81e');
     for (let i = 0; i < 3; i++) { const x = -22 + i * 18; poly(g, [x, -41, x + 7, -41, x + 15, -31.5, x + 7, -22, x, -22, x + 8, -31.5], '#14161c'); }
   }],
+  post: [10, 26, 5, (g) => { rrect(g, -1.6, -22, 3.2, 22, 1, '#eef0f4'); rect(g, -1.6, -19, 3.2, 4.4, '#e8392a'); rect(g, -1.6, -8, 3.2, 1.4, '#30343e'); drawGlowRaw(g, 0, -17, 5, '#ff5a3a', 0.7); }],
   /* ---- things on the road ---- */
   cone: [16, 20, 5, (g) => { rrect(g, -7, -2.4, 14, 2.4, 0.8, '#d84a1a'); poly(g, [-4.6, -2.4, -1.4, -18, 1.4, -18, 4.6, -2.4], '#ff6a2a'); poly(g, [-3.4, -8, -2.4, -12.5, 2.4, -12.5, 3.4, -8], '#ffffff'); }],
   barrier: [70, 28, 3, (g) => {
@@ -239,6 +249,17 @@ const SCENERY = {
     g.save(); g.translate(0, -6); g.scale(1, 0.16);
     g.fillStyle = rgrad(g, 0, 0, 2, 42, [[0, 'rgba(90,60,160,0.85)'], [0.8, 'rgba(40,30,90,0.8)'], [1, 'rgba(40,30,90,0)']]); g.beginPath(); g.arc(0, 0, 42, 0, TAU); g.fill();
     g.strokeStyle = 'rgba(255,120,220,0.7)'; g.lineWidth = 3; g.beginPath(); g.arc(0, 0, 22, 0.2, 2.2); g.stroke(); g.restore();
+  }],
+  ramp: [70, 30, 3, (g) => {
+    poly(g, [-30, 0, 30, 0, 26, -24, -26, -24], '#ffc81e'); poly(g, [-30, 0, 30, 0, 29, -5, -29, -5], '#b88a00');
+    for (let i = -2; i <= 2; i++) poly(g, [i * 11 - 4, -8, i * 11, -19, i * 11 + 4, -8, i * 11, -11], '#14161c');
+    rect(g, -26, -25.5, 52, 2, '#fff6c8');
+  }],
+  boost: [80, 16, 3, (g) => {
+    g.save(); g.translate(0, -7); g.scale(1, 0.2);
+    g.fillStyle = 'rgba(20,60,90,0.75)'; roundRectPath(g, -34, -34, 68, 68, 8); g.fill();
+    for (let i = 0; i < 3; i++) { g.strokeStyle = i === 1 ? '#ffffff' : '#5af0ff'; g.lineWidth = 7; g.beginPath(); g.moveTo(-20, 22 - i * 20); g.lineTo(0, 6 - i * 20); g.lineTo(20, 22 - i * 20); g.stroke(); }
+    g.restore(); drawGlowRaw(g, 0, -7, 26, '#39d8ff', 0.5);
   }],
   /* ---- pickups ---- */
   nitro: [30, 40, 5, (g) => {

@@ -4,15 +4,15 @@
 
 const MEDALS = [
   { id: 'breeze', name: 'SEA BREEZE', how: 'REACH THE GOAL AT SUNSET BAY' },
-  { id: 'giant', name: 'GIANT KILLER', how: 'BEAT A RIVAL TO THE LINE' },
-  { id: 'unrivaled', name: 'UNRIVALED', how: 'BEAT ALL FIVE RIVALS IN ONE RUN' },
+  { id: 'giant', name: 'GIANT KILLER', how: 'WIN A STAGE: FINISH IN 1ST PLACE' },
+  { id: 'unrivaled', name: 'UNRIVALED', how: 'WIN ALL FIVE STAGES IN ONE RUN' },
   { id: 'needle', name: 'THREAD THE NEEDLE', how: 'CHAIN 10 NEAR MISSES' },
   { id: 'sideways', name: 'SIDEWAYS', how: 'HOLD ONE DRIFT FOR 3 SECONDS' },
   { id: 'redline', name: 'REDLINE', how: 'REACH 350 KM/H ON NITRO' },
   { id: 'clean', name: 'CLEAN RUN', how: 'FINISH A STAGE WITHOUT A CRASH' },
-  { id: 'gold', name: 'GOLD RUSH', how: 'COLLECT 150 COINS IN ONE RUN' },
   { id: 'shark', name: 'ROAD SHARK', how: 'OVERTAKE 120 CARS IN ONE RUN' },
   { id: 'coast', name: 'COAST TO COAST', how: 'FINISH ALL FIVE STAGES' },
+  { id: 'ghost', name: 'GHOST', how: 'ESCAPE THE POLICE WITHOUT BEING RAMMED' },
   { id: 'credit', name: 'ONE CREDIT', how: 'FINISH THE GAME WITHOUT CONTINUING' },
   { id: 'legend', name: 'LEGEND', how: 'FINISH THE GAME ON LEGEND' }
 ];
@@ -28,7 +28,7 @@ function award(id) {
 
 const game = {
   state: 'boot', t: 0, stateT: 0, menu: 0, hits: [], toast: null, medalQ: [], medalT: 0, pops: [], fx: [], carSegs: [],
-  scores: loadScores(), hi: 0, demo: false, auto: false, T: null, p: null, rival: null, diff: DIFFS.sport,
+  scores: loadScores(), hi: 0, demo: false, auto: false, T: null, p: null, rival: null, racers: [], place: 8, diff: DIFFS.sport,
   stage: 0, score: 0, time: 0, pos: 0, dist: 0, count: 0, chain: 0, chainT: 0, coins: 0, passes: 0, shake: 0, flash: 0, punch: 0, fxT: 0,
   credits: 3, stats: {}, tally: null, entry: null, sky: 0, skyFar: 0, timeFlash: 0, idleT: 0, page: 0, optFrom: 'title'
 };
@@ -54,14 +54,14 @@ function startStage(si, carry) {
   g.T = buildTrack(si, g.diff);
   g.p = newPlayer(settings.car);
   if (g.demo) g.p.car = CARS[CAR_ORDER[Math.floor(Math.random() * 3)]];
-  g.rival = newRival(g.T, g.diff);
+  g.racers = newRacers(g.T, g.diff); g.rival = g.racers[0]; g.place = 8; g.placeFlash = 0;
   g.pos = (g.T.start - 9) * SEG - PLAYER_Z; g.dist = 0;
   g.time = Math.min(99, (carry || 0) + g.T.st.t0 * g.diff.time);
   g.count = g.demo ? 0 : 3.6; g.lastBeep = 4;
   g.checked = false; g.finished = false; g.timeUp = false; g.rivalWon = false; g.rivalBeat = false;
   g.chain = 0; g.chainT = 0; g.stageCrash = 0; g.playT = 0; g.stageT = 0;
-  g.fx = []; g.pops = []; g.carSegs = []; g.shake = 0; g.flash = 0; g.punch = 0; g.sky = 0; g.skyFar = 0; g.tally = null; g.warnT = 0;
-  if (g.demo) { g.p.speed = MAX_SPEED * 0.8; g.pos = (40 + Math.random() * 300) * SEG; g.rival.z = g.pos + 20 * SEG; g.rival.speed = MAX_SPEED * 0.8; g.time = 99; setState('title'); return; }
+  g.cop = null; g.fx = []; g.pops = []; g.carSegs = []; g.shake = 0; g.flash = 0; g.punch = 0; g.sky = 0; g.skyFar = 0; g.tally = null; g.warnT = 0;
+  if (g.demo) { g.p.speed = MAX_SPEED * 0.8; g.pos = (40 + Math.random() * 300) * SEG; g.racers.forEach((r, k) => { r.z = g.pos + (14 + k * 9) * SEG; r.speed = MAX_SPEED * 0.8; }); g.time = 99; setState('title'); return; }
   setState('intro');
   chip.stopMusic();
 }
@@ -80,9 +80,9 @@ function finishStage() {
   const g = game;
   g.finished = true;
   if (g.demo) return;
-  g.rivalBeat = !g.rivalWon;
-  chip.stopMusic(); chip.sfx('check'); chip.play('clear');
-  const timeBonus = Math.round(g.time * 10) * 200, rivalBonus = g.rivalBeat ? 25000 : 0, cleanBonus = g.stageCrash === 0 ? 10000 : 0;
+  g.place = racePlace(); g.rivalBeat = g.place === 1;
+  chip.stopMusic(); chip.sfx('check'); chip.sfx('cheer'); chip.play('clear');
+  const timeBonus = Math.round(g.time * 10) * 200, rivalBonus = PLACE_BONUS[g.place - 1], cleanBonus = g.stageCrash === 0 ? 10000 : 0;
   g.tally = { time: g.time, timeBonus, rivalBonus, cleanBonus, coins: g.coins, t: 0, shown: 0, stageT: g.stageT };
   addScore(timeBonus + rivalBonus + cleanBonus);
   if (g.rivalBeat) { g.stats.rivals++; award('giant'); if (g.stats.rivals >= 5) award('unrivaled'); }
@@ -128,7 +128,7 @@ function updateRace(dt, I) {
   if (g.count > 0) {
     g.count -= dt;
     const n = Math.ceil(g.count - 0.6);
-    if (n < g.lastBeep && n >= 0) { g.lastBeep = n; chip.sfx(n === 0 ? 'go' : 'count'); }
+    if (n < g.lastBeep && n >= 0) { g.lastBeep = n; chip.sfx(n === 0 ? 'go' : 'count'); if (n === 0) chip.sfx('cheer'); }
   } else if (!g.finished) {
     g.playT += dt; g.stageT += dt;
     if (!g.timeUp && !g.demo) {
@@ -140,12 +140,13 @@ function updateRace(dt, I) {
   if (g.chainT > 0) { g.chainT -= dt; if (g.chainT <= 0) g.chain = 0; }
   updatePlayer(dt, g.auto ? botInput() : I);
   updateTraffic(dt);
-  updateRival(dt);
+  updateRacers(dt);
+  updateCop(dt);
   updateFx(dt);
   const seg = segAt(g.T, g.pos + PLAYER_Z), sp = p.speed / MAX_SPEED;
   g.sky += seg.curve * sp * dt * 0.012; g.skyFar += seg.curve * sp * dt * 0.006;
   g.shake = Math.max(0, g.shake - dt * 22); g.flash = Math.max(0, g.flash - dt); g.punch = Math.max(0, g.punch - dt * 0.12);
-  g.timeFlash = Math.max(0, g.timeFlash - dt);
+  g.timeFlash = Math.max(0, g.timeFlash - dt); g.placeFlash = Math.max(0, (g.placeFlash || 0) - dt);
   if (g.banner) { g.banner.t += dt; if (g.banner.t > 2) g.banner = null; }
   if (g.timeUp && p.speed < MAX_SPEED * 0.03 && g.state === 'play') {
     chip.engine(null);
@@ -153,7 +154,7 @@ function updateRace(dt, I) {
     else { setState('gameover'); chip.play('over'); }
   }
   if (g.pos > (g.T.n - 30) * SEG) g.pos = (g.T.n - 30) * SEG;
-  if (!g.demo || g.state === 'title') chip.engine(g.demo ? null : { on: true, speed: sp, gas: p.gas, nitro: p.nitroOn, skid: p.skid, dirt: p.off ? 1 : 0 });
+  if (!g.demo || g.state === 'title') chip.engine(g.demo ? null : { on: true, speed: g.count > 0 ? ((I.gas || I.up || I.nitro) ? 0.1 + 0.05 * Math.sin(g.t * 30) : 0.02) : sp, gas: p.gas || (g.count > 0 && (I.gas || I.up || I.nitro)), nitro: p.nitroOn, skid: p.air > 0 ? 0 : p.skid, dirt: p.off ? 1 : 0, tunnel: seg.tun });
   if (g.demo && (g.pos > (g.T.goal - 60) * SEG)) startStage((g.stage + 1) % STAGES.length, 0);
 }
 
@@ -175,7 +176,7 @@ function updateGame(dt, I, P) {
       updateRace(dt, I);
       break;
     case 'intro':
-      updateFx(dt); updateTraffic(0); updateRival(0);
+      updateFx(dt); updateTraffic(0); updateRacers(0);
       if (g.stateT > 2.6 || (g.stateT > 0.5 && (P.any || input.tap))) beginPlay();
       break;
     case 'clear': {

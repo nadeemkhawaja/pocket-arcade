@@ -65,6 +65,8 @@ class Chip {
     const cv = c.createConvolver(), wet = c.createGain();
     cv.buffer = buf; wet.gain.value = 0.16;
     this.sfxBus.connect(cv); this.duck.connect(cv); cv.connect(wet); wet.connect(this.master);
+    // inside a tunnel the engine rings off the walls
+    this.tunSend = c.createGain(); this.tunSend.gain.value = 0; this.engBus.connect(this.tunSend); this.tunSend.connect(cv);
     // noise source shared by drums and effects
     const nlen = c.sampleRate * 2; this.noiseBuf = c.createBuffer(1, nlen, c.sampleRate);
     const nd = this.noiseBuf.getChannelData(0); for (let i = 0; i < nlen; i++) nd[i] = Math.random() * 2 - 1;
@@ -76,8 +78,8 @@ class Chip {
     if (!this.ctx) return;
     const t = this.ctx.currentTime, on = settings.muted ? 0 : 1;
     this.sfxBus.gain.setTargetAtTime(on * settings.sfx * 0.9, t, 0.05);
-    this.engBus.gain.setTargetAtTime(on * settings.sfx * 0.42, t, 0.05);
-    this.musicBus.gain.setTargetAtTime(on * settings.music * 0.62, t, 0.05);
+    this.engBus.gain.setTargetAtTime(on * settings.sfx * 0.3, t, 0.05);
+    this.musicBus.gain.setTargetAtTime(on * settings.music * 0.9, t, 0.05);
   }
 
   /* ---- building blocks ---------------------------------------------------------- */
@@ -115,9 +117,9 @@ class Chip {
   /* ---- the car ------------------------------------------------------------------- */
   initEngine() {
     const c = this.ctx, e = {};
-    e.f = c.createBiquadFilter(); e.f.type = 'lowpass'; e.f.frequency.value = 500; e.f.Q.value = 2.2;
+    e.f = c.createBiquadFilter(); e.f.type = 'lowpass'; e.f.frequency.value = 500; e.f.Q.value = 1.1;
     e.g = c.createGain(); e.g.gain.value = 0;
-    e.o = [['sawtooth', 1, 0.5], ['square', 0.5, 0.32], ['sawtooth', 1.012, 0.3], ['triangle', 2, 0.14]].map(([type, mul, lvl]) => {
+    e.o = [['sawtooth', 1, 0.36], ['triangle', 0.5, 0.6], ['sawtooth', 1.012, 0.22], ['sine', 0.25, 0.5], ['triangle', 2, 0.1]].map(([type, mul, lvl]) => {
       const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.value = 60 * mul; g.gain.value = lvl;
       o.connect(g); g.connect(e.f); o.start(); return [o, mul];
     });
@@ -149,12 +151,13 @@ class Chip {
     const rpm = clamp(0.3 + 0.7 * (sp - lo) / (hi - lo), 0.2, 1.25);
     const f = 46 + rpm * 118 + gear * 5;
     for (const [osc, mul] of e.o) osc.frequency.setTargetAtTime(f * mul, t, 0.035);
-    e.f.frequency.setTargetAtTime(380 + rpm * 1500 * (o.gas ? 1 : 0.5) + (o.nitro ? 900 : 0), t, 0.05);
+    e.f.frequency.setTargetAtTime(300 + rpm * 1150 * (o.gas ? 1 : 0.5) + (o.nitro ? 800 : 0), t, 0.05);
+    this.tunSend.gain.setTargetAtTime(o.tunnel ? 2.6 : 0, t, 0.08);
     e.g.gain.setTargetAtTime((o.gas ? 0.62 : 0.34) + (o.nitro ? 0.16 : 0), t, 0.06);
     e.skid[0].frequency.setTargetAtTime(1300 + sp * 600, t, 0.05);
     e.skid[1].gain.setTargetAtTime(clamp(o.skid || 0, 0, 1) * 0.5, t, 0.04);
     e.wind[0].frequency.setTargetAtTime(300 + sp * 900, t, 0.1);
-    e.wind[1].gain.setTargetAtTime(sp * sp * 0.5, t, 0.1);
+    e.wind[1].gain.setTargetAtTime(sp * sp * 0.3, t, 0.1);
     e.nitro[1].gain.setTargetAtTime(o.nitro ? 0.42 : 0, t, 0.06);
     e.dirt[1].gain.setTargetAtTime(clamp(o.dirt || 0, 0, 1) * sp * 1.4, t, 0.05);
   }
@@ -188,6 +191,10 @@ class Chip {
       case 'win': [0, 4, 7, 12].forEach((n, i) => T(t + i * 0.09, hz(67 + n), 0.3, 'square', 0.14, null, { cut: 2600, echo: true })); break;
       case 'medal': [0, 7, 12, 19].forEach((n, i) => T(t + i * 0.06, hz(76 + n), 0.25, 'sine', 0.16, null, { echo: true })); break;
       case 'horn': T(t, 392, 0.3, 'square', 0.12, null, { cut: 1500 }); T(t, 494, 0.3, 'square', 0.12, null, { cut: 1500 }); break;
+      case 'sirenHi': T(t, 880, 0.4, 'square', 0.13 * ((opt && opt.vol) || 1), null, { cut: 2200, a: 0.03, r: 0.1 }); T(t, 884, 0.4, 'sawtooth', 0.07 * ((opt && opt.vol) || 1), null, { cut: 1800, a: 0.03 }); break;
+      case 'sirenLo': T(t, 660, 0.4, 'square', 0.13 * ((opt && opt.vol) || 1), null, { cut: 2200, a: 0.03, r: 0.1 }); T(t, 663, 0.4, 'sawtooth', 0.07 * ((opt && opt.vol) || 1), null, { cut: 1800, a: 0.03 }); break;
+      case 'cheer': N(t, 2.2, 0.26, 'bandpass', 1300, 0.5, null, { a: 0.5, sweep: 1900 }); N(t + 0.2, 1.8, 0.14, 'bandpass', 2600, 0.8, null, { a: 0.6 }); break;
+      case 'blow': N(t, 0.32, 0.2, 'highpass', 2800, 0.7, null, { sweep: 7000 }); break;
       case 'tick': T(t, 1900, 0.02, 'square', 0.06, null, { cut: 4000 }); break;
       case 'rumble': N(t, 0.07, 0.22, 'lowpass', 300, 0.8); break;
       default: break;
@@ -293,8 +300,8 @@ class Chip {
         if (pos !== i) continue;
         const f = hz(this.degree(def, chord + deg + shift - 7, 3) - (section === 2 ? 0 : 0));
         const dur = len * s.len * 0.95;
-        this.tone(t, f, dur, 'sawtooth', 0.085, mb, { cut: def.cut * 1.5, q: 1.5, a: 0.012, r: 0.08, decay: 0.2, sus: 0.7, echo: true, detune: -6 });
-        this.tone(t, f, dur, 'triangle', 0.1, mb, { a: 0.012, r: 0.08, detune: 6 });
+        this.tone(t, f, dur, 'sawtooth', 0.11, mb, { cut: def.cut * 1.5, q: 1.5, a: 0.012, r: 0.08, decay: 0.2, sus: 0.7, echo: true, detune: -6 });
+        this.tone(t, f, dur, 'triangle', 0.13, mb, { a: 0.012, r: 0.08, detune: 6 });
         if (section === 2) this.tone(t, f * 2, dur, 'sine', 0.04, mb, { a: 0.02, r: 0.08, echo: true });
       }
     }
