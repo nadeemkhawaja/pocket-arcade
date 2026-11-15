@@ -120,9 +120,17 @@ function drawArmV(g, d, sh, el, hd, k, back, fist) {
   const wx = hd[0] - ux * 0.95 * k, wy = hd[1] - uy * 0.95 * k;
   if (d.bare) {
     limbs(g, [
-      [el[0], el[1], wx, wy, 1.12 * k, 0.82 * k, skinS, skin],
-      [sh[0], sh[1], el[0], el[1], 1.45 * k, 1.12 * k, skinS, skin]
+      [el[0], el[1], wx, wy, 1.22 * k, 0.86 * k, skinS, skin],
+      [sh[0], sh[1], el[0], el[1], 1.62 * k, 1.18 * k, skinS, skin]
     ], d);
+    if (!d.tint) {
+      // muscle: a lit ridge down the biceps and forearm, a crease at the elbow
+      const ax = el[0] - sh[0], ay = el[1] - sh[1], al = Math.hypot(ax, ay) || 1, nx = -ay / al, ny = ax / al;
+      const hl = back ? shade(skin, 0.1) : shade(skin, 0.22);
+      line(g, lerp(sh[0], el[0], 0.2) - nx * 0.55 * k, lerp(sh[1], el[1], 0.2) - ny * 0.55 * k, lerp(sh[0], el[0], 0.75) - nx * 0.45 * k, lerp(sh[1], el[1], 0.75) - ny * 0.45 * k, 0.42 * k, hl);
+      line(g, lerp(el[0], wx, 0.15) - ux * 0 - uy * -0.45 * k, lerp(el[1], wy, 0.15) + ux * -0.45 * k, lerp(el[0], wx, 0.6) + uy * 0.4 * k, lerp(el[1], wy, 0.6) - ux * 0.4 * k, 0.32 * k, hl);
+      disc(g, el[0], el[1], 0.32 * k, rgba(shade(skin, -0.45), 0.7));
+    }
   } else {
     const mx = lerp(el[0], wx, 0.52), my = lerp(el[1], wy, 0.52);
     limbs(g, [
@@ -544,7 +552,8 @@ function renderFighter(g, kind, pose, x, y, face, anim, frame, tint) {
 
 /* Translucent or flashing fighters are painted once into a scratch layer and composited in
    a single pass, so overlapping limbs never stack up into a washed out, see-through figure. */
-let SPRITE_DIRECT = false;   // reflections set this: they are faint enough to draw straight through
+let SPRITE_DIRECT = false;
+let SPRITE_HOLD = null;      // a weapon to keep in the hand through poses that have none (kicks)   // reflections set this: they are faint enough to draw straight through
 let SPRITE_LAYER = null;
 function spriteLayer(cv) {
   if (!SPRITE_LAYER || SPRITE_LAYER.width !== cv.width || SPRITE_LAYER.height !== cv.height) SPRITE_LAYER = makeCanvas(cv.width, cv.height);
@@ -567,6 +576,7 @@ function drawSprite(g, kind, anim, frame, facing, x, y, flash, alpha) {
   if (a <= 0.01) return;
   let pose = poseAt(kind, anim, frame);
   if (SPRITE_SWAP && pose.item && SPRITE_SWAP[pose.item]) pose = Object.assign({}, pose, { item: SPRITE_SWAP[pose.item] });
+  else if (SPRITE_HOLD && !pose.item && !pose.noFrontArm) pose = Object.assign({}, pose, { item: SPRITE_HOLD, ia: -70 });
   const ga = g.globalAlpha, net = ga * a;
   const cv = g.canvas;
   const layered = (flash || net < 0.97) && !SPRITE_DIRECT && QUALITY.level < 2 && cv && cv.id === 'screen' && g.getTransform;

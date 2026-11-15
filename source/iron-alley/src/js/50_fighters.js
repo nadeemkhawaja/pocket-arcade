@@ -110,7 +110,7 @@ function inReach(a, b, A) {
 
 /** Apply a hit from attacker a to target b. */
 function landHit(a, b, A, key) {
-  if (b.inv > 0 || b.state === 'down' || b.state === 'dead' || b.state === 'getup' || b.dead) return false;
+  if (b.inv > 0 || b.state === 'down' || b.state === 'dead' || b.state === 'getup' || b.state === 'tossed' || b.dead) return false;
   if (b.foe && a.foe) return false;
   if (b.hero && a.hero && !settings.friendly) return false;
   const dir = b.state === 'held' ? a.face : Math.sign(b.x - a.x) || a.face;
@@ -171,11 +171,12 @@ function updateFighter(f, dt) {
   if (f.h <= 0 && f.state !== 'pitfall' && !f.dead && inPit(f.x, f.z)) { if (f.hold) release(f); if (f.heldBy) { f.heldBy.hold = null; f.heldBy = null; } setSt(f, 'pitfall', 'flung'); f.pitDone = false; f.vx *= 0.2; f.vz = 0; f.vh = 0; chip.sfx('throw'); }
   if (grounded(f) && f.state !== 'run' && f.state !== 'walk' && !(f.state === 'attack' && ATK[f.atk] && ATK[f.atk].move)) f.vx = approach(f.vx, 0, 600 * dt);
   // thrown bodies knock others over
-  if (f.state === 'flung' && f.thrownBy) for (const o of fighters()) if (o !== f && o !== f.thrownBy && o.foe === f.foe && Math.abs(o.x - f.x) < 30 && Math.abs(o.z - f.z) < DZ_HIT && o.state !== 'down' && o.state !== 'fall') { landHit(f.thrownBy, o, { dmg: 10, kd: true, launch: 160, push: 90, sfx: 'heavy', stop: 0.07 }, 'body'); }
+  if ((f.state === 'flung' || f.state === 'fall') && f.thrownBy) for (const o of fighters()) if (o !== f && o !== f.thrownBy && o.foe === f.foe && Math.abs(o.x - f.x) < 30 && Math.abs(o.z - f.z) < DZ_HIT && o.state !== 'down' && o.state !== 'fall') { landHit(f.thrownBy, o, { dmg: 10, kd: true, launch: 160, push: 90, sfx: 'heavy', stop: 0.07 }, 'body'); }
   switch (f.state) {
     case 'hurt': if (f.st >= f.stun) setSt(f, 'idle'); if (game.t - (f.lastHurtT || 0) > 1.2) f.kdCount = 0; break;
     case 'dizzy': if (f.st > (f.stun || 1.4)) { setSt(f, 'idle'); f.kdCount = 0; } break;
     case 'pinned': if (!f.pinnedBy) setSt(f, 'idle'); break;
+    case 'tossed': if (f.tossBy) updateTossed(f, dt); else setSt(f, 'fall', 'fall'); return;
     case 'pitfall': f.h -= 220 * dt; f.alpha = Math.max(0, 1 - f.st * 1.4); if (f.st > 0.8 && !f.pitDone) { f.pitDone = true; pitOut(f); } break;
     case 'idle': case 'walk': if (game.t - (f.lastHurtT || 0) > 1.2) f.kdCount = 0; break;
     case 'down':
@@ -230,7 +231,7 @@ function updateAttack(f, dt) {
 
 /** Fighters standing on top of each other drift apart, so the gang walks round you, not through you. */
 function separate(dt) {
-  const L = fighters().filter((f) => grounded(f) && !['down', 'fall', 'held', 'flung', 'dead'].includes(f.state) && !f.heldBy && !f.hold);
+  const L = fighters().filter((f) => grounded(f) && !['down', 'fall', 'held', 'flung', 'dead', 'tossed', 'pinned', 'pinning'].includes(f.state) && !f.heldBy && !f.hold);
   for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
     const a = L[i], b = L[j], dx = b.x - a.x, dz = b.z - a.z;
     if (Math.abs(dz) > 9 || Math.abs(dx) > 18) continue;
@@ -293,8 +294,8 @@ function updateHero(h, I, P, dt) {
         const it = P.punch ? nearItem(h) : null;
         if (it && !h.weapon) { pickUp(h, it); break; }
         if (h.weapon === 'drum') { throwWeapon(h); break; }
-        if (h.weapon && h.weapon !== 'knife') { startAttack(h, 'swing'); break; }
-        if (h.weapon === 'knife' && P.punch) { startAttack(h, 'stab'); break; }
+        if (h.weapon && h.weapon !== 'knife' && P.punch && !back) { startAttack(h, 'swing'); break; }
+        if (h.weapon === 'knife' && P.punch && !back) { startAttack(h, 'stab'); break; }
         // the back elbow: attack toward your back without turning round
         if (back) { startAttack(h, 'elbow'); h.punches = 0; h.kicks = 0; break; }
         if (P.punch) { h.punches = h.chainT > 0 ? h.punches + 1 : 1; h.kicks = 0; h.chainT = 0.55; startAttack(h, h.punches >= 3 ? 'hook' : 'jab'); if (h.punches >= 3) h.punches = 0; }
@@ -321,7 +322,7 @@ function updateHero(h, I, P, dt) {
       const t = h.hold;
       h.holdT += dt;
       if (!t || t.dead || t.heldBy !== h || h.holdT > 2.2) { release(h); break; }
-      t.x = h.x + h.face * 17 * (CHARS[h.kind].k / 1.9) * 0.8; t.z = h.z; t.face = -h.face;
+      t.x = h.x + h.face * (9.2 * CHARS[h.kind].k + 6.4 * CHARS[t.kind].k); t.z = h.z - 0.5; t.face = -h.face;
       if (P.kick || ((P.punch) && dirX === -h.face)) { toss(h); break; }
       if (P.punch) { startAttack(h, 'knee'); break; }
       if (dirX === -h.face && h.holdT > 0.5) release(h);
@@ -357,14 +358,31 @@ function release(h) {
 }
 /** The shoulder throw: the enemy goes up and over, landing behind you, flattening anyone there. */
 function toss(h) {
-  const t = h.hold, dir = -h.face;
+  const t = h.hold;
   h.hold = null; t.heldBy = null;
-  setSt(h, 'attack', 'toss'); h.atk = 'tossMove'; h.atkHit = new Set();
-  ATK.tossMove = ATK.tossMove || { anim: 'toss', t: [0.1, 0.12, 0.28], r: [0, 0], dmg: 0, push: 0 };
-  t.x = h.x + h.face * 4; t.hp -= 14 * h.power; t.flash = 0.12; t.lastHitBy = h;
-  setSt(t, 'flung', 'flung'); t.vh = 300; t.vx = dir * 150; t.face = h.face; t.thrownBy = h; t.ko = t.hp <= 0; if (t.hp < 0) t.hp = 0;
-  h.score += 500; game.stats.throws++; chip.sfx('throw'); game.shake = Math.max(game.shake, 3);
-  if (game.stats.throws >= 15) award('suplex');
+  ATK.tossMove = ATK.tossMove || { anim: 'toss', t: [0.16, 0.2, 0.3], r: [0, 0], dmg: 0, push: 0 };
+  setSt(h, 'attack', 'toss'); h.atk = 'tossMove'; h.atkHit = new Set(); h.vx = 0;
+  setSt(t, 'tossed', 'flung'); t.tossBy = h; t.tossFace = h.face; t.tossX = h.x; t.vx = 0; t.vh = 0; t.atk = null;
+  t.lastHitBy = h; t.thrownBy = null;
+  chip.sfx('grab', { p: 0.8 });
+}
+/** Where a body is during the throw: lifted, carried over the thrower's head, slammed down behind. */
+function updateTossed(t, dt) {
+  const h = t.tossBy, D = 0.46;
+  const u = Math.min(1, t.st / D), f = t.tossFace, k = CHARS[h.kind].k / 1.9;
+  t.x = t.tossX + f * 18 * k * Math.cos(Math.PI * u);
+  t.h = Math.sin(Math.PI * u) * 26 * k + Math.sin(Math.PI * Math.min(1, u * 1.6)) * 4 * k;
+  t.z = h.z; t.face = f;
+  t.spinA = -f * Math.PI * 1.1 * u;
+  if (u >= 1) {
+    t.spinA = 0; t.tossBy = null; t.h = 0;
+    t.hp -= 16 * h.power; t.flash = 0.12; if (t.hp < 0) t.hp = 0;
+    t.ko = t.hp <= 0; t.thrownBy = h;
+    setSt(t, 'fall', 'fall'); t.vh = 90; t.vx = -f * 120; t.bounce = true; t.face = f;
+    game.shake = Math.max(game.shake, 6); game.hitstop = Math.max(game.hitstop, 0.08);
+    chip.sfx('heavy', { p: 0.8 }); chip.sfx('fall'); dust(t.x, t.z, 1.2);
+    h.score += 500; game.stats.throws++; if (game.stats.throws >= 15) award('suplex');
+  }
 }
 
 /* ---- arm pins: one of the gang grabs you from behind and holds you for a partner ------------------ */

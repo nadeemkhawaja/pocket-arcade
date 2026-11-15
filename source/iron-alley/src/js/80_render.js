@@ -47,21 +47,29 @@ function streetView() {
 
 function depthScale(z) { return 0.92 + (z - Z0) / (Z1 - Z0) * 0.12; }
 
-function drawStreet(g) {
+/* The street is painted at the arcade's own resolution, one world unit to one pixel, into a small
+   buffer, then blown up with hard pixel edges. Menus and the HUD stay smooth on top. */
+let PIX = null;
+function pixBuffer(w, h) {
+  if (!PIX || PIX.width !== w || PIX.height !== h) PIX = makeCanvas(w, h);
+  return PIX;
+}
+function drawStreet(out) {
   const gm = game, S = gm.stageDef, si = gm.stage, v = streetView();
   if (!S) return;
+  const PW = Math.ceil(v.w) + 1, buf = pixBuffer(PW, H), g = buf.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+  g.imageSmoothingEnabled = false;
+  g.clearRect(0, 0, PW, H);
   g.save();
-  g.translate(0, v.y); g.scale(v.zf, v.zf);
-  g.beginPath(); g.rect(0, 0, v.w, H); g.clip();
   let sx = 0, sy = 0;
-  if (settings.shake && gm.shake > 0.3 && gm.state !== 'pause') { sx = rand(-1, 1) * gm.shake * 0.5; sy = rand(-1, 1) * gm.shake * 0.4; }
+  if (settings.shake && gm.shake > 0.3 && gm.state !== 'pause') { sx = Math.round(rand(-1, 1) * gm.shake * 0.5); sy = Math.round(rand(-1, 1) * gm.shake * 0.4); }
   g.translate(sx, sy);
-  const px = view.scale * v.zf, cam = v.x0;
-  // far layer drifts at a third of the speed
-  const far = cam * 0.32;
-  for (let i = Math.floor(far / TILE); i * TILE < far + v.w; i++) g.drawImage(stageTile(si, 0, i, px), i * TILE - far, 0, TILE, H);
+  // whole pixels only, so the art never smears as the camera moves
+  const cam = Math.round(v.x0), far = Math.round(cam * 0.32);
+  for (let i = Math.floor(far / TILE); i * TILE < far + PW; i++) g.drawImage(stageTile(si, 0, i, 1), i * TILE - far, 0);
   drawStageLive(g, si, cam, true);
-  for (let i = Math.floor(cam / TILE); i * TILE < cam + v.w; i++) if (i >= 0) g.drawImage(stageTile(si, 1, i, px), i * TILE - cam, 0, TILE, H);
+  for (let i = Math.floor(cam / TILE); i * TILE < cam + PW; i++) if (i >= 0) g.drawImage(stageTile(si, 1, i, 1), i * TILE - cam, 0);
   g.translate(-cam, 0);
   drawPits(g, cam, v.w);
   // shadows first, then every body back to front
@@ -69,10 +77,10 @@ function drawStreet(g) {
   for (const h of gm.heroes) if (h.active && !(h.state === 'dead')) bodies.push(h);
   for (const f of gm.foes) bodies.push(f);
   for (const it of gm.items) bodies.push(it);
-  for (const s of gm.shots) bodies.push(s);
-  for (const b of bodies) { const k = b.kind ? CHARS[b.kind].k / 1.9 : 0.8; g.globalAlpha = 0.35 * (b.alpha === undefined ? 1 : b.alpha) / (1 + (b.h || 0) / 60); g.drawImage(shadowSprite(), b.x - 18 * k, b.z - 4, 36 * k, 8); }
+  for (const s2 of gm.shots) bodies.push(s2);
+  for (const b of bodies) { const k = b.kind ? CHARS[b.kind].k / 1.9 : 0.8; g.globalAlpha = 0.45 * (b.alpha === undefined ? 1 : b.alpha) / (1 + (b.h || 0) / 60); g.drawImage(shadowSprite(), Math.round(b.x - 18 * k), Math.round(b.z - 4), Math.round(36 * k), 8); }
   g.globalAlpha = 1;
-  bodies.sort((a, b) => a.z - b.z);
+  bodies.sort((a, b2) => a.z - b2.z);
   for (const b of bodies) {
     if (b.type && !b.kind && b.vx === undefined) drawItem(g, b);
     else if (b.owner) drawShot(g, b);
@@ -80,18 +88,28 @@ function drawStreet(g) {
     else drawItem(g, b);
   }
   drawFxWorld(g);
-  // floating score
-  for (const q of gm.pops) { g.globalAlpha = Math.min(1, (1 - q.t) * 2); T(g, q.s, q.x, q.z - 70 - q.t * 18, q.col, { align: 'center', weight: 700, scale: 1.1 }); }
-  g.globalAlpha = 1;
   g.translate(cam, 0);
   drawStageLive(g, si, cam, false);
-  // the GO arrow
-  if (gm.goT > 0 && gm.state === 'play' && blink(3)) { T(g, 'GO', v.w - 44, 60, C.gold, { align: 'center', scale: 2.4, display: true, stroke: 'rgba(0,0,0,0.7)', strokeW: 2 }); poly(g, [v.w - 28, 64, v.w - 16, 72, v.w - 28, 80], C.gold); }
   g.restore();
+  // blow the buffer up onto the screen
+  out.save();
+  out.translate(0, v.y); out.scale(v.zf, v.zf);
+  out.beginPath(); out.rect(0, 0, v.w, H); out.clip();
+  const sm = out.imageSmoothingEnabled;
+  out.imageSmoothingEnabled = false;
+  out.drawImage(buf, 0, 0, PW, H, -(v.x0 - cam), 0, PW, H);
+  out.imageSmoothingEnabled = sm;
+  // floating scores and the GO arrow stay sharp
+  out.translate(-v.x0, 0);
+  for (const q of gm.pops) { out.globalAlpha = Math.min(1, (1 - q.t) * 2); T(out, q.s, q.x, q.z - 70 - q.t * 18, q.col, { align: 'center', weight: 700, scale: 1.1 }); }
+  out.globalAlpha = 1;
+  out.translate(v.x0, 0);
+  if (gm.goT > 0 && gm.state === 'play' && blink(3)) { T(out, 'GO', v.w - 44, 60, C.gold, { align: 'center', scale: 2.4, display: true, stroke: 'rgba(0,0,0,0.7)', strokeW: 2 }); poly(out, [v.w - 28, 64, v.w - 16, 72, v.w - 28, 80], C.gold); }
+  out.restore();
   // markers for anyone off the side of an upright view
-  if (v.zf > 1 && gm.state === 'play') for (const f of gm.foes) { const x = (f.x - v.x0) * v.zf; if (x < 0 || x > W) { const y = v.y + (f.z - 30) * v.zf, L = x < 0; poly(g, L ? [3, y, 11, y - 5, 11, y + 5] : [W - 3, y, W - 11, y - 5, W - 11, y + 5], f.boss ? C.red : 'rgba(255,255,255,0.7)'); } }
-  if (settings.fx) { g.fillStyle = rgrad(g, W / 2, v.y + H * v.zf * 0.5, H * 0.4 * v.zf, W * 0.75, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,10,0.45)']]); g.fillRect(0, v.y, W, H * v.zf); }
-  if (gm.flash > 0) rect(g, 0, v.y, W, H * v.zf, 'rgba(255,255,255,' + Math.min(0.5, gm.flash * 2).toFixed(3) + ')');
+  if (v.zf > 1 && gm.state === 'play') for (const f of gm.foes) { const x = (f.x - v.x0) * v.zf; if (x < 0 || x > W) { const y = v.y + (f.z - 30) * v.zf, L = x < 0; poly(out, L ? [3, y, 11, y - 5, 11, y + 5] : [W - 3, y, W - 11, y - 5, W - 11, y + 5], f.boss ? C.red : 'rgba(255,255,255,0.7)'); } }
+  if (settings.fx) { out.fillStyle = rgrad(out, W / 2, v.y + H * v.zf * 0.5, H * 0.4 * v.zf, W * 0.75, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,10,0.45)']]); out.fillRect(0, v.y, W, H * v.zf); }
+  if (gm.flash > 0) rect(out, 0, v.y, W, H * v.zf, 'rgba(255,255,255,' + Math.min(0.5, gm.flash * 2).toFixed(3) + ')');
 }
 
 /** A hole in the front part of the floor: a lit lip at the back, dark walls, and what lies below. */
@@ -117,9 +135,33 @@ function drawPits(g, cam, vw) {
   }
 }
 
+/* In the pixel buffer every figure is painted on its own scratch card, then stamped down with a
+   solid one-pixel ink outline around the whole silhouette, the way arcade sprites were drawn. */
+const BODY_CARD = { w: 240, h: 240, ox: 120, oy: 176 };
+let CARD = null, CARD_INK = null;
 function drawBody(g, f) {
+  if (g.canvas !== PIX || QUALITY.level >= 2) return drawBodyRaw(g, f);
+  if (!CARD) { CARD = makeCanvas(BODY_CARD.w, BODY_CARD.h); CARD_INK = makeCanvas(BODY_CARD.w, BODY_CARD.h); }
+  const bx = Math.round(f.x), by = Math.round(f.z - f.h);
+  const q = CARD.getContext('2d');
+  q.setTransform(1, 0, 0, 1, 0, 0); q.globalAlpha = 1; q.globalCompositeOperation = 'source-over';
+  q.clearRect(0, 0, BODY_CARD.w, BODY_CARD.h);
+  q.translate(BODY_CARD.ox - bx, BODY_CARD.oy - by);
+  drawBodyRaw(q, f);
+  const o = CARD_INK.getContext('2d');
+  o.setTransform(1, 0, 0, 1, 0, 0); o.globalAlpha = 1; o.globalCompositeOperation = 'source-over';
+  o.clearRect(0, 0, BODY_CARD.w, BODY_CARD.h);
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) o.drawImage(CARD, dx, dy);
+  o.globalCompositeOperation = 'source-in';
+  o.fillStyle = '#07040c'; o.fillRect(0, 0, BODY_CARD.w, BODY_CARD.h);
+  o.globalCompositeOperation = 'source-over';
+  o.drawImage(CARD, 0, 0);
+  g.drawImage(CARD_INK, bx - BODY_CARD.ox, by - BODY_CARD.oy);
+}
+function drawBodyRaw(g, f) {
   const k = depthScale(f.z);
   g.save(); g.translate(f.x, f.z - f.h); g.scale(k, k);
+  if (f.spinA) { const c = -CHARS[f.kind].k * 13; g.translate(0, c); g.rotate(f.spinA); g.translate(0, -c); }
   if (f.spawnT > 0 && f.boss) g.globalAlpha = 1;
   const flash = f.flash > 0.05 ? '#ffffff' : f.inv > 0 && f.hero && f.state !== 'getup' && Math.floor(game.t * 16) % 2 ? false : null;
   const a = (f.alpha === undefined ? 1 : f.alpha) * (f.inv > 0 && f.hero && f.state !== 'getup' && f.state !== 'down' && Math.floor(game.t * 16) % 2 ? 0.6 : 1);
@@ -127,8 +169,9 @@ function drawBody(g, f) {
   let anim = f.anim, frame = f.frame;
   if (f.weapon === 'drum' && (anim === 'idle' || anim === 'walk')) { anim = 'carry'; frame = 0; }
   else if (f.weapon && f.weapon !== 'knife' && f.weapon !== 'drum' && (anim === 'idle' || anim === 'walk')) { anim = 'hold1'; frame = 0; }
+  SPRITE_HOLD = f.weapon && f.weapon !== 'drum' && f.state !== 'down' && f.state !== 'fall' ? (f.weapon === 'knife' ? 'knife' : f.weapon) : null;
   drawSprite(g, f.kind, anim, frame, f.face, 0, 0, flash, a);
-  SPRITE_SWAP = null;
+  SPRITE_SWAP = null; SPRITE_HOLD = null;
   if (f.weapon === 'drum') { const k2 = CHARS[f.kind].k; g.save(); g.translate(f.face * 1, -k2 * 29); drawItem(g, { type: 'drum', x: 0, z: 0, h: 0, id: 0 }); g.restore(); }
   // a ring under each player so you can tell who is who
   if (f.hero && game.players > 1) { T(g, 'P' + (f.slot + 1), 0, -CHARS[f.kind].k * 33, f.slot ? C.cyan : C.red, { align: 'center', weight: 700, scale: 0.9 }); }
