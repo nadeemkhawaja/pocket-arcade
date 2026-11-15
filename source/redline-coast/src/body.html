@@ -1,0 +1,18 @@
+<div id="app">
+  <canvas id="screen" tabindex="0" aria-label="Redline Coast game screen. Left and right arrows steer, Up or X accelerates, Down or Z brakes, Space fires nitro, P pauses."></canvas>
+  <div id="safeProbe" aria-hidden="true"></div>
+  <div id="touch" aria-hidden="true">
+    <div id="dpad" class="tctl">
+      <i class="arm h"></i><i class="arm v"></i>
+      <i class="ar l"></i><i class="ar r"></i><i class="ar u"></i><i class="ar d"></i>
+      <span id="dpadKnob"></span>
+    </div>
+    <div id="btns">
+      <button class="tbtn tctl" type="button" data-k="nitro" id="bNitro"><b>N</b><small>NITRO</small></button>
+      <button class="tbtn tctl" type="button" data-k="brake" id="bBrake"><b>B</b><small>BRAKE</small></button>
+      <button class="tbtn tctl" type="button" data-k="gas" id="bGas"><b>A</b><small>GAS</small></button>
+    </div>
+    <button id="tPause" type="button" aria-label="Pause">II</button>
+  </div>
+  <noscript>Redline Coast needs JavaScript to run.</noscript>
+</div>

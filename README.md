@@ -1,15 +1,15 @@
 # Pocket Arcade
 
-Three original arcade games that run in the browser on phones and computers. No install, no account.
+Four original arcade games that run in the browser on phones and computers. No install, no account.
 
 **Play online:** https://pocket-arcade-rouge.vercel.app/
 
-Direct links: [Dagger Raid](https://pocket-arcade-rouge.vercel.app/dagger-raid), [Ace Rally Tennis](https://pocket-arcade-rouge.vercel.app/tennis) and [Dragon Pagoda](https://pocket-arcade-rouge.vercel.app/dragon-pagoda)
+Direct links: [Dagger Raid](https://pocket-arcade-rouge.vercel.app/dagger-raid), [Ace Rally Tennis](https://pocket-arcade-rouge.vercel.app/tennis), [Dragon Pagoda](https://pocket-arcade-rouge.vercel.app/dragon-pagoda) and [Redline Coast](https://pocket-arcade-rouge.vercel.app/redline-coast)
 
-| Dagger Raid | Ace Rally Tennis | Dragon Pagoda |
-| --- | --- | --- |
-| [![Dagger Raid gameplay](assets/dagger-raid.webp)](https://pocket-arcade-rouge.vercel.app/dagger-raid) | [![Ace Rally Tennis gameplay](assets/ace-rally-tennis.webp)](https://pocket-arcade-rouge.vercel.app/tennis) | [![Dragon Pagoda gameplay](assets/dragon-pagoda.webp)](https://pocket-arcade-rouge.vercel.app/dragon-pagoda) |
-| Side-scrolling commando raid with a combat knife | Stadium tennis you can swing with your webcam | Kung fu climb through five guarded pagoda floors |
+| Dagger Raid | Ace Rally Tennis | Dragon Pagoda | Redline Coast |
+| --- | --- | --- | --- |
+| [![Dagger Raid gameplay](assets/dagger-raid.webp)](https://pocket-arcade-rouge.vercel.app/dagger-raid) | [![Ace Rally Tennis gameplay](assets/ace-rally-tennis.webp)](https://pocket-arcade-rouge.vercel.app/tennis) | [![Dragon Pagoda gameplay](assets/dragon-pagoda.webp)](https://pocket-arcade-rouge.vercel.app/dragon-pagoda) | [![Redline Coast gameplay](assets/redline-coast.webp)](https://pocket-arcade-rouge.vercel.app/redline-coast) |
+| Side-scrolling commando raid with a combat knife | Stadium tennis you can swing with your webcam | Kung fu climb through five guarded pagoda floors | Open-road racer against the clock and a rival |
 
 ## Dagger Raid
 
@@ -86,9 +86,21 @@ A kung fu climb in hand-drawn HD, inspired by 1980s arcade brawlers but with its
 | Dash | V or Q, or double tap a direction | LT or RT | Double tap the pad |
 | Pause / mute | P or Esc / M | Start | II |
 
+## Redline Coast
+
+An open-road arcade racer in sharp HD, inspired by the great 1980s driving cabinets but with its own cars, stages and soundtrack.
+
+- Five stages: Sunset Bay, Mesa Run, Pine Pass, Neon Harbor and Aurora Ridge, each with its own scenery, weather and hazards
+- Race the clock: reach the checkpoint and the goal before time runs out; spare seconds become score
+- A named rival on every stage: Marlo, Dusty, Frost, Nova and Zenith
+- Drift (tap brake while turning) for a boost, nitro, slipstream, and near-miss chains that multiply the score
+- Three cars with different speed, acceleration and grip; four levels from Cruise to Legend
+- Pick-ups, twelve medals, high scores, and a touch pad with automatic gas on phones
+- Keys: arrows steer and accelerate, Z brakes, Space fires nitro, P pauses, M mutes
+
 ## Phones, tablets and computers
 
-All three games are built for current Safari on iPhone and iPad, Chrome on Android, and Chrome, Edge, Safari or Firefox on Windows and Mac. On a phone, hold it sideways for the biggest picture; held upright, Dagger Raid and Dragon Pagoda zoom in and follow your fighter so the picture stays large. The pages lock the zoom level and re-measure the screen after every rotation, so a stray double tap or pinch should not leave you looking at oversized buttons.
+All four games are built for current Safari on iPhone and iPad, Chrome on Android, and Chrome, Edge, Safari or Firefox on Windows and Mac. On a phone, hold it sideways for the biggest picture; held upright, Dagger Raid, Dragon Pagoda and Redline Coast zoom in and follow your fighter so the picture stays large. The pages lock the zoom level and re-measure the screen after every rotation, so a stray double tap or pinch should not leave you looking at oversized buttons.
 
 ## Project layout
 
@@ -97,6 +109,7 @@ index.html            landing page
 dagger-raid/          playable Dagger Raid (one self-contained HTML file)
 tennis/               playable Ace Rally Tennis (one self-contained HTML file)
 dragon-pagoda/        playable Dragon Pagoda (one self-contained HTML file)
+redline-coast/        playable Redline Coast (one self-contained HTML file)
 assets/               screenshots for the landing page
 favicon.svg           site icon
 vercel.json           settings used when the repo is deployed on Vercel
@@ -128,7 +141,7 @@ Edit the files under `source/`, then rebuild the playable pages:
 python3 source/build_site.py
 ```
 
-The script bundles each game's `src/` files into a single HTML page and copies it into `dagger-raid/`, `tennis/` and `dragon-pagoda/`.
+The script bundles each game's `src/` files into a single HTML page and copies it into `dagger-raid/`, `tennis/`, `dragon-pagoda/` and `redline-coast/`.
 
 ## Credits
 
