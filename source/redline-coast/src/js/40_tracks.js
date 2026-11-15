@@ -122,7 +122,7 @@ function buildTrack(si, diff) {
   }
   const goal = segs.length - 70;
   startN = segs.length; piece(260, 0, 0);            // run-out after the line
-  const T = { si, st, th, segs, n: segs.length, len: segs.length * SEG, check, goal, start: 14, cars: [], snowFrom: st.id === 'pine' ? check - 200 : 1e9 };
+  const T = { si, st, th, segs, n: segs.length, len: segs.length * SEG, check, goal, start: 26, cars: [], snowFrom: st.id === 'pine' ? check - 200 : 1e9 };
   decorate(T, rnd);
   layHazards(T, rnd, diff);
   layTraffic(T, rnd, diff);

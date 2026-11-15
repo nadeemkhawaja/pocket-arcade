@@ -364,6 +364,20 @@ function drawRace(g) {
   if (gm.flash > 0) rect(g, 0, 0, W, vh, 'rgba(255,255,255,' + Math.min(0.6, gm.flash * 2).toFixed(3) + ')');
 }
 
+/** Over the 3D scene: smoke and sparks at the car, speed streaks, weather, the rival's name and the lens. */
+function drawRaceOverlay(g) {
+  const gm = game, vh = viewH(), th = gm.T.th, zf = RV.zf;
+  g.save(); g.translate(W3.car.x, W3.car.y); g.scale(zf, zf); g.translate(-W / 2, -(YS + 1)); drawFx(g, 0); g.restore();
+  drawSpeedLines(g, RV.hyS - 6, vh);
+  drawWeather(g, vh);
+  if (W3.rival.on && gm.state === 'play') { const r = W3.rival; T(g, gm.rival.name, r.x, r.y - 9, '#ff8a8a', { align: 'center', weight: 700, scale: 0.9 }); poly(g, [r.x - 2.6, r.y, r.x + 2.6, r.y, r.x, r.y + 3.4], '#ff5a5a'); }
+  if (settings.fx) {
+    g.fillStyle = rgrad(g, W / 2, vh * 0.55, vh * 0.35, Math.max(W, vh) * 0.75, [[0, 'rgba(0,0,0,0)'], [1, th.night ? 'rgba(0,0,10,0.55)' : 'rgba(20,0,30,0.28)']]);
+    g.fillRect(0, 0, W, vh);
+  }
+  if (gm.flash > 0) rect(g, 0, 0, W, vh, 'rgba(255,255,255,' + Math.min(0.6, gm.flash * 2).toFixed(3) + ')');
+}
+
 /* ---- HUD ---------------------------------------------------------------------------- */
 function drawHUD(g) {
   const gm = game, p = gm.p, vh = viewH(), T2 = gm.T;
@@ -469,7 +483,10 @@ function renderFrame() {
   gm.hits = [];
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
-  g.fillStyle = '#06040c'; g.fillRect(0, 0, cv.width, cv.height);
+  // the race is drawn in 3D on the canvas underneath; this layer then carries effects, HUD and menus
+  const use3 = gm.state !== 'boot' && gm.T && gm.p && !DBG.flat && w3Init() && w3Render();
+  $('gl').style.visibility = use3 ? 'visible' : 'hidden';
+  if (use3) g.clearRect(0, 0, cv.width, cv.height); else { g.fillStyle = '#06040c'; g.fillRect(0, 0, cv.width, cv.height); }
   g.setTransform(view.scale, 0, 0, view.scale, view.ox, view.oy);
   g.imageSmoothingEnabled = true;
   if ('imageSmoothingQuality' in g) g.imageSmoothingQuality = 'high';
@@ -478,7 +495,7 @@ function renderFrame() {
   const race = gm.T && gm.p;
   if (gm.state === 'boot') drawBoot(g);
   else {
-    if (race) drawRace(g); else rect(g, 0, 0, W, viewH(), '#0a0618');
+    if (use3) drawRaceOverlay(g); else if (race) drawRace(g); else rect(g, 0, 0, W, viewH(), '#0a0618');
     if (race && (gm.state === 'play' || gm.state === 'pause' || gm.state === 'clear' || gm.state === 'continue' || (gm.state === 'options' && gm.optFrom === 'pause'))) drawHUD(g);
     // menus are laid out for a 16:9 page and sit centred when the picture is taller
     g.translate(0, view.dy);

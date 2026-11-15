@@ -26,7 +26,7 @@ function updatePlayer(dt, I) {
   if (g.finished) steerIn = clamp(-p.x * 2 - seg.curve * 0.1, -1, 1);
   let gas = !locked && (I.gas || I.up || (auto && !I.brake && !I.down));
   let brake = !locked && (I.brake || I.down);
-  if (g.finished) { gas = false; brake = p.speed > MAX_SPEED * 0.25; }
+  if (g.finished) { gas = false; brake = p.speed > MAX_SPEED * 0.25; p.drift = 0; }
   p.gas = gas; p.brake = brake || g.finished;
 
   // spin-out on oil: no steering until it ends

@@ -61,6 +61,7 @@ function layout() {
   view.dy = (H * (zoom - 1)) / 2;
   view.ox = Math.round(gx * dpr + (gw * dpr - W * s) / 2);
   view.oy = Math.round(gy * dpr + (gh * dpr - H * zoom * s) / 2);
+  if (w3Init()) w3Layout(dpr);
   document.documentElement.style.setProperty('--game-bottom', Math.round((view.oy + H * zoom * s) / dpr) + 'px');
 }
 function layoutTouch() { layout(); }
@@ -178,7 +179,7 @@ function boot() {
   // hooks for automated testing
   const blank = () => Object.assign({}, NO_PRESS);
   window.__redline = {
-    game, input, chip, settings, STAGES, THEMES, DIFFS, CARS, MEDALS, PROG, SONGS, ART_CACHE, DBG, QUALITY, view, MAX_SPEED, SEG, PLAYER_Z,
+    game, input, chip, settings, W3, STAGES, THEMES, DIFFS, CARS, MEDALS, PROG, SONGS, ART_CACHE, DBG, QUALITY, view, MAX_SPEED, SEG, PLAYER_Z,
     setManual(v) { manual = v; },
     step(n, held, pressed, quiet) {
       const H0 = Object.assign(blank(), held || {});
