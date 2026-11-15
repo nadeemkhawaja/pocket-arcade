@@ -169,7 +169,7 @@ function mouthV(g, d, u, expr, col) {
 }
 function browV(g, u, expr, col, w) { line(g, 0.4 * u, -1.15 * u, 1.95 * u, expr === 'kiai' ? -0.62 * u : -0.85 * u, (w || 0.44) * u, col); }
 function noseV(g, d, u) { line(g, 2.28 * u, -0.25 * u, 2.6 * u, 0.42 * u, 0.28 * u, d.skinS); line(g, 2.6 * u, 0.42 * u, 2.22 * u, 0.55 * u, 0.24 * u, d.skinS); }
-function earV(g, d, u) { ellipse(g, -0.35 * u, 0.2 * u, 0.62 * u, 0.85 * u, 0, d.ink); ellipse(g, -0.35 * u, 0.2 * u, 0.5 * u, 0.72 * u, 0, d.skinS); ellipse(g, -0.25 * u, 0.15 * u, 0.25 * u, 0.42 * u, 0, d.skin); }
+function earV(g, d, u) { ellipse(g, -0.95 * u, 0.3 * u, 0.5 * u, 0.7 * u, 0, shade(d.skin, -0.42)); ellipse(g, -0.9 * u, 0.28 * u, 0.4 * u, 0.6 * u, 0, d.skinS); line(g, -0.8 * u, 0.0, -0.95 * u, 0.55 * u, 0.16 * u, shade(d.skin, -0.5)); }
 function headShape(g, u) { g.beginPath(); g.ellipse(0, 0, 2.4 * u, 2.8 * u, 0, 0, TAU); g.moveTo(2.3 * u, 1.2 * u); g.ellipse(0.9 * u, 1.25 * u, 1.55 * u, 1.45 * u, 0, 0, TAU); }
 
 function hairBand(g, d, u) {
@@ -544,7 +544,7 @@ function renderFighter(g, kind, pose, x, y, face, anim, frame, tint) {
 
 /* Translucent or flashing fighters are painted once into a scratch layer and composited in
    a single pass, so overlapping limbs never stack up into a washed out, see-through figure. */
-let SPRITE_DIRECT = false;
+let SPRITE_DIRECT = true;    // the scratch-layer path stalls some browsers; figures draw straight through
 let SPRITE_HOLD = null;      // a weapon to keep in the hand through poses that have none (kicks)   // reflections set this: they are faint enough to draw straight through
 let SPRITE_LAYER = null;
 function spriteLayer(cv) {

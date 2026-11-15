@@ -59,9 +59,9 @@ function drawStreet(g) {
   const px = view.scale * v.zf, cam = v.x0;
   // far layer drifts at a third of the speed
   const far = cam * 0.32;
-  for (let i = Math.floor(far / TILE); i * TILE < far + v.w; i++) g.drawImage(stageTile(si, 0, i, px), i * TILE - far, 0, TILE, H);
+  for (let i = Math.floor(far / TILE); i * TILE < far + v.w; i++) g.drawImage(stageTile(si, 0, i, px), i * TILE - far, 0, TILE + 2, H);
   drawStageLive(g, si, cam, true);
-  for (let i = Math.floor(cam / TILE); i * TILE < cam + v.w; i++) if (i >= 0) g.drawImage(stageTile(si, 1, i, px), i * TILE - cam, 0, TILE, H);
+  for (let i = Math.floor(cam / TILE); i * TILE < cam + v.w; i++) if (i >= 0) g.drawImage(stageTile(si, 1, i, px), i * TILE - cam, 0, TILE + 2, H);
   g.translate(-cam, 0);
   drawPits(g, cam, v.w);
   // shadows first, then every body back to front
@@ -123,7 +123,9 @@ function drawBody(g, f) {
   if (f.spinA) { const c = -CHARS[f.kind].k * 13; g.translate(0, c); g.rotate(f.spinA); g.translate(0, -c); }
   if (f.spawnT > 0 && f.boss) g.globalAlpha = 1;
   const flash = f.flash > 0.05 ? '#ffffff' : f.inv > 0 && f.hero && f.state !== 'getup' && Math.floor(game.t * 16) % 2 ? false : null;
-  const a = (f.alpha === undefined ? 1 : f.alpha) * (f.inv > 0 && f.hero && f.state !== 'getup' && f.state !== 'down' && Math.floor(game.t * 16) % 2 ? 0.6 : 1);
+  // arcade blink while invincible: the figure flickers on and off
+  if (f.inv > 0 && f.hero && f.state !== 'getup' && f.state !== 'down' && Math.floor(game.t * 14) % 2) { g.restore(); return; }
+  const a = f.alpha === undefined ? 1 : f.alpha;
   if (f.weapon && f.weapon !== 'drum') SPRITE_SWAP = { bat: f.weapon === 'knife' ? 'knife' : f.weapon, knife: 'knife' };
   let anim = f.anim, frame = f.frame;
   if (f.weapon === 'drum' && (anim === 'idle' || anim === 'walk')) { anim = 'carry'; frame = 0; }

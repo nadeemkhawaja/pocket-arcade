@@ -191,7 +191,10 @@ function updateFighter(f, dt) {
     default: break;
   }
   // animation clock
-  if (['idle', 'walk', 'dizzy', 'victory', 'taunt', 'pinned'].includes(f.anim)) f.frame += dt * (f.anim === 'run' || f.anim === 'charge' ? 14 : f.anim === 'walk' ? 10 : 3.5);
+  if (['idle', 'walk', 'dizzy', 'victory', 'taunt', 'pinned'].includes(f.anim)) {
+    const v = Math.hypot(f.vx, f.vz * 1.5), k2 = CHARS[f.kind].k;
+    f.frame += dt * (f.anim === 'walk' ? Math.max(6, v * 12 / (4 * 5.4 * k2)) : 3.5);
+  }
   else if (f.state === 'fall') f.frame = Math.min(2, f.st * 9);
   else if (f.state === 'hurt') f.frame = Math.min(1, f.st * 8);
   if (f.anim === 'charge') f.frame += dt * 14;

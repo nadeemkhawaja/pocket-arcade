@@ -32,13 +32,21 @@ Object.assign(PAL, {
 
 /* ---- poses ----------------------------------------------------------------------------------- */
 (function brawlPoses() {
-  const G = (o) => Object.assign({ hip: 13.4, lean: 1, ff: [4, 0], bf: [-4, 0], fh: [6.5, -20], bh: [3.4, -19.2], fistF: true, fistB: true }, o);
+  const G = (o) => Object.assign({ hip: 12.9, lean: 1.6, ff: [5.6, 0], bf: [-4.6, 0], fh: [8.6, -19.4], bh: [5.6, -20.6], fistF: true, fistB: true }, o);
   const walk = (n, stride, pump) => {
     const out = [];
     for (let i = 0; i < n; i++) {
-      const t = (i / n) * TAU, lift = (c) => (c > 0 ? 3.2 * c : 0);
-      out.push(G({ hip: 13.4 - Math.abs(Math.sin(t)) * 0.5, lean: pump ? 3 : 1.2, ff: [stride * Math.sin(t), -lift(Math.cos(t))], bf: [stride * Math.sin(t + Math.PI), -lift(Math.cos(t + Math.PI))],
-        fh: pump ? [3 - 5 * Math.sin(t), -16] : [6.5 - Math.sin(t), -20], bh: pump ? [-1 + 5 * Math.sin(t), -15] : [3.4 + Math.sin(t), -19.2] }));
+      const t = (i / n) * TAU, sn = Math.sin(t), cs = Math.cos(t);
+      // the swinging foot lifts only while it travels forward
+      const lift = (c) => (c > 0 ? 2.7 * c : 0);
+      const bob = Math.abs(cs);          // 1 when the legs pass, 0 at full stride
+      out.push(G({
+        hip: 12.4 + bob * 0.9, lean: pump ? 3 : 2.1 + sn * 0.25,
+        ff: [0.6 + stride * sn, -lift(cs)], bf: [-0.6 + stride * Math.sin(t + Math.PI), -lift(-cs)],
+        kneeF: cs > 0.3 ? 'up' : undefined, kneeB: -cs > 0.3 ? 'up' : undefined,
+        fh: pump ? [3 - 5 * sn, -16] : [8.6 - sn * 1.3, -19.2 + bob * 0.5], bh: pump ? [-1 + 5 * sn, -15] : [5.6 + sn * 1.3, -20.4 + bob * 0.5],
+        hd: [0.15 * sn, 0]
+      }));
     }
     return out;
   };
@@ -54,8 +62,8 @@ Object.assign(PAL, {
     G({})
   ];
   const set = {
-    idle: [G({}), G({ hip: 13.1, fh: [6.5, -19.6], bh: [3.4, -18.8] }), G({ hip: 12.9, fh: [6.6, -19.3], bh: [3.5, -18.5] }), G({ hip: 13.1, fh: [6.5, -19.6], bh: [3.4, -18.8] })],
-    walk: walk(8, 4.6, false),
+    idle: [G({}), G({ hip: 12.7, lean: 1.8, fh: [8.8, -19], bh: [5.7, -20.2] }), G({ hip: 12.5, lean: 2, fh: [9, -18.6], bh: [5.8, -19.8] }), G({ hip: 12.7, lean: 1.8, fh: [8.8, -19], bh: [5.7, -20.2] })],
+    walk: walk(12, 5.4, false),
     run: walk(8, 7, true),
     jab: [G({ fh: [4, -20] }), G({ lean: 2.4, ff: [6, 0], fh: [14, -21], bh: [3, -19] }), G({ lean: 1.6, fh: [9, -20.5] })],
     cross: [G({ lean: 0.5, bh: [1, -19] }), G({ lean: 3.6, ff: [7, 0], bf: [-6, 0], fh: [4, -18.5], bh: [14.5, -21], hip: 12.8 }), G({ lean: 2.5, ff: [6, 0], bf: [-5, 0], bh: [10, -20] })],

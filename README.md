@@ -103,7 +103,7 @@ An open-road racer drawn the classic arcade way (scaled sprites on a segmented r
 
 ## Iron Alley
 
-An original two-player street brawler: own characters, gang, districts and soundtrack.
+An original two-player street brawler: own characters, gang, districts and soundtrack. Brick tenements with lit windows, drainpipes, grime and graffiti line the streets; fighters walk in a guarded stance with a weighted stride.
 
 - Two heroes: Kade (heavy hands) and Suki (fast feet); player two can join at any time
 - Four districts: Neon Market, Freight Yard, Steel Foundry and Viper Tower, each ending in a boss (Tank, Ratchet, Forge, The Warden)
