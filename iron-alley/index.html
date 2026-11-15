@@ -1176,17 +1176,9 @@ function drawArmV(g, d, sh, el, hd, k, back, fist) {
   const wx = hd[0] - ux * 0.95 * k, wy = hd[1] - uy * 0.95 * k;
   if (d.bare) {
     limbs(g, [
-      [el[0], el[1], wx, wy, 1.22 * k, 0.86 * k, skinS, skin],
-      [sh[0], sh[1], el[0], el[1], 1.62 * k, 1.18 * k, skinS, skin]
+      [el[0], el[1], wx, wy, 1.12 * k, 0.82 * k, skinS, skin],
+      [sh[0], sh[1], el[0], el[1], 1.45 * k, 1.12 * k, skinS, skin]
     ], d);
-    if (!d.tint) {
-      // muscle: a lit ridge down the biceps and forearm, a crease at the elbow
-      const ax = el[0] - sh[0], ay = el[1] - sh[1], al = Math.hypot(ax, ay) || 1, nx = -ay / al, ny = ax / al;
-      const hl = back ? shade(skin, 0.1) : shade(skin, 0.22);
-      line(g, lerp(sh[0], el[0], 0.2) - nx * 0.55 * k, lerp(sh[1], el[1], 0.2) - ny * 0.55 * k, lerp(sh[0], el[0], 0.75) - nx * 0.45 * k, lerp(sh[1], el[1], 0.75) - ny * 0.45 * k, 0.42 * k, hl);
-      line(g, lerp(el[0], wx, 0.15) - ux * 0 - uy * -0.45 * k, lerp(el[1], wy, 0.15) + ux * -0.45 * k, lerp(el[0], wx, 0.6) + uy * 0.4 * k, lerp(el[1], wy, 0.6) - ux * 0.4 * k, 0.32 * k, hl);
-      disc(g, el[0], el[1], 0.32 * k, rgba(shade(skin, -0.45), 0.7));
-    }
   } else {
     const mx = lerp(el[0], wx, 0.52), my = lerp(el[1], wy, 0.52);
     limbs(g, [
@@ -1694,14 +1686,14 @@ function drawPortrait(g, kind, x, y, size, face) {
    ========================================================================== */
 
 Object.assign(PAL, {
-  kade: { skin: '#e4a67c', skin2: '#b97a52', hair: '#2a1a12', hairL: '#4a3022', top: '#26386e', top2: '#1a2852', band: '#e02a30',
-    pants: '#4a6a9a', pants2: '#34507a', boot: '#5a3a22', boot2: '#3a2414', gear: '#1a1a20', head: 'band', bare: true },
-  suki: { skin: '#f0c49c', skin2: '#c99670', hair: '#22161c', top: '#c8202e', top2: '#8e1420', band: '#ffd24a',
-    pants: '#24262e', pants2: '#18191f', boot: '#f2f2f2', boot2: '#b8bcc6', gear: '#ffffff', head: 'pony', bare: true },
+  kade: { skin: '#e9b48c', skin2: '#c4875f', hair: '#1c1418', hairL: '#3a2a30', top: '#eeeae2', top2: '#c8c2b8', vest: '#d8283a', vest2: '#9a1426',
+    pants: '#3a404c', pants2: '#2a2e38', boot: '#f2f2f2', boot2: '#b8bcc6', gear: '#20232c', head: 'spiky' },
+  suki: { skin: '#f0c49c', skin2: '#c99670', hair: '#22161c', top: '#1aa6a0', top2: '#0e746e', vest: '#1aa6a0', vest2: '#0e746e',
+    pants: '#1e2230', pants2: '#141722', boot: '#e84a7a', boot2: '#a82a54', band: '#ff4a8a', gear: '#ffffff', head: 'pony' },
   punk: { skin: '#dba27c', skin2: '#b47c5b', hair: '#3ad0ff', top: '#2a2a34', top2: '#1c1c24', vest: '#4a3a2a', vest2: '#342818',
-    pants: '#5a3a6a', pants2: '#402a4c', boot: '#18161a', boot2: '#3a363c', gear: '#c0c4cc', head: 'mohawk', bare: true },
+    pants: '#5a3a6a', pants2: '#402a4c', boot: '#18161a', boot2: '#3a363c', gear: '#c0c4cc', head: 'mohawk' },
   punk2: { skin: '#c8906a', skin2: '#a06a4c', hair: '#ff5a3a', top: '#3a2a20', top2: '#2a1e16', vest: '#262a34', vest2: '#181c24',
-    pants: '#2e4a3a', pants2: '#20362a', boot: '#18161a', boot2: '#3a363c', gear: '#c0c4cc', head: 'mohawk', bare: true },
+    pants: '#2e4a3a', pants2: '#20362a', boot: '#18161a', boot2: '#3a363c', gear: '#c0c4cc', head: 'mohawk' },
   blade: { skin: '#d9a27c', skin2: '#b47c5b', hair: '#1a1a20', top: '#6a1e2a', top2: '#4a121c', pants: '#22262e', pants2: '#181a20',
     boot: '#121214', boot2: '#2e2e34', beanie: '#16181e', accent: '#cf3a2c', gear: '#26231f', head: 'beanie' },
   biker: { skin: '#e0aa82', skin2: '#b8805e', hair: '#2a2420', top: '#1a1c22', top2: '#101216', vest: '#3a3e48', vest2: '#262a32',
@@ -1897,82 +1889,8 @@ function stageTile(si, layer, i, px) {
   g.scale(px, px); g.translate(-i * TILE, 0);
   g.beginPath(); g.rect(i * TILE, 0, TILE, H); g.clip();
   (layer === 0 ? FAR_ART : NEAR_ART)[STAGES[si].id](g, i * TILE, (i + 1) * TILE);
-  if (px === 1) grit(c, si * 977 + i * 131 + layer * 7, layer);
   TILES.set(key, c);
   return c;
-}
-
-/** Pixel grit: each pixel nudged lighter or darker by a fixed hash, so flat paint reads as worn surface. */
-function grit(c, seed, layer) {
-  const g = c.getContext('2d'), w = c.width, h = c.height;
-  let im;
-  try { im = g.getImageData(0, 0, w, h); } catch (e) { return; }
-  const d = im.data, amp = layer ? 9 : 4;
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const o = (y * w + x) * 4;
-    if (d[o + 3] < 8) continue;
-    let n = ((x * 374761393 + y * 668265263 + seed * 2246822519) >>> 0);
-    n = ((n ^ (n >>> 13)) * 1274126177) >>> 0;
-    const v = ((n & 255) / 255 - 0.5) * amp * 2;
-    d[o] = clamp(d[o] + v, 0, 255); d[o + 1] = clamp(d[o + 1] + v, 0, 255); d[o + 2] = clamp(d[o + 2] + v, 0, 255);
-  }
-  g.putImageData(im, 0, 0);
-}
-
-/** Brick: 1 pixel mortar, staggered courses, every brick its own tone, a few chipped or missing. */
-function brick(g, x0, y0, w, h, base, mortar, bw, bh, seed) {
-  bw = bw || 8; bh = bh || 4;
-  rect(g, x0, y0, w, h, mortar || shade(base, -0.45));
-  const r = seeded(seed || 1);
-  for (let y = y0, row = 0; y < y0 + h; y += bh, row++) {
-    const off = (row % 2) * (bw / 2);
-    for (let x = x0 - off; x < x0 + w; x += bw) {
-      const xa = Math.max(x0, x), xb = Math.min(x0 + w, x + bw - 1), hh = Math.min(bh - 1, y0 + h - y);
-      if (xb <= xa || hh <= 0) continue;
-      const t = r(), col = t < 0.06 ? shade(base, -0.28) : t < 0.2 ? shade(base, 0.1) : t < 0.32 ? shade(base, -0.12) : base;
-      rect(g, xa, y, xb - xa, hh, col);
-      rect(g, xa, y, xb - xa, 1, shade(col, 0.12));
-    }
-  }
-}
-/** Dark grime that climbs the foot of a wall and runs down from ledges. */
-function grime(g, x0, y0, w, h, seed) {
-  g.fillStyle = lgrad(g, 0, y0 + h * 0.55, 0, y0 + h, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.42)']]); g.fillRect(x0, y0, w, h);
-  const r = seeded(seed || 3);
-  for (let i = 0; i < w / 14; i++) { const x = Math.round(x0 + r() * w), l = 6 + r() * 24, y = Math.round(y0 + r() * h * 0.6); rect(g, x, y, 1, l, 'rgba(0,0,0,0.22)'); rect(g, x + 1, y + 2, 1, l * 0.6, 'rgba(0,0,0,0.12)'); }
-}
-/** A framed window: frame, glass, sill, sometimes a lit room with a figure or blinds. */
-function pixWindow(g, x, y, w, h, lit, glass, r) {
-  rect(g, x - 1, y - 1, w + 2, h + 3, '#0a0610');
-  rect(g, x, y, w, h, lit ? glass : '#141020');
-  if (lit) { rect(g, x, y, w, 1, shade(glass, 0.25)); if (r() < 0.4) for (let k = y + 2; k < y + h; k += 2) rect(g, x, k, w, 1, shade(glass, -0.18)); else if (r() < 0.3) rect(g, x + w * 0.3, y + h * 0.35, 3, h * 0.65, shade(glass, -0.55)); }
-  else rect(g, x + 1, y + 1, 2, h - 2, 'rgba(120,140,200,0.18)');
-  rect(g, x + Math.floor(w / 2), y, 1, h, '#0a0610');
-  rect(g, x - 2, y + h + 1, w + 4, 2, '#5a5060'); rect(g, x - 2, y + h + 3, w + 4, 1, '#1a1220');
-}
-function pipe(g, x, y0, y1) { rect(g, x, y0, 3, y1 - y0, '#3a3a44'); rect(g, x, y0, 1, y1 - y0, '#6a6a78'); for (let y = y0 + 10; y < y1; y += 22) rect(g, x - 1, y, 5, 2, '#2a2a32'); }
-function graffiti(g, x, y, r) {
-  const cols = ['#ff3a8a', '#3ae0ff', '#ffe03a', '#7aff5a', '#ffffff'], c = cols[Math.floor(r() * cols.length)];
-  g.save(); g.globalAlpha = 0.55;
-  for (let k = 0; k < 5; k++) { const sx = x + k * 5 + r() * 2, sy = y + r() * 4; rect(g, sx, sy, 4, 1, c); rect(g, sx + (r() < 0.5 ? 0 : 3), sy, 1, 6, c); rect(g, sx, sy + 5, 4, 1, c); }
-  g.restore();
-}
-/** Paving and plate floors, drawn straight on like the old cabinets: rows grow toward you, joints stagger. */
-function slabFloor(g, x0, x1, top, base, joint, rows) {
-  rows = rows || [6, 8, 10, 12, 14, 16, 18];
-  let y = top, i = 0;
-  const r = seeded(Math.floor(x0) + top);
-  while (y < H) {
-    const h = rows[Math.min(i, rows.length - 1)], sw = h * 3, off = (i % 2) * sw / 2;
-    for (let x = Math.floor((x0 - off) / sw) * sw + off - sw; x < x1 + sw; x += sw) {
-      const t = r(), col = t < 0.15 ? shade(base, -0.08) : t < 0.3 ? shade(base, 0.06) : base;
-      rect(g, x, y, sw - 1, h - 1, col);
-      rect(g, x, y, sw - 1, 1, shade(col, 0.1));
-      if (t > 0.92) { const cx = x + 4 + r() * (sw - 10); for (let k = 0; k < 6; k++) rect(g, cx + k, y + 2 + ((k * 7) % 4), 1, 1, joint); }
-    }
-    rect(g, x0, y + h - 1, x1 - x0, 1, joint);
-    y += h; i++;
-  }
 }
 
 const SIGNS = ['MOON TEA', 'LUCKY 88', 'NOODLE BAR', 'GOLD COIN', 'KARAOKE', 'JADE CAFE', 'PAWN', 'ARCADE', 'HOT POT', 'TATTOO'];
@@ -2031,14 +1949,8 @@ const NEAR_ART = {
     // shop fronts
     for (let b = Math.floor(x0 / 120) - 1; b * 120 < x1 + 120; b++) {
       const x = b * 120, r = seeded(b * 31 + 5), col = ['#3a1e2a', '#22283a', '#2e2236', '#3a2a1e'][(b + 4) % 4];
-      brick(g, x, 10, 120, 124, shade(col, 0.15), shade(col, -0.5), 8, 4, b * 13 + 1);
-      rect(g, x, 10, 120, 3, shade(col, -0.2)); rect(g, x, 13, 120, 1, shade(col, 0.3));
-      rect(g, x + 119, 10, 1, 124, '#0a0610');
-      for (let y = 18; y < 70; y += 18) for (let xx = x + 10; xx < x + 110; xx += 26) pixWindow(g, xx, y, 16, 11, r() < 0.55, r() < 0.5 ? '#ffd27a' : '#ff9ac0', r);
-      pipe(g, x + 4, 14, 132);
-      if (r() < 0.6) { const ax = x + 38 + Math.floor(r() * 40); rect(g, ax, 58, 14, 9, '#8a8e98'); rect(g, ax, 58, 14, 1, '#b8bcc6'); for (let k = 1; k < 8; k += 2) rect(g, ax + 1, 59 + k, 12, 1, '#5a5e68'); rect(g, ax + 6, 67, 1, 6, 'rgba(0,0,0,0.4)'); }
-      grime(g, x, 10, 120, 124, b * 7 + 2);
-      if (r() < 0.7) graffiti(g, x + 76 + Math.floor(r() * 10), 104 + Math.floor(r() * 10), r);
+      g.fillStyle = col; g.fillRect(x, 10, 120, 124);
+      for (let y = 18; y < 70; y += 18) for (let xx = x + 10; xx < x + 110; xx += 26) { rect(g, xx, y, 16, 11, '#120a14'); if (r() < 0.55) rect(g, xx + 1, y + 1, 14, 9, r() < 0.5 ? '#ffd27a' : '#ff9ac0'); rect(g, xx + 7.5, y, 1, 11, col); }
       // awning and sign
       const nc = NEON[b % NEON.length & 7 % NEON.length] || NEON[0], sign = SIGNS[((b % SIGNS.length) + SIGNS.length) % SIGNS.length];
       g.fillStyle = shade(nc, -0.55); g.beginPath(); g.moveTo(x + 6, 84); g.lineTo(x + 114, 84); g.lineTo(x + 118, 96); g.lineTo(x + 2, 96); g.fill();
@@ -2047,23 +1959,15 @@ const NEAR_ART = {
       g.fillStyle = nc; g.fillText(sign, x + 60, 78); g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.5; g.drawImage(glowSprite(nc), x + 10, 62, 100, 32); g.restore();
       // the shop window and door
       rect(g, x + 10, 100, 64, 30, '#0e0a14'); g.fillStyle = lgrad(g, 0, 100, 0, 130, [[0, rgba(nc, 0.4)], [1, rgba(nc, 0.08)]]); g.fillRect(x + 11, 101, 62, 28);
-      for (let k = 0; k < 4; k++) rect(g, x + 14 + k * 15, 106 + (k % 2) * 4, 9, 14 - (k % 2) * 4, rgba(shade(nc, -0.3), 0.55));
-      rect(g, x + 11, 101, 62, 1, rgba('#ffffff', 0.25)); rect(g, x + 41, 101, 1, 28, '#0e0a14');
       rect(g, x + 82, 100, 26, 34, '#0a070e'); rect(g, x + 84, 102, 22, 30, shade(col, -0.3));
-      for (let k = 0; k < 7; k++) rect(g, x + 84, 104 + k * 4, 22, 1, shade(col, -0.45));
-      rect(g, x + 84, 102, 22, 1, shade(col, 0.05));
       rect(g, x, 130, 120, 4, '#1a1018');
     }
     // lanterns strung across
     g.strokeStyle = '#2a1a1a'; g.lineWidth = 0.6;
     for (let x = Math.floor(x0 / 60) * 60; x < x1 + 60; x += 60) { g.beginPath(); g.moveTo(x, 6); g.quadraticCurveTo(x + 30, 16, x + 60, 6); g.stroke(); for (const k of [0.25, 0.5, 0.75]) { const lx = x + 60 * k, ly = 6 + 10 * 4 * k * (1 - k); disc(g, lx, ly + 3, 3, '#e8302a'); rect(g, lx - 2, ly + 5.4, 4, 1, '#ffd24a'); } }
     // floor: pavement, kerb, road
-    slabFloor(g, x0, x1, 134, '#3a3440', '#1a161e', [5, 6, 7]);
-    rect(g, x0, 150, x1 - x0, 1, '#8a8494'); rect(g, x0, 151, x1 - x0, 2, '#5a5464'); rect(g, x0, 153, x1 - x0, 2, '#14121a');
-    rect(g, x0, 155, x1 - x0, H - 155, '#24202a');
-    { const r2 = seeded(Math.floor(x0) + 9); for (let i = 0; i < (x1 - x0) * 1.4; i++) rect(g, Math.floor(x0 + r2() * (x1 - x0)), Math.floor(156 + r2() * 60), 1, 1, r2() < 0.5 ? '#2e2a36' : '#1a1820'); }
-    for (let x = Math.floor(x0 / 70) * 70; x < x1; x += 70) { rect(g, x, 182, 26, 2, 'rgba(255,240,200,0.4)'); }
-    for (let x = Math.floor(x0 / 150) * 150; x < x1; x += 150) { g.fillStyle = 'rgba(10,8,20,0.55)'; g.beginPath(); g.ellipse(x + 40, 200, 22, 4, 0, 0, TAU); g.fill(); rect(g, x + 26, 199, 10, 1, 'rgba(255,160,220,0.35)'); }
+    streetFloor(g, x0, x1, 134, ['#2a2430', '#2e2834', '#24202c', '#282230', '#22202a', '#26222e'], 'rgba(0,0,0,0.3)', [[134, '#3a3240', 1.2], [150, '#5a5464', 2.4], [152, '#14121a', 1]]);
+    for (let x = Math.floor(x0 / 70) * 70; x < x1; x += 70) { rect(g, x, 182, 26, 2, 'rgba(255,240,200,0.35)'); }
     // neon reflections in the wet road
     for (let b = Math.floor(x0 / 120) - 1; b * 120 < x1 + 120; b++) { const nc = NEON[b % NEON.length & 7 % NEON.length] || NEON[0]; g.fillStyle = lgrad(g, 0, 156, 0, 210, [[0, rgba(nc, 0.16)], [1, rgba(nc, 0)]]); g.fillRect(b * 120 + 24, 156, 72, 54); }
   },
@@ -2073,9 +1977,7 @@ const NEAR_ART = {
       const x = b * 96, col = ['#a8402a', '#2a6a8a', '#c88a2a', '#3a7a4a', '#6a3a7a'][((b % 5) + 5) % 5];
       for (let row = 0; row < 2; row++) {
         const y = 52 + row * 40, cx = x + (row ? 18 : 0);
-        rect(g, cx, y, 90, 38, col); for (let k = 4; k < 90; k += 4) { rect(g, cx + k, y + 2, 1, 34, shade(col, -0.22)); rect(g, cx + k + 1, y + 2, 1, 34, shade(col, 0.08)); }
-        { const r2 = seeded(b * 5 + row); for (let i = 0; i < 18; i++) rect(g, Math.floor(cx + r2() * 88), Math.floor(y + 4 + r2() * 30), 1 + Math.floor(r2() * 2), 1 + Math.floor(r2() * 3), 'rgba(110,50,20,0.55)'); }
-        rect(g, cx + 70, y + 6, 1, 28, '#1a1a1a'); rect(g, cx + 76, y + 6, 1, 28, '#1a1a1a');
+        rect(g, cx, y, 90, 38, col); for (let k = 4; k < 90; k += 6) rect(g, cx + k, y + 2, 2, 34, shade(col, -0.2));
         rect(g, cx, y, 90, 2.4, shade(col, 0.25)); rect(g, cx + 2, y + 34, 86, 4, shade(col, -0.4));
         g.font = '700 6px ' + FONT_UI; g.textAlign = 'left'; g.fillStyle = 'rgba(255,255,255,0.6)'; g.fillText(['VPRX', 'KITE', 'ORCA', 'NOVA', 'ATLAS'][((b + row) % 5 + 5) % 5] + ' 40' + ((b * 7 + row) % 9), cx + 6, y + 9);
       }
@@ -2085,16 +1987,14 @@ const NEAR_ART = {
     for (let x = Math.floor(x0 / 48) * 48; x < x1; x += 48) rect(g, x, 92, 2, 42, '#5a6070');
     rect(g, x0, 92, x1 - x0, 1.4, '#7a8090');
     // gravel bed and two rail lines across the back of the floor
-    rect(g, x0, 134, x1 - x0, H - 134, '#4a4238');
-    { const r2 = seeded(Math.floor(x0) + 4); for (let i = 0; i < (x1 - x0) * 3; i++) rect(g, Math.floor(x0 + r2() * (x1 - x0)), Math.floor(134 + r2() * 82), 1 + (r2() < 0.2 ? 1 : 0), 1, ['#5a5246', '#3a342c', '#625a4c', '#2e2a24'][Math.floor(r2() * 4)]); }
+    streetFloor(g, x0, x1, 134, ['#4a4238', '#4e463c', '#463e34', '#4a4238', '#443c32', '#48403a'], 'rgba(0,0,0,0.18)', []);
     for (const ry of [140, 156]) { for (let x = Math.floor(x0 / 10) * 10; x < x1; x += 10) rect(g, x, ry - 1, 6, 8, '#3a2a1e'); rect(g, x0, ry, x1 - x0, 1.6, '#9aa0aa'); rect(g, x0, ry + 5, x1 - x0, 1.6, '#9aa0aa'); }
     const r = seeded(Math.floor(x0 / TILE) + 3); for (let i = 0; i < 90; i++) rect(g, x0 + r() * (x1 - x0), 168 + r() * 46, 1.2, 1, 'rgba(0,0,0,0.25)');
   },
   foundry(g, x0, x1) {
     // brick wall with furnace mouths
-    brick(g, x0, 0, x1 - x0, 134, '#5a3228', '#1e100c', 12, 5, Math.floor(x0) + 2);
-    grime(g, x0, 0, x1 - x0, 134, Math.floor(x0) + 6);
-    { const r2 = seeded(Math.floor(x0) + 11); for (let i = 0; i < 3; i++) pipe(g, Math.floor(x0 + r2() * (x1 - x0)), 26, 134); }
+    g.fillStyle = '#3a2420'; g.fillRect(x0, 0, x1 - x0, 134);
+    for (let y = 0; y < 134; y += 6) for (let x = Math.floor(x0 / 14) * 14 - ((y / 6) % 2) * 7; x < x1; x += 14) { rect(g, x + 0.5, y + 0.5, 13, 5, (Math.floor(x / 14) + y / 6) % 3 ? '#4a2a22' : '#52302a'); }
     for (let b = Math.floor(x0 / 160) - 1; b * 160 < x1 + 160; b++) {
       const x = b * 160 + 40;
       rect(g, x - 4, 50, 72, 80, '#1a100c');
@@ -2106,8 +2006,7 @@ const NEAR_ART = {
     // a gantry rail along the top
     rect(g, x0, 20, x1 - x0, 6, '#2a2a30'); for (let x = Math.floor(x0 / 24) * 24; x < x1; x += 24) { g.strokeStyle = '#2a2a30'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x, 26); g.lineTo(x + 12, 34); g.lineTo(x + 24, 26); g.stroke(); }
     // steel plate floor with a hazard edge
-    slabFloor(g, x0, x1, 134, '#3c3c44', '#1c1c22', [10, 12, 14, 16, 18, 20]);
-    { const r2 = seeded(Math.floor(x0) + 5); for (let i = 0; i < (x1 - x0) / 3; i++) { const x = Math.floor(x0 + r2() * (x1 - x0)), y = Math.floor(142 + r2() * 72); rect(g, x, y, 2, 1, '#4a4a54'); rect(g, x + 1, y + 1, 1, 1, '#2a2a30'); } }
+    streetFloor(g, x0, x1, 134, ['#3a3a40', '#36363c', '#3e3e44', '#34343a', '#3a3a40', '#38383e'], 'rgba(0,0,0,0.35)', []);
     for (let x = Math.floor(x0 / 12) * 12; x < x1; x += 12) { g.fillStyle = Math.floor(x / 12) % 2 ? '#ffc81e' : '#14141a'; g.beginPath(); g.moveTo(x, 134); g.lineTo(x + 12, 134); g.lineTo(x + 8, 140); g.lineTo(x - 4, 140); g.fill(); }
     for (let x = Math.floor(x0 / 40) * 40; x < x1; x += 40) for (const y of [160, 190]) { disc(g, x + 6, y, 0.9, '#5a5a62'); disc(g, x + 30, y + 8, 0.9, '#5a5a62'); }
     g.fillStyle = lgrad(g, 0, 140, 0, 216, [[0, 'rgba(255,120,40,0.2)'], [1, 'rgba(255,120,40,0)']]); g.fillRect(x0, 140, x1 - x0, 76);
@@ -2120,11 +2019,10 @@ const NEAR_ART = {
       if (((b % 2) + 2) % 2 === 0) { rect(g, x + 120, 20, 70, 60, '#4a3a30'); for (let k = 0; k < 6; k++) rect(g, x + 120, 24 + k * 10, 70, 1.4, '#3a2c24'); poly(g, [x + 116, 20, x + 155, 4, x + 194, 20], '#3a2c24'); for (const lx of [126, 150, 178]) rect(g, x + lx, 80, 3, 36, '#2a2e38'); }
       else { rect(g, x + 150, 10, 3, 104, '#5a6478'); disc(g, x + 151.5, 9, 2, '#ff3a3a'); g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.6; g.drawImage(glowSprite('#ff3a3a'), x + 140, -2, 23, 23); g.restore(); }
     }
-    brick(g, x0, 112, x1 - x0, 22, '#323a4a', '#1a2030', 16, 6, Math.floor(x0) + 8); rect(g, x0, 112, x1 - x0, 2, '#5a6478'); rect(g, x0, 114, x1 - x0, 1, '#1a2030');
-    grime(g, x0, 112, x1 - x0, 22, Math.floor(x0) + 1);
+    rect(g, x0, 112, x1 - x0, 22, '#2a3240'); rect(g, x0, 112, x1 - x0, 2, '#4a5468');
+    for (let x = Math.floor(x0 / 30) * 30; x < x1; x += 30) rect(g, x, 114, 1, 20, '#202834');
     // wet concrete roof, helipad marks
-    slabFloor(g, x0, x1, 134, '#3c4452', '#1e2430', [8, 10, 12, 14, 16, 18]);
-    for (let x = Math.floor(x0 / 90) * 90; x < x1; x += 90) { g.fillStyle = 'rgba(160,190,230,0.12)'; g.beginPath(); g.ellipse(x + 30, 190, 26, 5, 0, 0, TAU); g.fill(); }
+    streetFloor(g, x0, x1, 134, ['#3a4250', '#363e4c', '#3c4452', '#343c4a', '#38404e', '#363e4c'], 'rgba(0,0,0,0.3)', []);
     for (let b = Math.floor(x0 / 600) - 1; b * 600 < x1 + 600; b++) {
       const x = b * 600 + 300;
       g.strokeStyle = 'rgba(255,210,74,0.7)'; g.lineWidth = 3; g.beginPath(); g.ellipse(x, 176, 70, 26, 0, 0, TAU); g.stroke();
@@ -2390,7 +2288,7 @@ function updateAttack(f, dt) {
       if (hit && landHit(f, o, A, f.atk)) {
         f.atkHit.add(o);
         if (A.step && f.hero) f.x += f.face * A.step;
-        if (A.grab) { f.knees++; if (f.knees >= 3) { knockDown(o, f.face, 170, 90, o.hp <= 0); f.hold = null; o.heldBy = null; } }
+        if (A.grab) f.knees++;
         if (f.weapon && A.weapon) { f.wUses--; if (f.wUses <= 0) { dropWeapon(f, true); } }
       }
     }
@@ -2469,6 +2367,11 @@ function updateHero(h, I, P, dt) {
         if (h.weapon === 'knife' && P.punch && !back) { startAttack(h, 'stab'); break; }
         // the back elbow: attack toward your back without turning round
         if (back) { startAttack(h, 'elbow'); h.punches = 0; h.kicks = 0; break; }
+        // punch a doubled-over enemy in front of you and you grab him by the head
+        if (P.punch && !h.weapon) {
+          const t = game.foes.find((o) => !o.dead && o.state === 'dizzy' && Math.abs(o.z - h.z) < 11 && (o.x - h.x) * h.face > 0 && Math.abs(o.x - h.x) < 46 && grounded(o));
+          if (t) { grab(h, t); break; }
+        }
         if (P.punch) { h.punches = h.chainT > 0 ? h.punches + 1 : 1; h.kicks = 0; h.chainT = 0.55; startAttack(h, h.punches >= 3 ? 'hook' : 'jab'); if (h.punches >= 3) h.punches = 0; }
         else { h.kicks = h.chainT > 0 ? h.kicks + 1 : 1; h.punches = 0; h.chainT = 0.6; startAttack(h, h.kicks >= 2 ? 'round' : 'kick'); if (h.kicks >= 2) h.kicks = 0; }
         break;
@@ -2495,7 +2398,7 @@ function updateHero(h, I, P, dt) {
       if (!t || t.dead || t.heldBy !== h || h.holdT > 2.2) { release(h); break; }
       t.x = h.x + h.face * (9.2 * CHARS[h.kind].k + 6.4 * CHARS[t.kind].k); t.z = h.z - 0.5; t.face = -h.face;
       if (P.kick || ((P.punch) && dirX === -h.face)) { toss(h); break; }
-      if (P.punch) { startAttack(h, 'knee'); break; }
+      if (P.punch) { if (h.knees >= 2) { toss(h); break; } startAttack(h, 'knee'); break; }
       if (dirX === -h.face && h.holdT > 0.5) release(h);
       break;
     }
@@ -2542,7 +2445,7 @@ function updateTossed(t, dt) {
   const h = t.tossBy, D = 0.46;
   const u = Math.min(1, t.st / D), f = t.tossFace, k = CHARS[h.kind].k / 1.9;
   t.x = t.tossX + f * 18 * k * Math.cos(Math.PI * u);
-  t.h = Math.sin(Math.PI * u) * 26 * k + Math.sin(Math.PI * Math.min(1, u * 1.6)) * 4 * k;
+  t.h = Math.sin(Math.PI * u) * 19 * k + Math.sin(Math.PI * Math.min(1, u * 1.6)) * 4 * k;
   t.z = h.z; t.face = f;
   t.spinA = -f * Math.PI * 1.1 * u;
   if (u >= 1) {
@@ -3418,29 +3321,21 @@ function streetView() {
 
 function depthScale(z) { return 0.92 + (z - Z0) / (Z1 - Z0) * 0.12; }
 
-/* The street is painted at the arcade's own resolution, one world unit to one pixel, into a small
-   buffer, then blown up with hard pixel edges. Menus and the HUD stay smooth on top. */
-let PIX = null;
-function pixBuffer(w, h) {
-  if (!PIX || PIX.width !== w || PIX.height !== h) PIX = makeCanvas(w, h);
-  return PIX;
-}
-function drawStreet(out) {
+function drawStreet(g) {
   const gm = game, S = gm.stageDef, si = gm.stage, v = streetView();
   if (!S) return;
-  const PW = Math.ceil(v.w) + 1, buf = pixBuffer(PW, H), g = buf.getContext('2d');
-  g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
-  g.imageSmoothingEnabled = false;
-  g.clearRect(0, 0, PW, H);
   g.save();
+  g.translate(0, v.y); g.scale(v.zf, v.zf);
+  g.beginPath(); g.rect(0, 0, v.w, H); g.clip();
   let sx = 0, sy = 0;
-  if (settings.shake && gm.shake > 0.3 && gm.state !== 'pause') { sx = Math.round(rand(-1, 1) * gm.shake * 0.5); sy = Math.round(rand(-1, 1) * gm.shake * 0.4); }
+  if (settings.shake && gm.shake > 0.3 && gm.state !== 'pause') { sx = rand(-1, 1) * gm.shake * 0.5; sy = rand(-1, 1) * gm.shake * 0.4; }
   g.translate(sx, sy);
-  // whole pixels only, so the art never smears as the camera moves
-  const cam = Math.round(v.x0), far = Math.round(cam * 0.32);
-  for (let i = Math.floor(far / TILE); i * TILE < far + PW; i++) g.drawImage(stageTile(si, 0, i, 1), i * TILE - far, 0);
+  const px = view.scale * v.zf, cam = v.x0;
+  // far layer drifts at a third of the speed
+  const far = cam * 0.32;
+  for (let i = Math.floor(far / TILE); i * TILE < far + v.w; i++) g.drawImage(stageTile(si, 0, i, px), i * TILE - far, 0, TILE, H);
   drawStageLive(g, si, cam, true);
-  for (let i = Math.floor(cam / TILE); i * TILE < cam + PW; i++) if (i >= 0) g.drawImage(stageTile(si, 1, i, 1), i * TILE - cam, 0);
+  for (let i = Math.floor(cam / TILE); i * TILE < cam + v.w; i++) if (i >= 0) g.drawImage(stageTile(si, 1, i, px), i * TILE - cam, 0, TILE, H);
   g.translate(-cam, 0);
   drawPits(g, cam, v.w);
   // shadows first, then every body back to front
@@ -3448,10 +3343,10 @@ function drawStreet(out) {
   for (const h of gm.heroes) if (h.active && !(h.state === 'dead')) bodies.push(h);
   for (const f of gm.foes) bodies.push(f);
   for (const it of gm.items) bodies.push(it);
-  for (const s2 of gm.shots) bodies.push(s2);
-  for (const b of bodies) { const k = b.kind ? CHARS[b.kind].k / 1.9 : 0.8; g.globalAlpha = 0.45 * (b.alpha === undefined ? 1 : b.alpha) / (1 + (b.h || 0) / 60); g.drawImage(shadowSprite(), Math.round(b.x - 18 * k), Math.round(b.z - 4), Math.round(36 * k), 8); }
+  for (const s of gm.shots) bodies.push(s);
+  for (const b of bodies) { const k = b.kind ? CHARS[b.kind].k / 1.9 : 0.8; g.globalAlpha = 0.35 * (b.alpha === undefined ? 1 : b.alpha) / (1 + (b.h || 0) / 60); g.drawImage(shadowSprite(), b.x - 18 * k, b.z - 4, 36 * k, 8); }
   g.globalAlpha = 1;
-  bodies.sort((a, b2) => a.z - b2.z);
+  bodies.sort((a, b) => a.z - b.z);
   for (const b of bodies) {
     if (b.type && !b.kind && b.vx === undefined) drawItem(g, b);
     else if (b.owner) drawShot(g, b);
@@ -3459,28 +3354,18 @@ function drawStreet(out) {
     else drawItem(g, b);
   }
   drawFxWorld(g);
+  // floating score
+  for (const q of gm.pops) { g.globalAlpha = Math.min(1, (1 - q.t) * 2); T(g, q.s, q.x, q.z - 70 - q.t * 18, q.col, { align: 'center', weight: 700, scale: 1.1 }); }
+  g.globalAlpha = 1;
   g.translate(cam, 0);
   drawStageLive(g, si, cam, false);
+  // the GO arrow
+  if (gm.goT > 0 && gm.state === 'play' && blink(3)) { T(g, 'GO', v.w - 44, 60, C.gold, { align: 'center', scale: 2.4, display: true, stroke: 'rgba(0,0,0,0.7)', strokeW: 2 }); poly(g, [v.w - 28, 64, v.w - 16, 72, v.w - 28, 80], C.gold); }
   g.restore();
-  // blow the buffer up onto the screen
-  out.save();
-  out.translate(0, v.y); out.scale(v.zf, v.zf);
-  out.beginPath(); out.rect(0, 0, v.w, H); out.clip();
-  const sm = out.imageSmoothingEnabled;
-  out.imageSmoothingEnabled = false;
-  out.drawImage(buf, 0, 0, PW, H, -(v.x0 - cam), 0, PW, H);
-  out.imageSmoothingEnabled = sm;
-  // floating scores and the GO arrow stay sharp
-  out.translate(-v.x0, 0);
-  for (const q of gm.pops) { out.globalAlpha = Math.min(1, (1 - q.t) * 2); T(out, q.s, q.x, q.z - 70 - q.t * 18, q.col, { align: 'center', weight: 700, scale: 1.1 }); }
-  out.globalAlpha = 1;
-  out.translate(v.x0, 0);
-  if (gm.goT > 0 && gm.state === 'play' && blink(3)) { T(out, 'GO', v.w - 44, 60, C.gold, { align: 'center', scale: 2.4, display: true, stroke: 'rgba(0,0,0,0.7)', strokeW: 2 }); poly(out, [v.w - 28, 64, v.w - 16, 72, v.w - 28, 80], C.gold); }
-  out.restore();
   // markers for anyone off the side of an upright view
-  if (v.zf > 1 && gm.state === 'play') for (const f of gm.foes) { const x = (f.x - v.x0) * v.zf; if (x < 0 || x > W) { const y = v.y + (f.z - 30) * v.zf, L = x < 0; poly(out, L ? [3, y, 11, y - 5, 11, y + 5] : [W - 3, y, W - 11, y - 5, W - 11, y + 5], f.boss ? C.red : 'rgba(255,255,255,0.7)'); } }
-  if (settings.fx) { out.fillStyle = rgrad(out, W / 2, v.y + H * v.zf * 0.5, H * 0.4 * v.zf, W * 0.75, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,10,0.45)']]); out.fillRect(0, v.y, W, H * v.zf); }
-  if (gm.flash > 0) rect(out, 0, v.y, W, H * v.zf, 'rgba(255,255,255,' + Math.min(0.5, gm.flash * 2).toFixed(3) + ')');
+  if (v.zf > 1 && gm.state === 'play') for (const f of gm.foes) { const x = (f.x - v.x0) * v.zf; if (x < 0 || x > W) { const y = v.y + (f.z - 30) * v.zf, L = x < 0; poly(g, L ? [3, y, 11, y - 5, 11, y + 5] : [W - 3, y, W - 11, y - 5, W - 11, y + 5], f.boss ? C.red : 'rgba(255,255,255,0.7)'); } }
+  if (settings.fx) { g.fillStyle = rgrad(g, W / 2, v.y + H * v.zf * 0.5, H * 0.4 * v.zf, W * 0.75, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,10,0.45)']]); g.fillRect(0, v.y, W, H * v.zf); }
+  if (gm.flash > 0) rect(g, 0, v.y, W, H * v.zf, 'rgba(255,255,255,' + Math.min(0.5, gm.flash * 2).toFixed(3) + ')');
 }
 
 /** A hole in the front part of the floor: a lit lip at the back, dark walls, and what lies below. */
@@ -3506,30 +3391,7 @@ function drawPits(g, cam, vw) {
   }
 }
 
-/* In the pixel buffer every figure is painted on its own scratch card, then stamped down with a
-   solid one-pixel ink outline around the whole silhouette, the way arcade sprites were drawn. */
-const BODY_CARD = { w: 240, h: 240, ox: 120, oy: 176 };
-let CARD = null, CARD_INK = null;
 function drawBody(g, f) {
-  if (g.canvas !== PIX || QUALITY.level >= 2) return drawBodyRaw(g, f);
-  if (!CARD) { CARD = makeCanvas(BODY_CARD.w, BODY_CARD.h); CARD_INK = makeCanvas(BODY_CARD.w, BODY_CARD.h); }
-  const bx = Math.round(f.x), by = Math.round(f.z - f.h);
-  const q = CARD.getContext('2d');
-  q.setTransform(1, 0, 0, 1, 0, 0); q.globalAlpha = 1; q.globalCompositeOperation = 'source-over';
-  q.clearRect(0, 0, BODY_CARD.w, BODY_CARD.h);
-  q.translate(BODY_CARD.ox - bx, BODY_CARD.oy - by);
-  drawBodyRaw(q, f);
-  const o = CARD_INK.getContext('2d');
-  o.setTransform(1, 0, 0, 1, 0, 0); o.globalAlpha = 1; o.globalCompositeOperation = 'source-over';
-  o.clearRect(0, 0, BODY_CARD.w, BODY_CARD.h);
-  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) o.drawImage(CARD, dx, dy);
-  o.globalCompositeOperation = 'source-in';
-  o.fillStyle = '#07040c'; o.fillRect(0, 0, BODY_CARD.w, BODY_CARD.h);
-  o.globalCompositeOperation = 'source-over';
-  o.drawImage(CARD, 0, 0);
-  g.drawImage(CARD_INK, bx - BODY_CARD.ox, by - BODY_CARD.oy);
-}
-function drawBodyRaw(g, f) {
   const k = depthScale(f.z);
   g.save(); g.translate(f.x, f.z - f.h); g.scale(k, k);
   if (f.spinA) { const c = -CHARS[f.kind].k * 13; g.translate(0, c); g.rotate(f.spinA); g.translate(0, -c); }
@@ -3984,7 +3846,7 @@ function drawHowTo(g) {
     row(3, 'JUMP', 'C OR SPACE (P1), H (P2). KICK IN THE AIR FOR A FLYING KICK.', C.cyan);
     row(4, 'SPIN KICK', 'V (P1) OR T (P2). A JUMPING SPIN KICK THAT HITS BOTH SIDES. NEEDS A MOMENT TO RECHARGE.', C.green);
   } else if (pg === 1) {
-    row(0, 'GRAB', 'WALK INTO AN ENEMY WHO IS DOUBLED OVER. PUNCH FOR KNEES, KICK TO THROW THEM OVER YOUR SHOULDER.', C.gold);
+    row(0, 'HEAD GRAB', 'PUNCH AN ENEMY WHO IS DOUBLED OVER TO GRAB HIS HEAD. TWO KNEES, THEN PUNCH AGAIN (OR KICK) TO THROW HIM OVER YOUR HEAD.', C.gold);
     row(1, 'BACK ELBOW', 'ATTACK TOWARD YOUR BACK WITHOUT TURNING. YOUR HARDEST HIT.', C.red);
     row(2, 'ARM PINS', 'A PUNK CAN GRAB YOU FROM BEHIND WHILE HIS FRIEND HITS YOU. MASH ANY BUTTON TO BREAK FREE.', C.cyan);
     row(3, 'WEAPONS AND DRUMS', 'KNOCK A WEAPON LOOSE AND PUNCH TO TAKE IT. LIFT OIL DRUMS AND THROW THEM.', '#ffffff');

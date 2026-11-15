@@ -5,14 +5,14 @@
    ========================================================================== */
 
 Object.assign(PAL, {
-  kade: { skin: '#e4a67c', skin2: '#b97a52', hair: '#2a1a12', hairL: '#4a3022', top: '#26386e', top2: '#1a2852', band: '#e02a30',
-    pants: '#4a6a9a', pants2: '#34507a', boot: '#5a3a22', boot2: '#3a2414', gear: '#1a1a20', head: 'band', bare: true },
-  suki: { skin: '#f0c49c', skin2: '#c99670', hair: '#22161c', top: '#c8202e', top2: '#8e1420', band: '#ffd24a',
-    pants: '#24262e', pants2: '#18191f', boot: '#f2f2f2', boot2: '#b8bcc6', gear: '#ffffff', head: 'pony', bare: true },
+  kade: { skin: '#e9b48c', skin2: '#c4875f', hair: '#1c1418', hairL: '#3a2a30', top: '#eeeae2', top2: '#c8c2b8', vest: '#d8283a', vest2: '#9a1426',
+    pants: '#3a404c', pants2: '#2a2e38', boot: '#f2f2f2', boot2: '#b8bcc6', gear: '#20232c', head: 'spiky' },
+  suki: { skin: '#f0c49c', skin2: '#c99670', hair: '#22161c', top: '#1aa6a0', top2: '#0e746e', vest: '#1aa6a0', vest2: '#0e746e',
+    pants: '#1e2230', pants2: '#141722', boot: '#e84a7a', boot2: '#a82a54', band: '#ff4a8a', gear: '#ffffff', head: 'pony' },
   punk: { skin: '#dba27c', skin2: '#b47c5b', hair: '#3ad0ff', top: '#2a2a34', top2: '#1c1c24', vest: '#4a3a2a', vest2: '#342818',
-    pants: '#5a3a6a', pants2: '#402a4c', boot: '#18161a', boot2: '#3a363c', gear: '#c0c4cc', head: 'mohawk', bare: true },
+    pants: '#5a3a6a', pants2: '#402a4c', boot: '#18161a', boot2: '#3a363c', gear: '#c0c4cc', head: 'mohawk' },
   punk2: { skin: '#c8906a', skin2: '#a06a4c', hair: '#ff5a3a', top: '#3a2a20', top2: '#2a1e16', vest: '#262a34', vest2: '#181c24',
-    pants: '#2e4a3a', pants2: '#20362a', boot: '#18161a', boot2: '#3a363c', gear: '#c0c4cc', head: 'mohawk', bare: true },
+    pants: '#2e4a3a', pants2: '#20362a', boot: '#18161a', boot2: '#3a363c', gear: '#c0c4cc', head: 'mohawk' },
   blade: { skin: '#d9a27c', skin2: '#b47c5b', hair: '#1a1a20', top: '#6a1e2a', top2: '#4a121c', pants: '#22262e', pants2: '#181a20',
     boot: '#121214', boot2: '#2e2e34', beanie: '#16181e', accent: '#cf3a2c', gear: '#26231f', head: 'beanie' },
   biker: { skin: '#e0aa82', skin2: '#b8805e', hair: '#2a2420', top: '#1a1c22', top2: '#101216', vest: '#3a3e48', vest2: '#262a32',

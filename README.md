@@ -103,12 +103,12 @@ An open-road racer drawn the classic arcade way (scaled sprites on a segmented r
 
 ## Iron Alley
 
-An original two-player street brawler in true arcade pixel art: own characters, gang, districts and soundtrack. The street is painted at the cabinet's own resolution and scaled up with hard pixel edges, so it stays sharp on any screen.
+An original two-player street brawler: own characters, gang, districts and soundtrack.
 
 - Two heroes: Kade (heavy hands) and Suki (fast feet); player two can join at any time
 - Four districts: Neon Market, Freight Yard, Steel Foundry and Viper Tower, each ending in a boss (Tank, Ratchet, Forge, The Warden)
 - Classic belt-scroller fighting with weight: jab, jab, hook; side kick and roundhouse; the back elbow; flying kick; a jumping spin kick on a short recharge
-- Two quick hits double an enemy over: walk in to grab them by the head, knee them, or lift them over your head and slam them down behind you
+- Two quick hits double an enemy over. Punch him again to grab his head: two punches are knees, the third (or a kick) lifts him over your head and slams him down behind you
 - Weapons swing on punch; kicks still work with a bat or pipe in your hand
 - Punks pin your arms from behind while a partner hits you; mash any button to break free
 - Knock weapons loose and take them (bats, pipes, knives), lift and throw oil drums, and throw the gang into pits (but do not fall in yourself)

@@ -219,7 +219,7 @@ function updateAttack(f, dt) {
       if (hit && landHit(f, o, A, f.atk)) {
         f.atkHit.add(o);
         if (A.step && f.hero) f.x += f.face * A.step;
-        if (A.grab) { f.knees++; if (f.knees >= 3) { knockDown(o, f.face, 170, 90, o.hp <= 0); f.hold = null; o.heldBy = null; } }
+        if (A.grab) f.knees++;
         if (f.weapon && A.weapon) { f.wUses--; if (f.wUses <= 0) { dropWeapon(f, true); } }
       }
     }
@@ -298,6 +298,11 @@ function updateHero(h, I, P, dt) {
         if (h.weapon === 'knife' && P.punch && !back) { startAttack(h, 'stab'); break; }
         // the back elbow: attack toward your back without turning round
         if (back) { startAttack(h, 'elbow'); h.punches = 0; h.kicks = 0; break; }
+        // punch a doubled-over enemy in front of you and you grab him by the head
+        if (P.punch && !h.weapon) {
+          const t = game.foes.find((o) => !o.dead && o.state === 'dizzy' && Math.abs(o.z - h.z) < 11 && (o.x - h.x) * h.face > 0 && Math.abs(o.x - h.x) < 46 && grounded(o));
+          if (t) { grab(h, t); break; }
+        }
         if (P.punch) { h.punches = h.chainT > 0 ? h.punches + 1 : 1; h.kicks = 0; h.chainT = 0.55; startAttack(h, h.punches >= 3 ? 'hook' : 'jab'); if (h.punches >= 3) h.punches = 0; }
         else { h.kicks = h.chainT > 0 ? h.kicks + 1 : 1; h.punches = 0; h.chainT = 0.6; startAttack(h, h.kicks >= 2 ? 'round' : 'kick'); if (h.kicks >= 2) h.kicks = 0; }
         break;
@@ -324,7 +329,7 @@ function updateHero(h, I, P, dt) {
       if (!t || t.dead || t.heldBy !== h || h.holdT > 2.2) { release(h); break; }
       t.x = h.x + h.face * (9.2 * CHARS[h.kind].k + 6.4 * CHARS[t.kind].k); t.z = h.z - 0.5; t.face = -h.face;
       if (P.kick || ((P.punch) && dirX === -h.face)) { toss(h); break; }
-      if (P.punch) { startAttack(h, 'knee'); break; }
+      if (P.punch) { if (h.knees >= 2) { toss(h); break; } startAttack(h, 'knee'); break; }
       if (dirX === -h.face && h.holdT > 0.5) release(h);
       break;
     }
@@ -371,7 +376,7 @@ function updateTossed(t, dt) {
   const h = t.tossBy, D = 0.46;
   const u = Math.min(1, t.st / D), f = t.tossFace, k = CHARS[h.kind].k / 1.9;
   t.x = t.tossX + f * 18 * k * Math.cos(Math.PI * u);
-  t.h = Math.sin(Math.PI * u) * 26 * k + Math.sin(Math.PI * Math.min(1, u * 1.6)) * 4 * k;
+  t.h = Math.sin(Math.PI * u) * 19 * k + Math.sin(Math.PI * Math.min(1, u * 1.6)) * 4 * k;
   t.z = h.z; t.face = f;
   t.spinA = -f * Math.PI * 1.1 * u;
   if (u >= 1) {

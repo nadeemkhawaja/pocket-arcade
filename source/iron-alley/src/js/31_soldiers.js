@@ -120,17 +120,9 @@ function drawArmV(g, d, sh, el, hd, k, back, fist) {
   const wx = hd[0] - ux * 0.95 * k, wy = hd[1] - uy * 0.95 * k;
   if (d.bare) {
     limbs(g, [
-      [el[0], el[1], wx, wy, 1.22 * k, 0.86 * k, skinS, skin],
-      [sh[0], sh[1], el[0], el[1], 1.62 * k, 1.18 * k, skinS, skin]
+      [el[0], el[1], wx, wy, 1.12 * k, 0.82 * k, skinS, skin],
+      [sh[0], sh[1], el[0], el[1], 1.45 * k, 1.12 * k, skinS, skin]
     ], d);
-    if (!d.tint) {
-      // muscle: a lit ridge down the biceps and forearm, a crease at the elbow
-      const ax = el[0] - sh[0], ay = el[1] - sh[1], al = Math.hypot(ax, ay) || 1, nx = -ay / al, ny = ax / al;
-      const hl = back ? shade(skin, 0.1) : shade(skin, 0.22);
-      line(g, lerp(sh[0], el[0], 0.2) - nx * 0.55 * k, lerp(sh[1], el[1], 0.2) - ny * 0.55 * k, lerp(sh[0], el[0], 0.75) - nx * 0.45 * k, lerp(sh[1], el[1], 0.75) - ny * 0.45 * k, 0.42 * k, hl);
-      line(g, lerp(el[0], wx, 0.15) - ux * 0 - uy * -0.45 * k, lerp(el[1], wy, 0.15) + ux * -0.45 * k, lerp(el[0], wx, 0.6) + uy * 0.4 * k, lerp(el[1], wy, 0.6) - ux * 0.4 * k, 0.32 * k, hl);
-      disc(g, el[0], el[1], 0.32 * k, rgba(shade(skin, -0.45), 0.7));
-    }
   } else {
     const mx = lerp(el[0], wx, 0.52), my = lerp(el[1], wy, 0.52);
     limbs(g, [
