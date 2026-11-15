@@ -63,6 +63,7 @@ function drawStreet(g) {
   drawStageLive(g, si, cam, true);
   for (let i = Math.floor(cam / TILE); i * TILE < cam + v.w; i++) if (i >= 0) g.drawImage(stageTile(si, 1, i, px), i * TILE - cam, 0, TILE, H);
   g.translate(-cam, 0);
+  drawPits(g, cam, v.w);
   // shadows first, then every body back to front
   const bodies = [];
   for (const h of gm.heroes) if (h.active && !(h.state === 'dead')) bodies.push(h);
@@ -93,17 +94,42 @@ function drawStreet(g) {
   if (gm.flash > 0) rect(g, 0, v.y, W, H * v.zf, 'rgba(255,255,255,' + Math.min(0.5, gm.flash * 2).toFixed(3) + ')');
 }
 
+/** A hole in the front part of the floor: a lit lip at the back, dark walls, and what lies below. */
+function drawPits(g, cam, vw) {
+  const S = game.stageDef;
+  if (!S || !S.pits) return;
+  for (const p of S.pits) {
+    const [x0, x1, zt] = p;
+    if (x1 < cam - 20 || x0 > cam + vw + 20) continue;
+    const lean = (y) => (y - zt) * 0.35;           // edges lean with depth, like the floor seams
+    const bottom = H + 2;
+    g.beginPath(); g.moveTo(x0, zt); g.lineTo(x1, zt); g.lineTo(x1 - lean(bottom), bottom); g.lineTo(x0 - lean(bottom), bottom); g.closePath();
+    const under = S.id === 'foundry' ? [[0, '#1a0804'], [0.7, '#6a1a04'], [1, '#ff7a1a']] : S.id === 'tower' ? [[0, '#02040a'], [1, '#0e1a30']] : [[0, '#050608'], [1, '#14161c']];
+    g.fillStyle = lgrad(g, 0, zt, 0, bottom, under); g.fill();
+    // the far wall of the hole, in shadow
+    g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(x0, zt, x1 - x0, 10);
+    if (S.id === 'tower') for (let i = 0; i < 26; i++) { const lx = x0 + 8 + ((i * 37) % Math.max(10, x1 - x0 - 16)), ly = zt + 16 + ((i * 23) % 40); rect(g, lx - lean(ly), ly, 1.6, 1.6, i % 3 ? '#ffe9a0' : '#9ad8ff'); }
+    if (S.id === 'foundry') { const k = 0.5 + 0.5 * Math.sin(game.t * 4); if (settings.fx) drawGlow(g, (x0 + x1) / 2, bottom - 10, (x1 - x0) * 0.8, '#ff6a10', 0.35 + 0.2 * k); for (let i = 0; i < 8; i++) { const ph = (game.t * 0.5 + i / 8) % 1; rect(g, x0 + 10 + ((i * 29) % (x1 - x0 - 20)) - lean(bottom - ph * 50), bottom - ph * 50, 1.4, 1.4, '#ffb040'); } }
+    // the lit front lip and the side edges
+    rect(g, x0, zt - 1.5, x1 - x0, 2, 'rgba(255,255,255,0.28)');
+    g.strokeStyle = 'rgba(255,210,74,0.75)'; g.lineWidth = 1.4; g.setLineDash([6, 4]);
+    g.beginPath(); g.moveTo(x0 - 2, zt - 2); g.lineTo(x1 + 2, zt - 2); g.stroke(); g.setLineDash([]);
+  }
+}
+
 function drawBody(g, f) {
   const k = depthScale(f.z);
   g.save(); g.translate(f.x, f.z - f.h); g.scale(k, k);
   if (f.spawnT > 0 && f.boss) g.globalAlpha = 1;
   const flash = f.flash > 0.05 ? '#ffffff' : f.inv > 0 && f.hero && f.state !== 'getup' && Math.floor(game.t * 16) % 2 ? false : null;
   const a = (f.alpha === undefined ? 1 : f.alpha) * (f.inv > 0 && f.hero && f.state !== 'getup' && f.state !== 'down' && Math.floor(game.t * 16) % 2 ? 0.6 : 1);
-  if (f.weapon) SPRITE_SWAP = { bat: f.weapon === 'knife' ? 'knife' : f.weapon, knife: 'knife' };
+  if (f.weapon && f.weapon !== 'drum') SPRITE_SWAP = { bat: f.weapon === 'knife' ? 'knife' : f.weapon, knife: 'knife' };
   let anim = f.anim, frame = f.frame;
-  if (f.weapon && f.weapon !== 'knife' && (anim === 'idle' || anim === 'walk' || anim === 'run')) { anim = 'hold1'; frame = 0; }
+  if (f.weapon === 'drum' && (anim === 'idle' || anim === 'walk')) { anim = 'carry'; frame = 0; }
+  else if (f.weapon && f.weapon !== 'knife' && f.weapon !== 'drum' && (anim === 'idle' || anim === 'walk')) { anim = 'hold1'; frame = 0; }
   drawSprite(g, f.kind, anim, frame, f.face, 0, 0, flash, a);
   SPRITE_SWAP = null;
+  if (f.weapon === 'drum') { const k2 = CHARS[f.kind].k; g.save(); g.translate(f.face * 1, -k2 * 29); drawItem(g, { type: 'drum', x: 0, z: 0, h: 0, id: 0 }); g.restore(); }
   // a ring under each player so you can tell who is who
   if (f.hero && game.players > 1) { T(g, 'P' + (f.slot + 1), 0, -CHARS[f.kind].k * 33, f.slot ? C.cyan : C.red, { align: 'center', weight: 700, scale: 0.9 }); }
   if (f.state === 'dizzy') for (let i = 0; i < 3; i++) { const a2 = game.t * 5 + i * 2.1; disc(g, Math.cos(a2) * 8, -CHARS[f.kind].k * 31 + Math.sin(a2) * 2.4, 1.6, C.gold); }
@@ -139,6 +165,7 @@ function drawHeldItem(g, type) {
   drawHeldV(g, d, [-8, -3], type === 'bat' ? 'bat' : type, 0, 1.9, 0);
 }
 function drawShot(g, s) {
+  if (s.type === 'drum') { g.save(); g.translate(s.x, s.z - s.h + 14); g.rotate(s.spin * 0.3); drawItem(g, { type: 'drum', x: 0, z: 0, h: 0, id: 0 }); g.restore(); return; }
   g.save(); g.translate(s.x, s.z - s.h); g.rotate(s.type === 'knife' ? 0 : s.spin); if (s.vx < 0) g.scale(-1, 1);
   drawHeldItem(g, s.type === 'knife' ? 'knife' : s.type);
   g.restore();
@@ -170,17 +197,25 @@ function heroPanel(g, h, x, right) {
   const bx = right ? x - 32 - 110 : x + 32;
   T(g, h.name, right ? x - 32 : bx, 3, '#ffffff', { align: al, weight: 700, scale: 1.1 });
   T(g, String(Math.floor(h.score)).padStart(7, '0'), right ? bx : bx + 110, 3, C.gold, { align: right ? 'left' : 'right', weight: 700, scale: 1.0 });
-  // health: a long slanted bar that shows recent damage
-  h.hpShow = h.hpShow === undefined ? h.hp : approach(h.hpShow, h.hp, 40 / 60);
-  const f = clamp(h.hp / h.maxHp, 0, 1), f2 = clamp(h.hpShow / h.maxHp, 0, 1);
-  slab(g, bx, 14, 110, 7, 'rgba(0,0,0,0.6)', 2);
-  slab(g, right ? bx + 110 * (1 - f2) : bx, 14, 110 * f2, 7, '#ffffff', 2);
-  slab(g, right ? bx + 110 * (1 - f) : bx, 14, 110 * f, 7, lgrad(g, bx, 0, bx + 110, 0, f < 0.3 ? [[0, '#ff3a3a'], [1, '#ff8a3a']] : [[0, col], [1, h.slot ? '#c8f8ff' : '#ffc0a0']]), 2);
-  // special meter and lives
-  for (let i = 0; i < 3; i++) { const fill = clamp(h.meter - i, 0, 1); slab(g, (right ? bx + 110 - 22 - i * 24 : bx + i * 24), 24, 20, 3.4, 'rgba(0,0,0,0.55)', 1); if (fill > 0) slab(g, (right ? bx + 110 - 22 - i * 24 : bx + i * 24), 24, 20 * fill, 3.4, fill >= 1 ? (blink(4) ? '#fff2a0' : C.gold) : '#a88a3a', 1); }
+  // health in blocks, arcade style; the white shows recent damage draining away
+  h.hpShow = h.hpShow === undefined ? h.hp : approach(h.hpShow, h.hp, 30 / 60);
+  const N = 12, per = h.maxHp / N, bw = 110 / N;
+  for (let i = 0; i < N; i++) {
+    const k = right ? N - 1 - i : i, xx = bx + i * bw;
+    const full = clamp((h.hp - k * per) / per, 0, 1), ghost = clamp((h.hpShow - k * per) / per, 0, 1);
+    slab(g, xx, 14, bw - 1.2, 7, 'rgba(0,0,0,0.6)', 1.2);
+    if (ghost > full) slab(g, xx, 14, (bw - 1.2), 7, 'rgba(255,255,255,0.75)', 1.2);
+    if (full > 0) slab(g, xx, 14, (bw - 1.2) * (full >= 1 ? 1 : full), 7, h.hp / h.maxHp < 0.3 ? (blink(4) ? '#ff3a3a' : '#c81e1e') : col, 1.2);
+  }
+  // spin kick lamp
+  const ready = h.spinCool <= 0;
+  slab(g, right ? bx + 110 - 40 : bx, 24, 40, 4, ready ? (blink(2) ? '#fff2a0' : C.gold) : 'rgba(0,0,0,0.55)', 1.2);
+  if (!ready) slab(g, right ? bx + 110 - 40 : bx, 24, 40 * (1 - h.spinCool / 2.2), 4, '#7a6a3a', 1.2);
+  T(g, 'SPIN', right ? bx + 110 - 44 : bx + 44, 22.6, ready ? C.gold : C.dim, { align: right ? 'right' : 'left', weight: 700, scale: 0.7 });
   T(g, 'x' + Math.max(0, h.lives), right ? bx - 4 : bx + 114, 22.5, '#ffffff', { align: right ? 'right' : 'left', weight: 700, scale: 0.9 });
-  if (h.weapon) T(g, ITEM_DEF[h.weapon].label + ' ' + h.wUses, right ? bx + 110 : bx, 30, C.cyan, { align: al, weight: 700, scale: 0.8 });
-  if (h.combo >= 3 && h.comboT > 0) T(g, h.combo + ' HITS', right ? x - 6 : x + 6, 40, C.gold, { align: al, display: true, scale: 1.4 + Math.min(0.6, h.combo * 0.03), stroke: 'rgba(0,0,0,0.7)', strokeW: 1.6 });
+  if (h.weapon) T(g, ITEM_DEF[h.weapon].label + (h.weapon === 'drum' ? '' : ' ' + h.wUses), right ? bx + 110 : bx, 30, C.cyan, { align: al, weight: 700, scale: 0.8 });
+  if (false) T(g, h.combo + ' HITS', right ? x - 6 : x + 6, 40, C.gold, { align: al, display: true, scale: 1.4 + Math.min(0.6, h.combo * 0.03), stroke: 'rgba(0,0,0,0.7)', strokeW: 1.6 });
+  if (h.state === 'pinned' && blink(6)) T(g, 'BREAK FREE! PRESS ANY BUTTON', right ? bx + 110 : bx, 32, C.red, { align: al, weight: 700, scale: 0.85 });
   if (h.state === 'dead') { T(g, 'CONTINUE? ' + Math.max(0, Math.ceil(h.contT)), right ? bx + 110 : bx, 32, C.red, { align: al, weight: 700, scale: 1.1 }); T(g, 'PRESS PUNCH', right ? bx + 110 : bx, 42, '#ffffff', { align: al, weight: 700, scale: 0.85 }); }
 }
 function drawHUD(g) {

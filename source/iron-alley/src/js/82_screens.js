@@ -194,9 +194,9 @@ function drawLogo(g, cx, y, s) {
 }
 
 function controlHint() {
-  if (input.usingTouch || (isTouch && coarse && !input.usingPad)) return 'PAD MOVES   P PUNCH   K KICK   J JUMP   S SPECIAL';
+  if (input.usingTouch || (isTouch && coarse && !input.usingPad)) return 'PAD MOVES   P PUNCH   K KICK   J JUMP   S SPIN KICK';
   if (input.usingPad) return 'STICK MOVES   X PUNCH   Y KICK   A JUMP   SHOULDER SPECIAL';
-  return 'P1: ARROWS  Z PUNCH  X KICK  C JUMP  V SPECIAL     P2: WASD  F G H T';
+  return 'P1: ARROWS  Z PUNCH  X KICK  C JUMP  V SPIN     P2: WASD  F G H T';
 }
 
 function drawBoot(g) {
@@ -271,17 +271,17 @@ function drawHowTo(g) {
     wrapText(body, W - px * 2 - 36, 0.86).forEach((ln, k) => T(g, ln, px + 26, y + 9.4 + k * 8.4, '#e0dcec', { scale: 0.86 }));
   };
   if (pg === 0) {
-    row(0, 'MOVE', 'ARROWS (P1) OR WASD (P2). UP AND DOWN WALK INTO THE STREET. TAP TWICE TO RUN.');
-    row(1, 'PUNCH', 'Z (P1) OR F (P2). PRESS AGAIN FOR A FOUR HIT COMBO ENDING IN AN UPPERCUT.', C.red);
-    row(2, 'KICK', 'X (P1) OR G (P2). AFTER TWO PUNCHES A KICK BECOMES A ROUNDHOUSE.', C.gold);
+    row(0, 'MOVE', 'ARROWS (P1) OR WASD (P2). UP AND DOWN WALK INTO THE STREET.');
+    row(1, 'PUNCH', 'Z (P1) OR F (P2). TWO JABS, THEN A HOOK THAT DOUBLES THEM OVER.', C.red);
+    row(2, 'KICK', 'X (P1) OR G (P2). A SIDE KICK; KICK AGAIN FOR A ROUNDHOUSE.', C.gold);
     row(3, 'JUMP', 'C OR SPACE (P1), H (P2). KICK IN THE AIR FOR A FLYING KICK.', C.cyan);
-    row(4, 'SPECIAL', 'V (P1) OR T (P2). A SPINNING KICK THAT CLEARS SPACE. USES A METER BAR, OR HEALTH IF EMPTY.', C.green);
+    row(4, 'SPIN KICK', 'V (P1) OR T (P2). A JUMPING SPIN KICK THAT HITS BOTH SIDES. NEEDS A MOMENT TO RECHARGE.', C.green);
   } else if (pg === 1) {
-    row(0, 'GRAB', 'WALK INTO A REELING ENEMY. PUNCH FOR KNEES, KICK TO THROW THEM INTO THEIR FRIENDS.', C.gold);
-    row(1, 'BEHIND YOU', 'PUNCH WHILE PRESSING AWAY FROM WHERE YOU FACE FOR A BACK ELBOW.', C.red);
-    row(2, 'RUNNING ATTACK', 'RUN, THEN PUNCH OR KICK TO CHARGE SHOULDER FIRST THROUGH A CROWD.', C.cyan);
-    row(3, 'WEAPONS', 'PUNCH ON A BAT, PIPE OR KNIFE TO TAKE IT. SPECIAL THROWS IT.', '#ffffff');
-    row(4, 'CRATES AND DRUMS', 'BREAK THEM OPEN FOR FOOD, CASH AND WEAPONS.', C.green);
+    row(0, 'GRAB', 'WALK INTO AN ENEMY WHO IS DOUBLED OVER. PUNCH FOR KNEES, KICK TO THROW THEM OVER YOUR SHOULDER.', C.gold);
+    row(1, 'BACK ELBOW', 'ATTACK TOWARD YOUR BACK WITHOUT TURNING. YOUR HARDEST HIT.', C.red);
+    row(2, 'ARM PINS', 'A PUNK CAN GRAB YOU FROM BEHIND WHILE HIS FRIEND HITS YOU. MASH ANY BUTTON TO BREAK FREE.', C.cyan);
+    row(3, 'WEAPONS AND DRUMS', 'KNOCK A WEAPON LOOSE AND PUNCH TO TAKE IT. LIFT OIL DRUMS AND THROW THEM.', '#ffffff');
+    row(4, 'PITS', 'WATCH YOUR STEP. THROW THE GANG IN, BUT DO NOT FALL IN YOURSELF.', C.green);
   } else {
     row(0, 'FOUR DISTRICTS', 'NEON MARKET, FREIGHT YARD, STEEL FOUNDRY, VIPER TOWER.', C.gold);
     row(1, 'THE BOSSES', 'TANK, RATCHET, FORGE AND THE WARDEN. EACH FIGHTS DIFFERENTLY.', C.red);

@@ -155,16 +155,18 @@ function decorate(T, rnd) {
   for (let i = 20; i < n; i++) {
     const r = rnd(), s = side(), snow = i > T.snowFrom;
     if (T.segs[i].tun) continue;
-    if (i % 5 === 0 && id !== 'pine') { addSprite(T, i, 'post', 1.16, 150); addSprite(T, i, 'post', -1.16, 150); }
+    if (i % 3 === 0 && id !== 'pine') { addSprite(T, i, 'post', 1.16, 150); addSprite(T, i, 'post', -1.16, 150); }
     if (id === 'coast') {
-      if (i % 9 === 0) addSprite(T, i, 'palm', 1.35 + rnd() * 0.2, 1500, { solid: 0.12 });
-      if (i % 9 === 4 && rnd() < 0.8) addSprite(T, i, 'palm', -1.3 - rnd() * 0.15, 1500, { solid: 0.12 });
+      if (i % 6 === 0) addSprite(T, i, 'palm', 1.35 + rnd() * 0.2, 1500, { solid: 0.12 });
+      if (i % 30 === 15) addSprite(T, i, 'lamp', 1.24, 1100, { solid: 0.05 });
+      if (i % 6 === 3 && rnd() < 0.85) addSprite(T, i, 'palm', -1.3 - rnd() * 0.15, 1500, { solid: 0.12 });
       if (r < 0.05) addSprite(T, i, 'bush', 1.7 + rnd() * 2.5, 900);
       else if (r < 0.075) addSprite(T, i, 'umbrella', -1.9 - rnd() * 0.9, 1100);
       else if (r < 0.085) addSprite(T, i, 'boat', -5 - rnd() * 7, 2200);
       else if (r < 0.1) addSprite(T, i, 'rock', 2.2 + rnd() * 3, 1200);
       if (i % 160 === 80) addSprite(T, i, 'board:' + Math.floor(rnd() * 8), 1.9, 2300, { solid: 0.3 });
     } else if (id === 'mesa') {
+      if (i % 7 === 0) addSprite(T, i, 'cactus', (i % 14 ? 1 : -1) * (1.35 + rnd() * 0.2), 800, { solid: 0.1 });
       if (r < 0.06) addSprite(T, i, 'cactus', s * (1.4 + rnd() * 2.2), 800, { solid: 0.1 });
       else if (r < 0.11) addSprite(T, i, 'drybush', s * (1.3 + rnd() * 3), 700);
       else if (r < 0.15) addSprite(T, i, 'rock', s * (1.6 + rnd() * 3), 1300, { solid: 0.28 });
@@ -179,13 +181,14 @@ function decorate(T, rnd) {
       else if (r < 0.135) addSprite(T, i, 'cabin', s * (3 + rnd() * 2), 2600);
       else if (r < 0.16 && snow) addSprite(T, i, 'snowrock', s * (1.7 + rnd() * 2), 1300, { solid: 0.25 });
     } else if (id === 'neon') {
-      if (i % 12 === 0) { addSprite(T, i, 'lamp', 1.22, 1100, { solid: 0.05 }); addSprite(T, i, 'lamp', -1.22, 1100, { solid: 0.05, flip: true }); }
+      if (i % 8 === 0) { addSprite(T, i, 'lamp', 1.22, 1100, { solid: 0.05 }); addSprite(T, i, 'lamp', -1.22, 1100, { solid: 0.05, flip: true }); }
       if (i % 22 === 10) addSprite(T, i, rnd() < 0.5 ? 'tower' : 'block', s * (2.6 + rnd() * 1.2), 2700);
       if (i % 22 === 21) addSprite(T, i, rnd() < 0.5 ? 'tower' : 'block', -s * (2.6 + rnd() * 1.6), 2700);
       if (r < 0.03) addSprite(T, i, 'neon', s * (1.5 + rnd() * 0.3), 800, { solid: 0.08 });
       if (i % 300 === 150) addSprite(T, i, 'arch:neon', 0, 5300, { over: true });
       if (i % 170 === 60) addSprite(T, i, 'board:' + Math.floor(rnd() * 8) + ':n', s * 1.9, 2300, { solid: 0.3 });
     } else {
+      if (i % 6 === 0) addSprite(T, i, 'snowpine', (i % 12 ? 1 : -1) * (1.35 + rnd() * 0.3), 1300, { solid: 0.1 });
       if (r < 0.1) addSprite(T, i, 'snowpine', s * (1.4 + rnd() * 3), 1300, { solid: 0.1 });
       else if (r < 0.15) addSprite(T, i, 'snowrock', s * (1.5 + rnd() * 3), 1400, { solid: 0.26 });
       else if (r < 0.16) addSprite(T, i, 'antenna', s * (2.4 + rnd() * 2), 1100);

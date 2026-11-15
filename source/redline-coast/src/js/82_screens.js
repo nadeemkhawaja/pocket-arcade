@@ -38,7 +38,7 @@ function drawLogo(g, cx, y, s) {
 }
 
 function controlHint() {
-  if (input.usingTouch || (isTouch && coarse && !input.usingPad)) return 'ARROWS STEER   B BRAKE AND DRIFT   N NITRO   GAS IS AUTOMATIC';
+  if (input.usingTouch || (isTouch && coarse && !input.usingPad)) return 'SLIDE THE BAR TO STEER   B BRAKE AND DRIFT   N NITRO';
   if (input.usingPad) return 'STICK STEER   A GAS   X BRAKE   B NITRO';
   return 'ARROWS STEER AND GAS   Z BRAKE   SPACE NITRO   M MUTE';
 }
@@ -201,11 +201,11 @@ function drawHowTo(g) {
     wrapText(body, W - px * 2 - 36, 0.86).forEach((ln, k) => T(g, ln, px + 26, y + 9.4 + k * 8.4, '#e0dcec', { scale: 0.86 }));
   };
   if (pg === 0) {
-    row(0, 'STEER', 'LEFT AND RIGHT ARROWS, A AND D, THE STICK, OR THE TOUCH PAD.');
+    row(0, 'STEER', 'ARROWS, A AND D, THE STICK, OR SLIDE YOUR THUMB ALONG THE STEERING BAR.');
     row(1, 'GAS', 'UP ARROW OR X. ON TOUCH SCREENS THE CAR ACCELERATES BY ITSELF.', C.green);
     row(2, 'BRAKE', 'DOWN ARROW OR Z. ALSO STARTS A DRIFT WHEN YOU ARE TURNING.', C.red);
     row(3, 'NITRO', 'SPACE OR C. HOLD TO BURN THE BLUE TANK FOR A HUGE BURST OF SPEED.', C.cyan);
-    row(4, 'PAUSE', 'P OR ESC. M MUTES THE SOUND AT ANY TIME.', '#c8c0d8');
+    row(4, 'ROCKET START', 'HIT NITRO JUST AS THE LIGHTS SAY GO. TOO EARLY AND YOU BOG DOWN.', C.gold);
   } else if (pg === 1) {
     row(0, 'DRIFT', 'TAP BRAKE WHILE TURNING, THEN HOLD THE TURN. RELEASE FOR A BOOST.', C.cyan);
     row(1, 'NEAR MISS', 'SHAVE PAST TRAFFIC. EACH ONE GROWS YOUR CHAIN AND FILLS NITRO.', C.gold);

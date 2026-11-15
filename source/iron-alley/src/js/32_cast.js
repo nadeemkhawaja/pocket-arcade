@@ -60,21 +60,24 @@ Object.assign(PAL, {
     jab: [G({ fh: [4, -20] }), G({ lean: 2.4, ff: [6, 0], fh: [14, -21], bh: [3, -19] }), G({ lean: 1.6, fh: [9, -20.5] })],
     cross: [G({ lean: 0.5, bh: [1, -19] }), G({ lean: 3.6, ff: [7, 0], bf: [-6, 0], fh: [4, -18.5], bh: [14.5, -21], hip: 12.8 }), G({ lean: 2.5, ff: [6, 0], bf: [-5, 0], bh: [10, -20] })],
     upper: [G({ hip: 11.5, lean: 3, ff: [6, 0], bf: [-6, 0], fh: [6, -11] }), G({ hip: 14.6, lean: 1.4, ff: [6, -1], bf: [-6, 0], fh: [8.5, -30], bh: [2, -18] }), G({ hip: 14, lean: 0.6, fh: [7, -28] })],
-    kick: [G({ hip: 13.6, lean: -1, ff: [6, -7], kneeF: 'up' }), G({ hip: 14, lean: -2.6, ff: [15, -13], bf: [-3, 0], fh: [4, -21], bh: [0, -19] }), G({ hip: 13.8, lean: -1.6, ff: [9, -8] })],
+    kick: [G({ hip: 13.6, lean: -1.4, ff: [5, -9], bf: [-3, 0], kneeF: 'up' }), G({ hip: 14, lean: -4.2, ff: [17, -14], bf: [-4, 0], fh: [2, -20], bh: [-3, -18] }), G({ hip: 13.8, lean: -2.6, ff: [8, -9], bf: [-3, 0] })],
     round: [G({ hip: 13.4, lean: -1.4, ff: [3, -9], bf: [-3, 0], kneeF: 'up' }), G({ hip: 14.4, lean: -4, ff: [15.5, -21], bf: [-3, 0], fh: [1, -20], bh: [-4, -18] }), G({ hip: 14, lean: -3, ff: [12, -16] }), G({ hip: 13.6, lean: -1, ff: [6, -4] })],
     air: [G({ hip: 15, lean: 1.2, ff: [5, -7], bf: [-3, -5], fh: [6, -21], bh: [2, -19] })],
-    jkick: [G({ hip: 15, lean: -1.5, ff: [16, -9], bf: [-2, -6], kneeB: 'down', fh: [3, -22], bh: [-3, -20] })],
+    jkick: [G({ hip: 15, lean: -3.6, ff: [18, -12], bf: [-1, -8], kneeB: 'down', fh: [1, -22], bh: [-5, -19] })],
     jpunch: [G({ hip: 15, lean: 2.6, ff: [3, -7], bf: [-3, -4], fh: [13, -15], bh: [1, -19] })],
     elbow: [G({ lean: 0.6, bh: [2, -19] }), G({ lean: -2.4, ff: [3, 0], bf: [-7, 0], bh: [-10, -20], fh: [4, -19] }), G({ lean: -1, bh: [-6, -19.5] })],
-    hold: [G({ lean: 2.6, ff: [5, 0], bf: [-5, 0], fh: [9.5, -19.5], bh: [8.5, -17], fistF: false, fistB: false })],
-    knee: [G({ lean: 3, ff: [5, 0], fh: [9.5, -19], bh: [8.5, -17], fistF: false, fistB: false }), G({ hip: 14.2, lean: 4.2, ff: [7, -13], kneeF: 'up', bf: [-4, 0], fh: [9.5, -17], bh: [8.5, -15], fistF: false, fistB: false }), G({ lean: 3, ff: [5, -3], fh: [9.5, -19], bh: [8.5, -17], fistF: false, fistB: false })],
+    hold: [G({ lean: 2.8, ff: [5, 0], bf: [-5, 0], fh: [9.5, -15.5], bh: [8, -13.5], fistF: false, fistB: false })],
+    knee: [G({ lean: 3.4, ff: [5, 0], fh: [9.5, -15], bh: [8, -13], fistF: false, fistB: false }), G({ hip: 14.2, lean: 4.6, ff: [7, -13], kneeF: 'up', bf: [-4, 0], fh: [9.5, -12], bh: [8, -11], fistF: false, fistB: false }), G({ lean: 3.4, ff: [5, -3], fh: [9.5, -15], bh: [8, -13], fistF: false, fistB: false })],
     toss: [G({ lean: 2.6, fh: [9, -18], bh: [8, -16], fistF: false, fistB: false }), G({ hip: 13, lean: -2.6, ff: [6, 0], bf: [-6, 0], fh: [-4, -28], bh: [-6, -26], fistF: false, fistB: false }), G({ hip: 12.4, lean: -4, ff: [7, 0], bf: [-7, 0], fh: [-9, -22], bh: [-10, -20], fistF: false, fistB: false })],
     spin: [G({ hip: 14.6, lean: -2, ff: [15, -15], bf: [-2, 0], fh: [-7, -22], bh: [7, -22], fistF: false, fistB: false }), G({ hip: 14.6, lean: -2, ff: [14, -13], bf: [-2, 0], fh: [-7, -20], bh: [7, -20], fistF: false, fistB: false })],
     hurt: [G({ hip: 13, lean: -3.4, ff: [4, 0], bf: [-4, 0], fh: [1, -17], bh: [-3, -15], hd: [-1, 0.4], fistF: false, fistB: false }), G({ hip: 12.4, lean: -2.2, ff: [4, 0], bf: [-4, 0], fh: [3, -15], bh: [-2, -14] })],
     hurtLow: [G({ hip: 11.6, lean: 4.6, ff: [4, 0], bf: [-4, 0], fh: [6, -9], bh: [4, -9], hd: [0.6, 0.6], fistF: false, fistB: false })],
     fall, down, getup,
-    dizzy: [G({ hip: 12.8, lean: -1, fh: [3, -14], bh: [0, -13], hd: [-0.5, 0.4], fistF: false, fistB: false }), G({ hip: 12.8, lean: 1.6, fh: [4, -13], bh: [1, -12], hd: [0.5, 0.4], fistF: false, fistB: false })],
-    held: [G({ hip: 12.6, lean: -2, fh: [3, -15], bh: [-1, -14], hd: [-0.4, 0.5], fistF: false, fistB: false })],
+    dizzy: [G({ hip: 12, lean: 7.4, tl: 9.4, ff: [3, 0], bf: [-4, 0], fh: [6, -8], bh: [3, -8], hd: [0.6, 0.8], fistF: false, fistB: false }), G({ hip: 12.1, lean: 7, tl: 9.4, ff: [3, 0], bf: [-4, 0], fh: [6.2, -8.4], bh: [3.2, -8.2], hd: [0.4, 0.7], fistF: false, fistB: false })],
+    held: [G({ hip: 12.2, lean: 6.6, tl: 9.4, ff: [3, 0], bf: [-4, 0], fh: [5, -9], bh: [2, -9], hd: [0.4, 0.8], fistF: false, fistB: false })],
+    pinned: [G({ hip: 13, lean: -1.2, ff: [4, 0], bf: [-4, 0], fh: [-3, -17], bh: [-5, -16], hd: [-0.3, 0.2], fistF: false, fistB: false }), G({ hip: 12.8, lean: 0.6, ff: [5, 0], bf: [-4, 0], fh: [-2, -16], bh: [-4, -15], fistF: false, fistB: false })],
+    pinning: [G({ lean: 1.4, ff: [4, 0], bf: [-5, 0], fh: [10, -19], bh: [9, -18], fistF: false, fistB: false })],
+    carry: [G({ hip: 13.2, lean: -0.8, fh: [2, -31], bh: [0, -30], fistF: false, fistB: false })],
     flung: [G({ hip: 13, lean: 0, rot: -60, ff: [4, -3], bf: [-3, -1], fh: [-4, -24], bh: [-7, -21], fistF: false, fistB: false })],
     pickup: [G({ hip: 7.5, lean: 5, tl: 9, ff: [6, 0], bf: [-6, 0], kneeB: 'down', fh: [10, -2], bh: [3, -8] })],
     swing: [G({ fh: [-3, -26], item: 'bat', ia: -120 }), G({ lean: 3, ff: [7, 0], bf: [-6, 0], fh: [12, -18], item: 'bat', ia: 10 }), G({ lean: 2.6, ff: [6, 0], bf: [-5, 0], fh: [10, -12], item: 'bat', ia: 50 })],
@@ -90,9 +93,9 @@ Object.assign(PAL, {
   };
   POSES.street = set;
 })();
-for (const a of ['walk', 'run', 'charge', 'dizzy', 'victory', 'taunt']) LOOP_ANIMS.add(a);
+for (const a of ['walk', 'run', 'charge', 'dizzy', 'victory', 'taunt', 'pinned']) LOOP_ANIMS.add(a);
 for (const a of ['jab', 'cross', 'upper', 'kick', 'round', 'jkick', 'jpunch', 'elbow', 'knee', 'toss', 'spin', 'swing', 'stab', 'flick', 'lob', 'slam']) KIAI_ANIMS.add(a);
-for (const a of ['hurt', 'hurtLow', 'fall', 'down', 'dizzy', 'held', 'flung']) PAIN_ANIMS.add(a);
+for (const a of ['hurt', 'hurtLow', 'fall', 'down', 'dizzy', 'held', 'flung', 'pinned']) PAIN_ANIMS.add(a);
 
 Object.assign(CHARS, {
   kade: { pal: PAL.kade, poses: 'street', k: 2.55 },

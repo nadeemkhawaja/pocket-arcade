@@ -1,5 +1,4 @@
 <div id="app">
-  <canvas id="gl" aria-hidden="true"></canvas>
   <canvas id="screen" tabindex="0" aria-label="Redline Coast game screen. Left and right arrows steer, Up or X accelerates, Down or Z brakes, Space fires nitro, P pauses."></canvas>
   <div id="safeProbe" aria-hidden="true"></div>
   <div id="touch" aria-hidden="true">
@@ -8,9 +7,8 @@
       <i class="ar l"></i><i class="ar r"></i><i class="ar u"></i><i class="ar d"></i>
       <span id="dpadKnob"></span>
     </div>
-    <div id="steer">
-      <button class="tbtn tctl sq" type="button" data-k="left" id="bLeft" aria-label="Steer left"><b>&#9664;</b></button>
-      <button class="tbtn tctl sq" type="button" data-k="right" id="bRight" aria-label="Steer right"><b>&#9654;</b></button>
+    <div id="wheel" class="tctl" aria-label="Steering: slide your thumb left and right">
+      <i class="wl">&#9664;</i><i class="wr">&#9654;</i><span id="wheelMid"></span><span id="wheelKnob"></span>
     </div>
     <div id="btns">
       <button class="tbtn tctl" type="button" data-k="brake" id="bBrake"><b>B</b><small>BRAKE</small></button>

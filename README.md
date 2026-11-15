@@ -88,13 +88,14 @@ A kung fu climb in hand-drawn HD, inspired by 1980s arcade brawlers but with its
 
 ## Redline Coast
 
-An open-road arcade racer in real 3D (three.js), inspired by the great 1980s driving cabinets but with its own cars, stages and soundtrack.
+An open-road racer drawn the classic arcade way (scaled sprites on a segmented road), inspired by the great 1980s driving cabinets but with its own cars, stages and soundtrack.
 
 - Five stages: Sunset Bay, Mesa Run, Pine Pass, Neon Harbor and Aurora Ridge, each with its own scenery, weather and hazards
 - Race the clock: reach the checkpoint and the goal before time runs out; spare seconds become score
 - A race on every stage: you start 8th behind a pack led by a named rival (Marlo, Dusty, Frost, Nova, Zenith) and score by finishing place
 - Tunnels, jump ramps, boost pads and police chases that you can outrun or dodge
-- On a phone held upright the race fills the whole screen, with arrow, brake and nitro buttons under your thumbs
+- On a phone held upright the race fills the whole screen; slide your thumb along the steering bar for smooth, analog steering, with brake and nitro on the right
+- Rocket start: hit nitro as the lights say GO
 - Drift (tap brake while turning) for a boost, nitro, slipstream, and near-miss chains that multiply the score
 - Three cars with different speed, acceleration and grip; four levels from Cruise to Legend
 - Pick-ups, twelve medals, high scores, and a touch pad with automatic gas on phones
@@ -106,10 +107,12 @@ An original two-player street brawler: own characters, gang, districts and sound
 
 - Two heroes: Kade (heavy hands) and Suki (fast feet); player two can join at any time
 - Four districts: Neon Market, Freight Yard, Steel Foundry and Viper Tower, each ending in a boss (Tank, Ratchet, Forge, The Warden)
-- Four-hit punch combos, roundhouse, back elbow, flying kicks, running shoulder charge, a spinning special
-- Grab a reeling enemy for knees or throw them into the crowd; pick up bats, pipes and knives; break crates and oil drums
+- Classic belt-scroller fighting with weight: jab, jab, hook; side kick and roundhouse; the back elbow; flying kick; a jumping spin kick on a short recharge
+- Two quick hits double an enemy over: walk in to grab them by the head, knee them, or throw them over your shoulder into their friends
+- Punks pin your arms from behind while a partner hits you; mash any button to break free
+- Knock weapons loose and take them (bats, pipes, knives), lift and throw oil drums, and throw the gang into pits (but do not fall in yourself)
 - Four levels from Easy to Brutal, lives and continues, twelve medals, high scores with initials
-- Keys: player one arrows, Z punch, X kick, C jump, V special; player two W A S D, F punch, G kick, H jump, T special; P pauses, M mutes
+- Keys: player one arrows, Z punch, X kick, C jump, V spin kick; player two W A S D, F punch, G kick, H jump, T spin kick; P pauses, M mutes
 
 ## Phones, tablets and computers
 

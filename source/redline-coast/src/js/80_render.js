@@ -100,7 +100,7 @@ function drawRoad(g, hy, vh) {
   const gm = game, T2 = gm.T, th = T2.th, p = gm.p;
   const pos = gm.pos, base = segAt(T2, pos), bp = (pos % SEG) / SEG;
   const camY = roadY(T2, pos + PLAYER_Z) + CAM_H, camX = p.x * ROAD_W;
-  const depth = CAM_D * (1 - 0.1 * gm.fov);
+  const depth = CAM_D * (1 - 0.1 * gm.fov - 0.08 * Math.min(1.2, p.speed / MAX_SPEED));
   let x = 0, dx = -(base.curve * bp), maxy = vh, count = 0;
   // ground under everything, in the fog colour, so no gap can show at the horizon
   rect(g, 0, hy, W, vh - hy, th.fog);
@@ -286,7 +286,7 @@ function puffSprite(col) {
 /** Streaks that sell the speed: nitro, drift boost and slipstream. */
 function drawSpeedLines(g, hy, vh) {
   const gm = game, p = gm.p, sp = p.speed / MAX_SPEED;
-  const k = p.nitroOn ? 1 : p.boostT > 0 ? 0.7 : p.slipOn ? 0.5 : sp > 1.02 ? 0.3 : 0;
+  const k = p.nitroOn ? 1 : p.boostT > 0 ? 0.75 : p.slipOn ? 0.55 : sp > 0.8 ? Math.min(0.45, (sp - 0.8) * 2.2) : 0;
   if (k <= 0 || !settings.fx) return;
   const cx = W / 2, cy = hy + 6, col = p.nitroOn ? '#9ff0ff' : p.slipOn ? '#ffffff' : '#ffe9a0';
   g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
@@ -364,21 +364,6 @@ function drawRace(g) {
   if (gm.flash > 0) rect(g, 0, 0, W, vh, 'rgba(255,255,255,' + Math.min(0.6, gm.flash * 2).toFixed(3) + ')');
 }
 
-/** Over the 3D scene: smoke and sparks at the car, speed streaks, weather, the rival's name and the lens. */
-function drawRaceOverlay(g) {
-  const gm = game, vh = viewH(), th = gm.T.th, zf = RV.zf;
-  g.save(); g.translate(W3.car.x, W3.car.y); g.scale(zf, zf); g.translate(-W / 2, -(YS + 1)); drawFx(g, 0); g.restore();
-  drawSpeedLines(g, RV.hyS - 6, vh);
-  drawWeather(g, vh);
-  if (W3.rival.on && gm.state === 'play') { const r = W3.rival; T(g, gm.rival.name, r.x, r.y - 9, '#ff8a8a', { align: 'center', weight: 700, scale: 0.9 }); poly(g, [r.x - 2.6, r.y, r.x + 2.6, r.y, r.x, r.y + 3.4], '#ff5a5a'); }
-  if (settings.fx) {
-    g.fillStyle = rgrad(g, W / 2, vh * 0.55, vh * 0.35, Math.max(W, vh) * 0.75, [[0, 'rgba(0,0,0,0)'], [1, th.night ? 'rgba(0,0,10,0.55)' : 'rgba(20,0,30,0.28)']]);
-    g.fillRect(0, 0, W, vh);
-  }
-  if (gm.flash > 0) rect(g, 0, 0, W, vh, 'rgba(255,255,255,' + Math.min(0.6, gm.flash * 2).toFixed(3) + ')');
-}
-
-/* ---- HUD ---------------------------------------------------------------------------- */
 function drawHUD(g) {
   const gm = game, p = gm.p, vh = viewH(), T2 = gm.T;
   g.fillStyle = lgrad(g, 0, 0, 0, 56, [[0, 'rgba(6,4,14,0.78)'], [1, 'rgba(6,4,14,0)']]); g.fillRect(0, 0, W, 56);
@@ -483,10 +468,7 @@ function renderFrame() {
   gm.hits = [];
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
-  // the race is drawn in 3D on the canvas underneath; this layer then carries effects, HUD and menus
-  const use3 = gm.state !== 'boot' && gm.T && gm.p && !DBG.flat && w3Init() && w3Render();
-  $('gl').style.visibility = use3 ? 'visible' : 'hidden';
-  if (use3) g.clearRect(0, 0, cv.width, cv.height); else { g.fillStyle = '#06040c'; g.fillRect(0, 0, cv.width, cv.height); }
+  g.fillStyle = '#06040c'; g.fillRect(0, 0, cv.width, cv.height);
   g.setTransform(view.scale, 0, 0, view.scale, view.ox, view.oy);
   g.imageSmoothingEnabled = true;
   if ('imageSmoothingQuality' in g) g.imageSmoothingQuality = 'high';
@@ -495,7 +477,7 @@ function renderFrame() {
   const race = gm.T && gm.p;
   if (gm.state === 'boot') drawBoot(g);
   else {
-    if (use3) drawRaceOverlay(g); else if (race) drawRace(g); else rect(g, 0, 0, W, viewH(), '#0a0618');
+    if (race) drawRace(g); else rect(g, 0, 0, W, viewH(), '#0a0618');
     if (race && (gm.state === 'play' || gm.state === 'pause' || gm.state === 'clear' || gm.state === 'continue' || (gm.state === 'options' && gm.optFrom === 'pause'))) drawHUD(g);
     // menus are laid out for a 16:9 page and sit centred when the picture is taller
     g.translate(0, view.dy);

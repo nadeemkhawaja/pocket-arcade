@@ -14,7 +14,7 @@ const KEYMAP = {
 const input = {
   held: {}, pressed: {}, prev: {}, kb: {}, latch: {}, touch: {}, pad: {},
   tap: null, tapQueue: [], typed: [], typedQueue: [], backspace: false, bsLatch: false, anyLatch: false,
-  usingTouch: false, usingPad: false, axis: 0, padIdx: -1, pend: {}
+  usingTouch: false, usingPad: false, axis: 0, touchAxis: 0, padIdx: -1, pend: {}
 };
 for (const a of ACTIONS) { input.held[a] = false; input.pressed[a] = false; input.prev[a] = false; }
 const NO_PRESS = Object.freeze({ left: false, right: false, up: false, down: false, gas: false, brake: false, nitro: false, start: false, pause: false, back: false, any: false });
@@ -41,7 +41,7 @@ function initInput() {
     const a = KEYMAP[ev.code];
     if (a) input.kb[a] = false;
   });
-  window.addEventListener('blur', () => { for (const a of ACTIONS) { input.kb[a] = false; input.touch[a] = false; } touchPointers.clear(); });
+  window.addEventListener('blur', () => { for (const a of ACTIONS) { input.kb[a] = false; input.touch[a] = false; } input.touchAxis = 0; touchPointers.clear(); });
   window.addEventListener('gamepadconnected', (e) => { input.padIdx = e.gamepad.index; input.usingPad = true; });
   window.addEventListener('gamepaddisconnected', () => { input.padIdx = -1; });
   initTouch();
@@ -69,13 +69,14 @@ function initTouch() {
     chip.unlock();
     input.usingTouch = true;
     try { ev.target.setPointerCapture(ev.pointerId); } catch (e) { /* not capturable */ }
-    touchPointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    touchPointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY, wheel: !!(ev.target.closest && ev.target.closest('#wheel')) });
     recomputeTouch(true);
   };
   const onMove = (ev) => {
     if (!touchPointers.has(ev.pointerId)) return;
     ev.preventDefault();
-    touchPointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    const old = touchPointers.get(ev.pointerId);
+    touchPointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY, wheel: old.wheel });
     recomputeTouch(false);
   };
   const onUp = (ev) => {
@@ -97,6 +98,9 @@ function initTouch() {
 
 function recomputeTouch(isDown) {
   const next = { left: false, right: false, up: false, down: false, gas: false, brake: false, nitro: false };
+  // the steering bar: where your thumb sits along it is how far the wheel is turned
+  const wh = $('wheel').getBoundingClientRect();
+  let steer = null;
   const dp = $('dpad').getBoundingClientRect();
   const dcx = dp.left + dp.width / 2, dcy = dp.top + dp.height / 2, rad = dp.width / 2;
   let knob = null;
@@ -114,6 +118,12 @@ function recomputeTouch(isDown) {
       }
       continue;
     }
+    const sm = 26;
+    if (p.wheel || (p.x >= wh.left - sm && p.x <= wh.right + sm && p.y >= wh.top - sm * 2 && p.y <= wh.bottom + sm)) {
+      const half = wh.width / 2, d = (p.x - (wh.left + half)) / (half * 0.72);
+      steer = clamp(d, -1, 1); if (Math.abs(steer) < 0.1) steer = 0;
+      continue;
+    }
     for (const b of document.querySelectorAll('#touch .tbtn')) {
       const r = b.getBoundingClientRect();
       const m = 10;
@@ -125,10 +135,11 @@ function recomputeTouch(isDown) {
     input.touch[k] = next[k];
   }
   for (const b of document.querySelectorAll('#touch .tbtn')) b.classList.toggle('on', !!next[b.dataset.k]);
-  const kn = $('dpadKnob');
-  if (kn) kn.style.transform = knob ? 'translate(' + knob[0] + 'px,' + knob[1] + 'px)' : '';
-  const dpEl = $('dpad');
-  for (const dir of ['left', 'right', 'up', 'down']) dpEl.classList.toggle(dir, next[dir]);
+  input.touchAxis = steer === null ? 0 : steer;
+  if (steer !== null) { next.left = steer < -0.5; next.right = steer > 0.5; }
+  const wk = $('wheelKnob'), we = $('wheel');
+  if (wk) wk.style.transform = 'translateX(' + ((steer || 0) * wh.width * 0.36).toFixed(1) + 'px)';
+  if (we) { we.classList.toggle('l', (steer || 0) < -0.1); we.classList.toggle('r', (steer || 0) > 0.1); }
   if (isDown && navigator.vibrate && settings.shake) { try { navigator.vibrate(6); } catch (e) { /* ignore */ } }
 }
 
@@ -139,7 +150,7 @@ function pollPad() {
   if (pads) for (const p of pads) if (p && p.connected) { gp = p; break; }
   const P = input.pad;
   for (const a of ACTIONS) P[a] = false;
-  input.axis = 0;
+  input.axis = input.touchAxis || 0;
   if (!gp) return;
   const b = (i) => gp.buttons[i] && gp.buttons[i].pressed;
   const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
@@ -151,6 +162,7 @@ function pollPad() {
   P.brake = b(2) || b(6);
   P.nitro = b(1) || b(3) || b(4) || b(5);
   input.axis = Math.abs(ax) > 0.12 ? ax : 0;
+  if (input.touchAxis) input.axis = input.touchAxis;
   P.start = b(9);
   P.back = b(8);
   if (gp.buttons.some((x) => x && x.pressed)) { input.usingPad = true; input.usingTouch = false; }

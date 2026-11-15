@@ -9,7 +9,7 @@ const MEDALS = [
   { id: 'ratchet', name: 'SPANNER IN THE WORKS', how: 'DEFEAT RATCHET' },
   { id: 'forge', name: 'COOLED DOWN', how: 'DEFEAT FORGE' },
   { id: 'warden', name: 'ROOFTOP JUSTICE', how: 'DEFEAT THE WARDEN' },
-  { id: 'ten', name: 'TEN HIT', how: 'LAND A 10 HIT COMBO' },
+  { id: 'ten', name: 'BACK BREAKER', how: 'KNOCK OUT 10 WITH THE BACK ELBOW' },
   { id: 'suplex', name: 'BAGGAGE HANDLER', how: 'THROW 15 OF THE GANG IN ONE RUN' },
   { id: 'untouched', name: 'UNTOUCHABLE', how: 'CLEAR A DISTRICT WITHOUT LOSING A LIFE' },
   { id: 'duo', name: 'PARTNERS', how: 'CLEAR A DISTRICT WITH TWO PLAYERS' },
@@ -108,7 +108,8 @@ function heroKO(h) {
 }
 function setTimeout0(fn) { game.later.push({ t: 1.2, fn }); }
 function respawn(h) {
-  Object.assign(h, { hp: h.maxHp, h: 60, vh: 0, vx: 0, inv: 3, dead: false, alpha: 1, x: clamp(h.x, game.camX + 40, game.camX + W - 40), meter: Math.max(h.meter, 1) });
+  Object.assign(h, { hp: h.maxHp, h: 60, vh: 0, vx: 0, inv: 3, dead: false, alpha: 1, x: clamp(h.x, game.camX + 40, game.camX + W - 40), spinCool: 0 });
+  if (inPit(h.x, h.z)) h.z = Z0 + 6;
   setSt(h, 'air', 'air');
 }
 function continueHero(h) {
@@ -133,6 +134,7 @@ function updatePlay(dt) {
   for (const f of g.foes) { updateFoe(f, dt); updateFighter(f, dt); updateFoeAir(f); if (f.flick && f.state === 'attack' && atkPhase(f) === 1 && !f.flung0) { f.flung0 = true; f.weapon = null; g.shots.push({ type: 'knife', x: f.x + f.face * 14, z: f.z, h: 34, vx: f.face * 260, owner: f, spin: 0, t: 0 }); chip.sfx('knife'); } }
   for (const f of g.foes) if (f.dead && !f.counted) { f.counted = true; g.stats.kos++; const by = f.lastHitBy && f.lastHitBy.hero ? f.lastHitBy : g.heroes[0]; by.score += Math.round(f.def.score * g.diff.score); popAt(f.x, f.z, '+' + Math.round(f.def.score * g.diff.score), '#ffd27a'); if (f.weapon && ITEM_DEF[f.weapon] && !f.boss) addItem(f.weapon, f.x, f.z, { vh: 100, h: 20 }); if (f.boss) { award(f.type); g.boss = null; } if (Math.random() < 0.12 && !f.boss) addItem(Math.random() < 0.6 ? 'soda' : 'cash', f.x, f.z, { vh: 120, h: 10 }); }
   g.foes = g.foes.filter((f) => !f.dead);
+  updatePins(dt);
   separate(dt);
   updateItems(dt);
   // weapons used this run
@@ -241,11 +243,19 @@ function botThink(h) {
       if ((dx > 0 ? 1 : -1) !== h.face) { if (dx > 0) I.right = true; else I.left = true; }
       else {
         const r = Math.random();
-        if (h.meter >= 1 && foes.filter((f) => Math.abs(f.x - h.x) < 50 && Math.abs(f.z - h.z) < 12).length >= 2) P.special = true;
-        else if (r < 0.75) P.punch = true; else P.kick = true;
+        if (h.spinCool <= 0 && foes.filter((f) => Math.abs(f.x - h.x) < 50 && Math.abs(f.z - h.z) < 12).length >= 2) P.special = true;
+        else if (t.state === 'dizzy') { if (dx > 0) I.right = true; else I.left = true; }
+        else if (r < 0.6) P.punch = true; else P.kick = true;
       }
     }
-    if (h.state === 'grab') { if (Math.random() < 0.6) P.punch = true; else P.kick = true; }
+    if (h.state === 'grab') { if (h.knees < 2) P.punch = true; else P.kick = true; }
+    if (h.state === 'pinned') { P.punch = Math.random() < 0.5; P.kick = !P.punch; }
+    // the bot uses the back elbow when someone is behind
+    const back = foes.find((f) => (f.x - h.x) * h.face < 0 && Math.abs(f.x - h.x) < 40 && Math.abs(f.z - h.z) < 8);
+    if (back && canAct(h) && Math.random() < 0.3) { P.punch = true; P.kick = false; I.left = h.face > 0; I.right = h.face < 0; }
+    // keep out of pits
+    const pit = pitAhead(h.x + (I.right ? 24 : I.left ? -24 : 0), h.z);
+    if (pit) { I.down = false; I.up = true; if (h.z < pit[2] - 4) I.up = false; }
     if (Math.abs(dx) > 120 && Math.abs(dz) < 6 && Math.random() < 0.02) P.jump = true;
   }
   b.held = I; b.pressed = P;

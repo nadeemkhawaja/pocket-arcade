@@ -20,14 +20,13 @@ if "</script" in game_js.lower():
     sys.exit("closing script tag inside game code")
 
 import re as _re
-three = _re.sub(r"</script", r"<\\/script", (ROOT / "vendor/three.min.js").read_text(), flags=_re.I)
-artifact = head + "\n" + body + "\n<script>\n" + three + "\n</script>\n<script>\n" + game_js + "</script>\n"
+artifact = head + "\n" + body + "\n<script>\n" + game_js + "</script>\n"
 (DIST / "index.html").write_text(artifact)
 
 standalone = (
     "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n"
     "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover\">\n"
-    + head + "\n</head>\n<body>\n" + body + "\n<script>\n" + three + "\n</script>\n<script>\n" + game_js + "</script>\n</body>\n</html>\n"
+    + head + "\n</head>\n<body>\n" + body + "\n<script>\n" + game_js + "</script>\n</body>\n</html>\n"
 )
 (DIST / "redline-coast.html").write_text(standalone)
 (DIST / "game.js").write_text(game_js)

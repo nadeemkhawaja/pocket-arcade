@@ -18,7 +18,7 @@ const STAGES = [
     ]
   },
   {
-    id: 'yard', name: 'FREIGHT YARD', sub: 'THE RAIL LINES AT MIDNIGHT', song: 'yard', len: 1800, dust: '#a89878',
+    id: 'yard', name: 'FREIGHT YARD', sub: 'THE RAIL LINES AT MIDNIGHT', song: 'yard', len: 1800, dust: '#a89878', pits: [[880, 1000, 168]],
     intro: 'THEIR SHIPMENTS COME IN BY RAIL. SHUT THE YARD DOWN.',
     props: [['drum', 220, 160], ['crate', 380, 192, 'knife'], ['pipe', 600, 150], ['drum', 820, 194], ['crate', 1000, 150, 'food'], ['crate', 1260, 192, 'bat'], ['drum', 1500, 160]],
     waves: [
@@ -30,7 +30,7 @@ const STAGES = [
     ]
   },
   {
-    id: 'foundry', name: 'STEEL FOUNDRY', sub: 'WHERE THE GANG MAKES ITS MONEY', song: 'foundry', len: 1800, dust: '#6a5a50',
+    id: 'foundry', name: 'STEEL FOUNDRY', sub: 'WHERE THE GANG MAKES ITS MONEY', song: 'foundry', len: 1800, dust: '#6a5a50', pits: [[720, 830, 160], [1190, 1280, 170]],
     intro: 'THE FURNACES NEVER SLEEP. NEITHER DO THE GUARDS.',
     props: [['crate', 240, 192, 'soda'], ['pipe', 420, 150], ['drum', 640, 188], ['crate', 860, 150, 'food'], ['drum', 1100, 192], ['crate', 1300, 150, 'oneup'], ['bat', 1500, 190]],
     waves: [
@@ -42,7 +42,7 @@ const STAGES = [
     ]
   },
   {
-    id: 'tower', name: 'VIPER TOWER', sub: 'THE ROOF, IN THE RAIN', song: 'tower', len: 1500, dust: '#5a6a80',
+    id: 'tower', name: 'VIPER TOWER', sub: 'THE ROOF, IN THE RAIN', song: 'tower', len: 1500, dust: '#5a6a80', pits: [[430, 560, 160], [880, 990, 166]],
     intro: 'THE WARDEN WAITS AT THE TOP. FINISH THIS.',
     props: [['crate', 260, 190, 'food'], ['pipe', 440, 152], ['drum', 700, 190], ['crate', 920, 152, 'knife'], ['crate', 1100, 194, 'food']],
     waves: [
@@ -68,7 +68,8 @@ function spawnWave(list) {
   for (const [type, side] of list) {
     const fromL = side === 'L', x = typeof side === 'number' ? side : fromL ? game.camX - 30 - k * 22 : game.camX + W + 30 + k * 22;
     const z = Z0 + 10 + ((k * 23 + game.waveIdx * 11) % (Z1 - Z0 - 16));
-    const f = newFoe(type, x, z, { spawnT: 0.45 + k * 0.12 });
+    const p = pitAhead(x, z);
+    const f = newFoe(type, x, p ? p[2] - 8 : z, { spawnT: 0.45 + k * 0.12 });
     f.face = fromL ? 1 : -1;
     game.foes.push(f);
     k++;

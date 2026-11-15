@@ -57,7 +57,7 @@ function startStage(si, carry) {
   g.racers = newRacers(g.T, g.diff); g.rival = g.racers[0]; g.place = 8; g.placeFlash = 0;
   g.pos = (g.T.start - 9) * SEG - PLAYER_Z; g.dist = 0;
   g.time = Math.min(99, (carry || 0) + g.T.st.t0 * g.diff.time);
-  g.count = g.demo ? 0 : 3.6; g.lastBeep = 4;
+  g.count = g.demo ? 0 : 3.6; g.lastBeep = 4; g.startTry = false; g.goodStart = false;
   g.checked = false; g.finished = false; g.timeUp = false; g.rivalWon = false; g.rivalBeat = false;
   g.chain = 0; g.chainT = 0; g.stageCrash = 0; g.playT = 0; g.stageT = 0;
   g.cop = null; g.fx = []; g.pops = []; g.carSegs = []; g.shake = 0; g.flash = 0; g.punch = 0; g.sky = 0; g.skyFar = 0; g.tally = null; g.warnT = 0;
@@ -126,7 +126,9 @@ function closePause() { setState('play'); chip.applyVolumes(); }
 function updateRace(dt, I) {
   const g = game, p = g.p;
   if (g.count > 0) {
+    if (I.nitro && !g.startTry && !g.demo) { g.startTry = true; g.goodStart = g.count < 1.0; if (!g.goodStart) popText('TOO EARLY', '#ff8a8a'); }
     g.count -= dt;
+    if (g.count <= 0 && g.goodStart) { g.goodStart = false; p.boostT = 1.6; p.speed = Math.max(p.speed, MAX_SPEED * 0.4); chip.sfx('nitro'); popText('ROCKET START', '#7fe9ff'); addScore(1000); g.punch = 0.06; }
     const n = Math.ceil(g.count - 0.6);
     if (n < g.lastBeep && n >= 0) { g.lastBeep = n; chip.sfx(n === 0 ? 'go' : 'count'); if (n === 0) chip.sfx('cheer'); }
   } else if (!g.finished) {
@@ -161,7 +163,7 @@ function updateRace(dt, I) {
 function useContinue() {
   const g = game;
   g.credits--; g.stats.continues++;
-  g.time = 30 * g.diff.time; g.timeUp = false; g.count = 2.6; g.lastBeep = 3; g.p.nitro = Math.max(g.p.nitro, 0.5);
+  g.time = 30 * g.diff.time; g.timeUp = false; g.count = 2.6; g.lastBeep = 3; g.startTry = false; g.goodStart = false; g.p.nitro = Math.max(g.p.nitro, 0.5);
   setState('play'); chip.play(g.T.st.song);
 }
 
