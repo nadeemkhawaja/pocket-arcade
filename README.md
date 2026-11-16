@@ -9,7 +9,7 @@ Direct links: [Dagger Raid](https://pocket-arcade-rouge.vercel.app/dagger-raid),
 | Dagger Raid | Ace Rally Tennis | Dragon Pagoda | Redline Coast | Iron Alley | Pickleball Tour Pro 3D |
 | --- | --- | --- | --- | --- | --- |
 | [![Dagger Raid gameplay](assets/dagger-raid.webp)](https://pocket-arcade-rouge.vercel.app/dagger-raid) | [![Ace Rally Tennis gameplay](assets/ace-rally-tennis.webp)](https://pocket-arcade-rouge.vercel.app/tennis) | [![Dragon Pagoda gameplay](assets/dragon-pagoda.webp)](https://pocket-arcade-rouge.vercel.app/dragon-pagoda) | [![Redline Coast gameplay](assets/redline-coast.webp)](https://pocket-arcade-rouge.vercel.app/redline-coast) | [![Iron Alley gameplay](assets/iron-alley.webp)](https://pocket-arcade-rouge.vercel.app/iron-alley) | [![Pickleball Tour Pro 3D gameplay](assets/pickleball-tour-pro.webp)](https://pocket-arcade-rouge.vercel.app/pickleball) |
-| Side-scrolling commando raid with a combat knife | Stadium tennis you can swing with your webcam | Kung fu climb through five guarded pagoda floors | Open-road racer against the clock and a rival | Two-player street brawler through four districts | 3D doubles or singles across four world venues |
+| Side-scrolling commando raid with a combat knife | Stadium tennis you can swing with your webcam | Kung fu climb through five guarded pagoda floors | Open-road racer against the clock and a rival | Two-player street brawler through four districts | 3D doubles or singles across six venues, on a lake and at sea |
 
 ## Dagger Raid
 
@@ -168,10 +168,12 @@ Ace Rally Tennis renders its 3D court with [three.js](https://threejs.org) (MIT 
 ## Pickleball Tour Pro 3D
 
 Play at `/pickleball/`. Championship pickleball in 3D (three.js r128), imported from the
-[Pickleball-Tour-Pro](https://github.com/nadeemkhawaja/Pickleball-Tour-Pro) repository and kept as written.
+[Pickleball-Tour-Pro](https://github.com/nadeemkhawaja/Pickleball-Tour-Pro) repository and since upgraded here.
 
 - Doubles or singles against an AI tour rated 3.5 Club, 4.5 Pro or 5.5+ Master
-- Four venues: Grand Slam Arena, Sunset City Rooftop, Emerald Central Park and Malibu Beach Club
+- Six venues: Grand Slam Arena, Sunset City Rooftop, Downtown Park Courts, Malibu Beach Club, Floating Lake Court (a pontoon court on a mountain lake) and Ocean Cruise Deck (the top deck of a liner at sea)
+- Realistic athletes with two-tone kit and full-body running and swing animation; cinematic lighting with sky reflections, animated water with sun glints, a see-through mesh net and textured court surfaces
+- On an upright phone the camera frames the whole court from high behind you, and the scoreboard shows name plates with big score boxes
 - Female or male pro, three outfit colourways, a live umpire calling the kitchen and the two-bounce rule
 - Optional webcam swing: raise your hand in the green box
 - Controls: W A S D or arrows move, Space drive, E or X dink, Q or Z lob, Shift Erne; on a phone, the touch pad and the LOB, DINK and DRIVE buttons
