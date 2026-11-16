@@ -3026,14 +3026,17 @@ function updateGame(dt, now) {
     // Broadcast TV View
     const cx = pUser.mesh.position.x * 0.28;
     const tall = camera.aspect < 0.8;
-    const wantFov = tall ? 54 : 46;
+    // upright phones: high behind your player, close enough that the near court fills the width
+    const C = tall ? window.PB_CAM_TALL || { y: 17, z: 25, fov: 48, look: 0.5, follow: 1.2 } : { y: 13.6, z: 23.2, fov: 46, look: -1.8, follow: 1 };
+    const wantFov = C.fov;
     if (Math.abs(camera.fov - wantFov) > 0.01) { camera.fov = wantFov; camera.updateProjectionMatrix(); }
+    const tx = cx * C.follow;
     // far from where it should be (a new match, a turned phone): jump there instead of gliding
-    if (Math.abs(camera.position.y - (tall ? 26.5 : 13.6)) > 3 || Math.abs(camera.position.z - (tall ? 27.5 : 23.2)) > 3) camera.position.set(cx * (tall ? 0.6 : 1), tall ? 26.5 : 13.6, tall ? 27.5 : 23.2);
-    camera.position.x += (cx * (tall ? 0.6 : 1) - camera.position.x) * 4.5 * dt + shakeX;
-    camera.position.y += ((tall ? 26.5 : 13.6) - camera.position.y) * 4.5 * dt + shakeY;
-    camera.position.z += ((tall ? 27.5 : 23.2) - camera.position.z) * 4.5 * dt;
-    camera.lookAt(cx * 0.3, 0, tall ? -0.6 : -1.8);
+    if (Math.abs(camera.position.y - C.y) > 3 || Math.abs(camera.position.z - C.z) > 3) camera.position.set(tx, C.y, C.z);
+    camera.position.x += (tx - camera.position.x) * 4.5 * dt + shakeX;
+    camera.position.y += (C.y - camera.position.y) * 4.5 * dt + shakeY;
+    camera.position.z += (C.z - camera.position.z) * 4.5 * dt;
+    camera.lookAt(cx * 0.3 * C.follow, 0, C.look);
   } else if (gs.camMode === 1) {
     // Low Action Player View (Switch Sports Close-Up)
     const cx = pUser.mesh.position.x * 0.55;
