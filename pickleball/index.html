@@ -484,6 +484,33 @@
       gap: 10px;
       margin-bottom: 12px;
     }
+    #tool-toggle { display: none; }
+    /* Upright phones: the scoreboard gets the full width so the score is always in view,
+       the rule badges sit under it, and the settings fold into one menu button. */
+    @media (max-width: 760px) and (orientation: portrait) {
+      .hud-top { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "score menu" "rules rules"; gap: 8px; }
+      .scorebug { grid-area: score; min-width: 0; border-radius: 14px; }
+      .hud-right { grid-area: menu; position: relative; }
+      .hud-center-top { grid-area: rules; }
+      .sb-team { gap: 6px; padding: 6px 8px; min-width: 0; flex: 1 1 0; }
+      .sb-team:last-child { justify-content: flex-end; }
+      .sb-avatar { width: 22px; height: 22px; font-size: 12px; flex: none; }
+      .sb-meta { min-width: 0; }
+      .sb-name { font-size: 9px; letter-spacing: 0.6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70px; }
+      .sb-avatar.cpu { display: none; }
+      .sb-venue-tag { display: none; }
+      .sb-pts { font-size: 22px; min-width: 20px; }
+      .sb-center { padding: 4px 8px; min-width: 76px; font-size: 14px; flex: none; }
+      .sb-center small { font-size: 8px; letter-spacing: 0.5px; }
+      .rule-badge { font-size: 10px; padding: 4px 10px; }
+      .power-track { width: 160px; height: 9px; }
+      #tool-toggle { display: block; padding: 10px 12px; font-size: 12px; }
+      .toolbar { display: none; position: absolute; right: 0; top: calc(100% + 6px); flex-direction: column; align-items: stretch; width: 190px; z-index: 30;
+        background: var(--glass-strong); border: 1.5px solid var(--border); border-radius: 14px; padding: 8px; box-shadow: 0 14px 36px rgba(0,0,0,0.6); }
+      .toolbar.open { display: flex; }
+      .toolbar .tool-btn { text-align: left; padding: 10px 12px; font-size: 12px; }
+      #cam-widget { position: fixed; right: 12px; top: 128px; width: 120px; height: 90px; }
+    }
     @media (max-width: 600px) {
       .modal-wrap { justify-content: center; background: rgba(4, 9, 20, 0.88); }
       .grid-2, .venue-cards { grid-template-columns: 1fr; }
@@ -590,7 +617,8 @@
       </div>
 
       <div class="hud-right">
-        <div class="toolbar">
+        <button class="tool-btn" id="tool-toggle" type="button" aria-expanded="false" aria-controls="toolbar" onclick="toggleToolMenu()">&#9776; Menu</button>
+        <div class="toolbar" id="toolbar">
           <button class="tool-btn" id="btn-cam-view" onclick="cycleCameraAngle()">🎥 Cam: Broadcast</button>
           <button class="tool-btn active" id="btn-voice" onclick="toggleVoice()">🔊 Umpire: ON</button>
           <button class="tool-btn active" id="btn-assist" onclick="toggleAutoRun()">Auto-Run: ON</button>
@@ -1050,7 +1078,8 @@ const ballTex = createWiffleBallTexture();
 const canvas = document.getElementById('game-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const COARSE = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, COARSE ? 1.5 : 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -2632,6 +2661,40 @@ canvas.addEventListener('pointerup', e => {
   if (dy > 45) userSwing('lob');
   else if (dy < -45) userSwing('dink');
   else userSwing('drive');
+});
+
+/* ---- settings menu on upright phones ---- */
+function toggleToolMenu(force) {
+  const tb = document.getElementById('toolbar'), btn = document.getElementById('tool-toggle');
+  const open = typeof force === 'boolean' ? force : !tb.classList.contains('open');
+  tb.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open));
+}
+document.getElementById('toolbar').addEventListener('click', (e) => { if (e.target.closest('.tool-btn')) setTimeout(() => toggleToolMenu(false), 150); });
+document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.hud-right')) toggleToolMenu(false); });
+
+/* ---- 3D graphics recovery ----
+   Phones may throw away the 3D picture while the game is in the background (another app, a locked
+   screen). Without this the court stays black. We ask the browser to hand it back, show a short
+   notice meanwhile, and if it never comes back, reload the page. */
+const glNotice = document.createElement('div');
+glNotice.id = 'gl-notice';
+glNotice.innerHTML = '<strong>Reloading the court…</strong><span>Tap if it does not come back</span>';
+glNotice.style.cssText = 'position:fixed;inset:0;z-index:90;display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(6,10,18,0.92);color:#fff;font:800 18px system-ui,sans-serif;letter-spacing:0.5px;text-align:center;';
+glNotice.querySelector('span').style.cssText = 'font-size:13px;font-weight:600;color:#94a3b8;';
+document.body.appendChild(glNotice);
+let glLost = false, glTimer = 0;
+function glReload() { location.reload(); }
+glNotice.addEventListener('click', glReload);
+canvas.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault(); glLost = true; glNotice.style.display = 'flex';
+  clearTimeout(glTimer);
+  if (document.visibilityState === 'visible') glTimer = setTimeout(() => { if (glLost) glReload(); }, 3500);
+}, false);
+canvas.addEventListener('webglcontextrestored', () => { glLost = false; clearTimeout(glTimer); glNotice.style.display = 'none'; }, false);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  const gl = renderer.getContext();
+  if (glLost || (gl && gl.isContextLost && gl.isContextLost())) { glNotice.style.display = 'flex'; clearTimeout(glTimer); glTimer = setTimeout(() => { if (glLost || gl.isContextLost()) glReload(); }, 3500); }
 });
 
 window.addEventListener('resize', () => {
