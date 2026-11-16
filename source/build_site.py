@@ -5,7 +5,7 @@ Usage:  python3 source/build_site.py
 
 Each game's build.py bundles its src/ files into one standalone HTML page in its
 dist/ folder. This script runs each build, then copies the standalone pages to
-dagger-raid/, tennis/, dragon-pagoda/, redline-coast/ and iron-alley/ (as index.html) with the site icon linked in.
+dagger-raid/, tennis/, dragon-pagoda/, redline-coast/, iron-alley/ and pickleball/ (as index.html) with the site icon linked in.
 """
 import pathlib
 import subprocess
@@ -20,6 +20,7 @@ GAMES = [
     ("dragon-pagoda", "dragon-pagoda.html", "dragon-pagoda"),
     ("redline-coast", "redline-coast.html", "redline-coast"),
     ("iron-alley", "iron-alley.html", "iron-alley"),
+    ("pickleball-tour-pro", "pickleball-tour-pro.html", "pickleball"),
 ]
 
 for folder, built, target in GAMES:

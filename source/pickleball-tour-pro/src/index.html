@@ -1,0 +1,2649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Pickleball Tour Pro 3D — World Venues Edition</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root {
+      --neon: #00ffa3;
+      --cyan: #00e1ff;
+      --gold: #ffd000;
+      --coral: #ff2e55;
+      --glass: rgba(10, 16, 30, 0.78);
+      --glass-strong: rgba(8, 13, 26, 0.92);
+      --border: rgba(255, 255, 255, 0.18);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #060a12;
+      color: #fff;
+      touch-action: none;
+    }
+    #game-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 1;
+    }
+    /* CINEMATIC VIGNETTE OVERLAY */
+    .vignette {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background: radial-gradient(circle at center, transparent 62%, rgba(0, 0, 0, 0.48) 100%);
+    }
+
+    /* BROADCAST HUD */
+    #hud {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: max(10px, env(safe-area-inset-top)) 14px max(10px, env(safe-area-inset-bottom));
+    }
+    .hud-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      width: 100%;
+    }
+
+    /* ESPN / Switch Sports Style Broadcast Scorebug */
+    .scorebug {
+      display: flex;
+      align-items: stretch;
+      background: var(--glass-strong);
+      backdrop-filter: blur(16px);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55);
+      pointer-events: auto;
+    }
+    .sb-team {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+    }
+    .sb-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      background: linear-gradient(135deg, #00ffa3, #00b8ff);
+      color: #021b10;
+      font-weight: 900;
+    }
+    .sb-avatar.cpu {
+      background: linear-gradient(135deg, #ff2e55, #ff9900);
+      color: #fff;
+    }
+    .sb-meta {
+      display: flex;
+      flex-direction: column;
+    }
+    .sb-name {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+    .sb-venue-tag {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+    .sb-pts {
+      font-size: 28px;
+      font-weight: 900;
+      color: #fff;
+      min-width: 26px;
+      text-align: center;
+    }
+    .sb-center {
+      background: linear-gradient(135deg, var(--neon), var(--cyan));
+      color: #03181c;
+      padding: 6px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-weight: 900;
+      font-size: 17px;
+      letter-spacing: 0.6px;
+      min-width: 96px;
+    }
+    .sb-center small {
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: 0.85;
+    }
+
+    /* Center Status Pills & Energy Meter */
+    .hud-center-top {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .pill-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .rule-badge {
+      background: var(--glass);
+      border: 1.5px solid var(--border);
+      padding: 5px 13px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s;
+    }
+    .rule-badge.danger {
+      background: rgba(255, 46, 85, 0.92);
+      border-color: #ff99ac;
+      color: #fff;
+      box-shadow: 0 0 20px rgba(255, 46, 85, 0.65);
+      transform: scale(1.04);
+    }
+    .rule-badge.clear {
+      background: rgba(0, 255, 163, 0.9);
+      border-color: #b8ffe3;
+      color: #022416;
+    }
+    .power-track {
+      width: 210px;
+      height: 12px;
+      background: rgba(0, 0, 0, 0.65);
+      border-radius: 99px;
+      padding: 2px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      overflow: hidden;
+      position: relative;
+    }
+    .power-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #00ffa3, #ffd000, #ff2e55);
+      transition: width 0.15s ease;
+    }
+
+    /* Right Quick Toolbar & Webcam Box */
+    .hud-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      pointer-events: auto;
+    }
+    .toolbar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .tool-btn {
+      background: var(--glass);
+      color: #f1f5f9;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 7px 11px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.14s;
+    }
+    .tool-btn:hover { border-color: rgba(255,255,255,0.45); }
+    .tool-btn.active {
+      background: var(--neon);
+      color: #032215;
+      border-color: #fff;
+    }
+    #cam-widget {
+      width: 156px;
+      height: 116px;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 2px solid var(--neon);
+      background: #000;
+      position: relative;
+      display: none;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7);
+    }
+    #cam-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+    #cam-overlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .cam-caption {
+      position: absolute;
+      bottom: 4px;
+      left: 4px;
+      right: 4px;
+      background: rgba(0, 0, 0, 0.72);
+      color: var(--neon);
+      font-size: 9px;
+      font-weight: 900;
+      text-align: center;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+
+    /* Broadcast Center Callout */
+    #callout {
+      position: fixed;
+      top: 23%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.7);
+      z-index: 15;
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.18s;
+    }
+    #callout.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .callout-big {
+      font-size: clamp(28px, 6vw, 54px);
+      font-weight: 900;
+      font-style: italic;
+      text-transform: uppercase;
+      color: #fff;
+      text-shadow: 0 5px 0 #000, 0 0 35px var(--neon);
+      letter-spacing: 1px;
+    }
+    .callout-small {
+      font-size: clamp(13px, 2.3vw, 18px);
+      font-weight: 800;
+      color: var(--gold);
+      text-shadow: 0 2px 6px #000;
+      margin-top: 2px;
+    }
+
+    /* Bottom Touch & Keyboard Controls */
+    .hud-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      width: 100%;
+      pointer-events: none;
+    }
+    .dpad-area, .actions-area {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .dpad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 52px);
+      grid-template-rows: repeat(2, 52px);
+      gap: 6px;
+    }
+    .ctrl-btn {
+      background: var(--glass);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      border-radius: 16px;
+      color: #fff;
+      font-weight: 900;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+      transition: transform 0.08s, background 0.12s;
+    }
+    .ctrl-btn:active, .ctrl-btn.pressed {
+      transform: scale(0.91);
+      background: rgba(255, 255, 255, 0.26);
+      border-color: #fff;
+    }
+    .orb-btn {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+    }
+    .orb-dink {
+      background: linear-gradient(135deg, rgba(0, 225, 255, 0.88), rgba(0, 110, 255, 0.88));
+      border-color: #7dd3fc;
+    }
+    .orb-lob {
+      background: linear-gradient(135deg, rgba(192, 132, 252, 0.88), rgba(109, 40, 217, 0.88));
+      border-color: #e9d5ff;
+    }
+    .orb-drive {
+      width: 92px;
+      height: 92px;
+      background: linear-gradient(135deg, #00ffa3, #00b862);
+      color: #022012;
+      border: 3px solid #fff;
+      font-size: 16px;
+      box-shadow: 0 0 30px rgba(0, 255, 163, 0.55);
+    }
+    .orb-erne {
+      width: 78px;
+      height: 78px;
+      background: linear-gradient(135deg, #ffd000, #ff2e55);
+      color: #1f0408;
+      border: 2.5px solid #fff;
+      display: none;
+      animation: smashPulse 0.9s infinite alternate;
+    }
+    @keyframes smashPulse {
+      from { transform: scale(1); box-shadow: 0 0 14px #ffd000; }
+      to { transform: scale(1.08); box-shadow: 0 0 32px #ff2e55; }
+    }
+    .k-hint {
+      font-size: 9px;
+      opacity: 0.78;
+      font-weight: 800;
+      margin-top: 2px;
+    }
+
+    /* CUSTOMIZATION & VENUE LOCKER ROOM MODAL */
+    .modal-wrap {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      background: linear-gradient(90deg, rgba(4, 9, 20, 0.92) 0%, rgba(4, 9, 20, 0.75) 55%, rgba(4, 9, 20, 0.25) 100%);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 18px;
+    }
+    .locker-card {
+      background: rgba(10, 17, 34, 0.94);
+      border: 2px solid rgba(0, 255, 163, 0.45);
+      border-radius: 26px;
+      max-width: 580px;
+      width: 100%;
+      padding: 22px;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.85);
+      max-height: 92vh;
+      overflow-y: auto;
+    }
+    .locker-header {
+      margin-bottom: 14px;
+    }
+    .edition-pill {
+      display: inline-block;
+      background: linear-gradient(90deg, var(--gold), #ff8800);
+      color: #000;
+      font-weight: 900;
+      font-size: 10px;
+      padding: 3px 10px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      margin-bottom: 6px;
+    }
+    .locker-header h1 {
+      font-size: clamp(22px, 4vw, 32px);
+      font-weight: 900;
+      background: linear-gradient(90deg, #fff, #00ffa3, #00e1ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .locker-header p {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+    .venue-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .venue-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 10px 12px;
+      text-align: left;
+      color: #e2e8f0;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .venue-btn strong {
+      display: block;
+      font-size: 13px;
+      color: #fff;
+    }
+    .venue-btn span {
+      font-size: 10px;
+      color: #94a3b8;
+    }
+    .venue-btn.selected {
+      background: rgba(0, 255, 163, 0.18);
+      border-color: var(--neon);
+      box-shadow: 0 0 18px rgba(0, 255, 163, 0.25);
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 600px) {
+      .modal-wrap { justify-content: center; background: rgba(4, 9, 20, 0.88); }
+      .grid-2, .venue-cards { grid-template-columns: 1fr; }
+      .dpad-grid {
+        grid-template-columns: repeat(3, 44px);
+        grid-template-rows: repeat(2, 44px);
+      }
+      .orb-btn { width: 60px; height: 60px; }
+      .orb-drive { width: 78px; height: 78px; }
+    }
+    .box-group {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 10px;
+    }
+    .box-label {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .seg-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .seg-pill {
+      flex: 1;
+      text-align: center;
+      padding: 7px 6px;
+      border-radius: 9px;
+      font-size: 11px;
+      font-weight: 800;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1.5px solid transparent;
+      color: #cbd5e1;
+      cursor: pointer;
+    }
+    .seg-pill.selected {
+      background: rgba(0, 255, 163, 0.22);
+      border-color: var(--neon);
+      color: #fff;
+    }
+    .launch-btn {
+      width: 100%;
+      padding: 15px;
+      border-radius: 16px;
+      border: none;
+      background: linear-gradient(135deg, #00ffa3, #00e1ff);
+      color: #021a10;
+      font-size: 17px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      box-shadow: 0 12px 30px rgba(0, 255, 163, 0.45);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="game-canvas"></canvas>
+  <div class="vignette"></div>
+
+  <!-- BROADCAST HUD -->
+  <div id="hud">
+    <div class="hud-top">
+      <div class="scorebug">
+        <div class="sb-team">
+          <div class="sb-avatar" id="hud-avatar-you">🎾</div>
+          <div class="sb-meta">
+            <span class="sb-name" id="hud-name-you">YOU</span>
+            <span class="sb-venue-tag" id="hud-venue-name">Grand Slam Arena</span>
+          </div>
+          <div class="sb-pts" id="hud-pts-you">0</div>
+        </div>
+        <div class="sb-center" id="hud-score-call">
+          0 - 0 - 2
+          <small id="hud-srv-tag">YOUR SERVE</small>
+        </div>
+        <div class="sb-team">
+          <div class="sb-pts" id="hud-pts-cpu">0</div>
+          <div class="sb-meta" style="text-align:right;">
+            <span class="sb-name" id="hud-name-cpu">PRO TOUR</span>
+            <span class="sb-venue-tag">DUPR 5.0</span>
+          </div>
+          <div class="sb-avatar cpu">🔥</div>
+        </div>
+      </div>
+
+      <div class="hud-center-top">
+        <div class="pill-row">
+          <div class="rule-badge" id="badge-bounce">2-Bounce Rule: Active</div>
+          <div class="rule-badge" id="badge-kitchen">Kitchen: Clear</div>
+        </div>
+        <div class="power-track" title="Erne Fire Smash Meter">
+          <div class="power-fill" id="smash-fill"></div>
+        </div>
+      </div>
+
+      <div class="hud-right">
+        <div class="toolbar">
+          <button class="tool-btn" id="btn-cam-view" onclick="cycleCameraAngle()">🎥 Cam: Broadcast</button>
+          <button class="tool-btn active" id="btn-voice" onclick="toggleVoice()">🔊 Umpire: ON</button>
+          <button class="tool-btn active" id="btn-assist" onclick="toggleAutoRun()">Auto-Run: ON</button>
+          <button class="tool-btn" id="btn-webcam" onclick="toggleWebcam()">📷 Webcam: OFF</button>
+          <button class="tool-btn" onclick="openLockerRoom()">🏟️ Venues & Character</button>
+        </div>
+        <div id="cam-widget">
+          <video id="cam-video" autoplay playsinline muted></video>
+          <canvas id="cam-overlay" width="160" height="120"></canvas>
+          <div class="cam-caption">RAISE HAND IN GREEN BOX TO SWING</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="callout">
+      <div class="callout-big" id="callout-big">PICKLEBALL PRO!</div>
+      <div class="callout-small" id="callout-small">0 - 0 - 2 • Play Ball!</div>
+    </div>
+
+    <div class="hud-bottom">
+      <div class="dpad-area">
+        <div class="dpad-grid">
+          <div></div>
+          <button class="ctrl-btn" data-dir="up">▲<span class="k-hint">W / ↑</span></button>
+          <div></div>
+          <button class="ctrl-btn" data-dir="left">◀<span class="k-hint">A / ←</span></button>
+          <button class="ctrl-btn" data-dir="down">▼<span class="k-hint">S / ↓</span></button>
+          <button class="ctrl-btn" data-dir="right">▶<span class="k-hint">D / →</span></button>
+        </div>
+      </div>
+
+      <div class="actions-area">
+        <button class="ctrl-btn orb-btn orb-erne" id="btn-erne" onclick="userSwing('erne')">
+          🔥 ERNE
+          <span class="k-hint">SHIFT</span>
+        </button>
+        <button class="ctrl-btn orb-btn orb-lob" onclick="userSwing('lob')">
+          LOB
+          <span class="k-hint">Q / Z</span>
+        </button>
+        <button class="ctrl-btn orb-btn orb-dink" onclick="userSwing('dink')">
+          DINK
+          <span class="k-hint">E / X</span>
+        </button>
+        <button class="ctrl-btn orb-btn orb-drive" onclick="userSwing('drive')">
+          DRIVE
+          <span class="k-hint">SPACE / TAP</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERACTIVE 3D LOCKER ROOM & VENUE SELECTOR -->
+  <div class="modal-wrap" id="locker-modal">
+    <div class="locker-card">
+      <div class="locker-header">
+        <span class="edition-pill">World Tour Edition • Live 3D Preview</span>
+        <h1>PICKLEBALL TOUR PRO 3D</h1>
+        <p>Select your 3D Venue, customize your Male/Female Pro Athlete, and step onto the court.</p>
+      </div>
+
+      <span class="box-label">🌍 Select 3D World Venue (Changes Live Behind Menu)</span>
+      <div class="venue-cards">
+        <button class="venue-btn selected" onclick="selectVenue('stadium', 'Grand Slam Arena', this)">
+          <strong>🏟️ Grand Slam Arena</strong>
+          <span>Full Bleachers • Floodlights • Live 3D Jumbotron</span>
+        </button>
+        <button class="venue-btn" onclick="selectVenue('city', 'Sunset City Rooftop', this)">
+          <strong>🌆 Sunset City Rooftop</strong>
+          <span>Lit Skyscrapers • Cyber Dusk Sky • Glass Barriers</span>
+        </button>
+        <button class="venue-btn" onclick="selectVenue('park', 'Emerald Central Park', this)">
+          <strong>🌲 Emerald Central Park</strong>
+          <span>Pine & Oak Trees • Park Benches • Sunny Sky</span>
+        </button>
+        <button class="venue-btn" onclick="selectVenue('beach', 'Malibu Beach Club', this)">
+          <strong>🌴 Malibu Beach Club</strong>
+          <span>Palm Trees • Shimmering Ocean • Golden Hour</span>
+        </button>
+      </div>
+
+      <div class="grid-2">
+        <div class="box-group">
+          <span class="box-label">👤 Your Athlete Style</span>
+          <div class="seg-row">
+            <div class="seg-pill selected" onclick="setGender('female', this)">👩 Female Pro</div>
+            <div class="seg-pill" onclick="setGender('male', this)">👨 Male Pro</div>
+          </div>
+        </div>
+
+        <div class="box-group">
+          <span class="box-label">👕 Outfit Colorway</span>
+          <div class="seg-row">
+            <div class="seg-pill selected" onclick="setOutfit(0x00ffa3, 0x0f172a, this)">Neon Mint</div>
+            <div class="seg-pill" onclick="setOutfit(0xff2e55, 0xffffff, this)">Ruby Tour</div>
+            <div class="seg-pill" onclick="setOutfit(0x00e1ff, 0x1e1b4b, this)">Electric Blue</div>
+          </div>
+        </div>
+
+        <div class="box-group">
+          <span class="box-label">🏆 Match Format</span>
+          <div class="seg-row">
+            <div class="seg-pill selected" onclick="setFormat('doubles', this)">2v2 Doubles</div>
+            <div class="seg-pill" onclick="setFormat('singles', this)">1v1 Singles</div>
+          </div>
+        </div>
+
+        <div class="box-group">
+          <span class="box-label">🔥 AI Tour Rating</span>
+          <div class="seg-row">
+            <div class="seg-pill" onclick="setDiff('rookie', this)">3.5 Club</div>
+            <div class="seg-pill selected" onclick="setDiff('pro', this)">4.5 Pro</div>
+            <div class="seg-pill" onclick="setDiff('champ', this)">5.5+ Master</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="box-group" style="margin-bottom: 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+        <div>
+          <span class="box-label" style="margin-bottom:2px;">📷 Webcam Hand-Raise Control</span>
+          <span style="font-size:11px; color:#cbd5e1;">Raise hand to swing • Sensitivity:</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="range" id="cam-sens" min="15" max="65" value="38" style="width:90px;">
+          <button class="tool-btn" id="modal-cam-btn" onclick="toggleWebcam()">Enable Camera</button>
+        </div>
+      </div>
+
+      <button class="launch-btn" onclick="startMatch()">🏓 PLAY CHAMPIONSHIP MATCH</button>
+    </div>
+  </div>
+
+<script>
+/* ============================================================================
+   1. ACOUSTIC FOLEY SYNTHESIZER & LIVE UMPIRE SPEECH ENGINE
+   ============================================================================ */
+class TourAudio {
+  constructor() {
+    this.ctx = null;
+    this.voice = true;
+  }
+  init() {
+    if (!this.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AC();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  }
+  speak(text) {
+    if (!this.voice || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 1.08;
+      u.pitch = 1.04;
+      u.volume = 0.85;
+      window.speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  playPaddlePop(type = 'drive', power = 1.0) {
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Crisp Carbon Face Transient Snap
+    const len = Math.floor(this.ctx.sampleRate * 0.038);
+    const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.007));
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buf;
+
+    const bp = this.ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(type === 'dink' ? 1150 : 1720, now);
+    bp.Q.setValueAtTime(3.0, now);
+
+    const ng = this.ctx.createGain();
+    ng.gain.setValueAtTime(type === 'dink' ? 0.45 : 0.9, now);
+    ng.gain.exponentialRampToValueAtTime(0.001, now + 0.038);
+
+    noise.connect(bp);
+    bp.connect(ng);
+    ng.connect(this.ctx.destination);
+    noise.start(now);
+
+    // Hollow Wiffle Shell Resonance
+    const osc = this.ctx.createOscillator();
+    const og = this.ctx.createGain();
+    osc.type = 'triangle';
+    const baseF = type === 'erne' ? 940 : (type === 'dink' ? 590 : 750);
+    osc.frequency.setValueAtTime(baseF * power, now);
+    osc.frequency.exponentialRampToValueAtTime(220, now + 0.055);
+    og.gain.setValueAtTime(type === 'dink' ? 0.35 : 0.65, now);
+    og.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+    osc.connect(og);
+    og.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.065);
+  }
+  playBounce() {
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(510, now);
+    o.frequency.exponentialRampToValueAtTime(165, now + 0.042);
+    g.gain.setValueAtTime(0.3, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+    o.connect(g);
+    g.connect(this.ctx.destination);
+    o.start(now);
+    o.stop(now + 0.05);
+  }
+  playSneakerSqueak() {
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(2600 + Math.random() * 350, now);
+    o.frequency.exponentialRampToValueAtTime(1900, now + 0.07);
+    g.gain.setValueAtTime(0.055, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.075);
+    o.connect(g);
+    g.connect(this.ctx.destination);
+    o.start(now);
+    o.stop(now + 0.08);
+  }
+  playCrowdRoar(win = true) {
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const dur = 1.25;
+    const size = Math.floor(this.ctx.sampleRate * dur);
+    const b = this.ctx.createBuffer(1, size, this.ctx.sampleRate);
+    const data = b.getChannelData(0);
+    for (let i = 0; i < size; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.sin((i / size) * Math.PI);
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = b;
+    const flt = this.ctx.createBiquadFilter();
+    flt.type = 'bandpass';
+    flt.frequency.setValueAtTime(win ? 1250 : 650, now);
+    flt.Q.setValueAtTime(1.1, now);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.26, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    src.connect(flt);
+    flt.connect(g);
+    g.connect(this.ctx.destination);
+    src.start(now);
+
+    const chord = win ? [523.25, 659.25, 783.99, 1046.5] : [349.23, 311.13, 261.63];
+    chord.forEach((f, i) => {
+      const o = this.ctx.createOscillator();
+      const og = this.ctx.createGain();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(f, now + i * 0.07);
+      og.gain.setValueAtTime(0.2, now + i * 0.07);
+      og.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.25);
+      o.connect(og);
+      og.connect(this.ctx.destination);
+      o.start(now + i * 0.07);
+      o.stop(now + i * 0.07 + 0.26);
+    });
+  }
+}
+const sfx = new TourAudio();
+
+/* ============================================================================
+   2. PROCEDURAL TEXTURES (FACES, CARBON PADDLE, SKY DOMES, 3D JUMBOTRON)
+   ============================================================================ */
+function createStylizedFaceTexture(skinColorHex, isFemale) {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+
+  const hexStr = '#' + skinColorHex.toString(16).padStart(6, '0');
+  ctx.fillStyle = hexStr;
+  ctx.fillRect(0, 0, 256, 256);
+
+  // Soft Rosy Cheek Blush (Switch Sports Style)
+  ctx.fillStyle = 'rgba(255, 90, 120, 0.28)';
+  ctx.beginPath();
+  ctx.ellipse(76, 148, 20, 11, 0, 0, Math.PI * 2);
+  ctx.ellipse(180, 148, 20, 11, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Expressive Eyes (Centered on front of sphere UV)
+  const drawEye = (cx, cy) => {
+    // White sclera
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 17, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Iris
+    ctx.fillStyle = isFemale ? '#10b981' : '#2563eb';
+    ctx.beginPath();
+    ctx.arc(cx, cy + 1, 12, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pupil
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(cx, cy + 1, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Glossy Anime/Switch Catchlights
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(cx - 4, cy - 5, 4, 0, Math.PI * 2);
+    ctx.arc(cx + 4, cy + 5, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Upper Eyelash Line
+    ctx.strokeStyle = '#1e1b18';
+    ctx.lineWidth = isFemale ? 4.5 : 3.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 17, Math.PI * 1.12, Math.PI * 1.88);
+    ctx.stroke();
+
+    // Female Winged Eyelash flick
+    if (isFemale) {
+      ctx.beginPath();
+      const dir = cx < 128 ? -1 : 1;
+      ctx.moveTo(cx + dir * 16, cy - 6);
+      ctx.lineTo(cx + dir * 23, cy - 13);
+      ctx.stroke();
+    }
+
+    // Eyebrow
+    ctx.strokeStyle = '#271c19';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(cx, cy - 8, 19, Math.PI * 1.2, Math.PI * 1.8);
+    ctx.stroke();
+  };
+
+  drawEye(94, 122);
+  drawEye(162, 122);
+
+  // Cute Athletic Nose highlight
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  ctx.beginPath();
+  ctx.arc(128, 140, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Confident Smile
+  ctx.strokeStyle = '#7c2d12';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.arc(128, 152, 16, 0.15 * Math.PI, 0.85 * Math.PI);
+  ctx.stroke();
+
+  const tex = new THREE.CanvasTexture(c);
+  return tex;
+}
+
+function createCarbonPaddleTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#111622';
+  ctx.fillRect(0, 0, 256, 256);
+
+  // Carbon-Fiber Diagonal Weave
+  ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+  ctx.lineWidth = 3;
+  for (let i = -256; i < 512; i += 12) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i + 256, 256);
+    ctx.stroke();
+  }
+  // Neon Tour Target Graphics
+  ctx.strokeStyle = '#00ffa3';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(48, 42, 160, 172);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 32px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('PRO TOUR', 128, 128);
+  ctx.fillStyle = '#00e1ff';
+  ctx.font = '800 18px sans-serif';
+  ctx.fillText('CARBON 16MM', 128, 154);
+
+  return new THREE.CanvasTexture(c);
+}
+
+function createWiffleBallTexture() {
+  const c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#d9ff00';
+  ctx.fillRect(0, 0, 256, 128);
+  ctx.fillStyle = '#2b3300';
+  for (let r = 1; r <= 4; r++) {
+    const y = (r / 5) * 128;
+    for (let col = 0; col < 10; col++) {
+      const x = ((col + (r % 2) * 0.5) / 10) * 256;
+      ctx.beginPath();
+      ctx.arc(x, y, 6.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  return new THREE.CanvasTexture(c);
+}
+
+// Live 3D Stadium Jumbotron Texture
+const jumboCanvas = document.createElement('canvas');
+jumboCanvas.width = 512;
+jumboCanvas.height = 192;
+const jumboCtx = jumboCanvas.getContext('2d');
+const jumboTexture = new THREE.CanvasTexture(jumboCanvas);
+
+function updateJumbotronScreen(headline = 'WELCOME TO CENTER COURT') {
+  jumboCtx.fillStyle = '#050b16';
+  jumboCtx.fillRect(0, 0, 512, 192);
+  jumboCtx.strokeStyle = '#00ffa3';
+  jumboCtx.lineWidth = 6;
+  jumboCtx.strokeRect(6, 6, 500, 180);
+
+  jumboCtx.fillStyle = '#00e1ff';
+  jumboCtx.font = '900 22px sans-serif';
+  jumboCtx.textAlign = 'center';
+  jumboCtx.fillText(headline.toUpperCase(), 256, 44);
+
+  jumboCtx.fillStyle = '#ffffff';
+  jumboCtx.font = '900 64px sans-serif';
+  const yPts = window.gameState ? window.gameState.scoreYou : 0;
+  const cPts = window.gameState ? window.gameState.scoreCPU : 0;
+  jumboCtx.fillText(`YOU  ${yPts}  -  ${cPts}  PRO`, 256, 120);
+
+  jumboCtx.fillStyle = '#ffd000';
+  jumboCtx.font = '800 20px sans-serif';
+  jumboCtx.fillText('OFFICIAL PICKLEBALL WORLD CHAMPIONSHIP', 256, 162);
+  jumboTexture.needsUpdate = true;
+}
+
+const paddleTex = createCarbonPaddleTexture();
+const ballTex = createWiffleBallTexture();
+
+/* ============================================================================
+   3. THREE.JS ENGINE, COURT & 4 DYNAMIC 3D WORLD VENUES + ANIMATED AUDIENCE
+   ============================================================================ */
+const canvas = document.getElementById('game-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 260);
+
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x1e293b, 0.9);
+scene.add(hemiLight);
+
+const sunLight = new THREE.DirectionalLight(0xffffff, 1.1);
+sunLight.position.set(18, 32, 22);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.camera.left = -22;
+sunLight.shadow.camera.right = 22;
+sunLight.shadow.camera.top = 24;
+sunLight.shadow.camera.bottom = -24;
+scene.add(sunLight);
+
+// Court Constants (10m x 22m, Kitchen = 3.5m)
+const COURT_W = 10;
+const COURT_L = 22;
+const HALF_W = 5;
+const HALF_L = 11;
+const KITCHEN_Z = 3.5;
+
+let courtSurfaceMat, kitchenMatYou, kitchenMatCPU, apronMat;
+
+function buildCoreCourt() {
+  const g = new THREE.Group();
+
+  // Outer Cushion Apron
+  apronMat = new THREE.MeshStandardMaterial({ color: 0x1e3a5f, roughness: 0.7 });
+  const apron = new THREE.Mesh(new THREE.PlaneGeometry(24, 34), apronMat);
+  apron.rotation.x = -Math.PI / 2;
+  apron.receiveShadow = true;
+  g.add(apron);
+
+  // Main Acrylic Court
+  courtSurfaceMat = new THREE.MeshStandardMaterial({ color: 0x0066cc, roughness: 0.55 });
+  const mainCourt = new THREE.Mesh(new THREE.PlaneGeometry(COURT_W, COURT_L), courtSurfaceMat);
+  mainCourt.rotation.x = -Math.PI / 2;
+  mainCourt.position.y = 0.01;
+  mainCourt.receiveShadow = true;
+  g.add(mainCourt);
+
+  // Non-Volley Zone ("THE KITCHEN")
+  const kGeo = new THREE.PlaneGeometry(COURT_W, KITCHEN_Z);
+  kitchenMatYou = new THREE.MeshStandardMaterial({ color: 0xe63946, roughness: 0.5 });
+  kitchenMatCPU = new THREE.MeshStandardMaterial({ color: 0xe63946, roughness: 0.5 });
+
+  const ky = new THREE.Mesh(kGeo, kitchenMatYou);
+  ky.rotation.x = -Math.PI / 2;
+  ky.position.set(0, 0.02, KITCHEN_Z / 2);
+  ky.receiveShadow = true;
+  g.add(ky);
+
+  const kc = new THREE.Mesh(kGeo, kitchenMatCPU);
+  kc.rotation.x = -Math.PI / 2;
+  kc.position.set(0, 0.02, -KITCHEN_Z / 2);
+  kc.receiveShadow = true;
+  g.add(kc);
+
+  // Crisp White Lines
+  const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const line = (w, l, x, z) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, l), lineMat);
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(x, 0.03, z);
+    g.add(m);
+  };
+  const lw = 0.14;
+  line(COURT_W + lw, lw, 0, HALF_L);
+  line(COURT_W + lw, lw, 0, -HALF_L);
+  line(lw, COURT_L, -HALF_W, 0);
+  line(lw, COURT_L, HALF_W, 0);
+  line(COURT_W, lw, 0, KITCHEN_Z);
+  line(COURT_W, lw, 0, -KITCHEN_Z);
+  const svcL = HALF_L - KITCHEN_Z;
+  line(lw, svcL, 0, KITCHEN_Z + svcL / 2);
+  line(lw, svcL, 0, -(KITCHEN_Z + svcL / 2));
+
+  // Net System
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.7, roughness: 0.2 });
+  [-HALF_W - 0.45, HALF_W + 0.45].forEach(px => {
+    const p = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 1.05, 16), postMat);
+    p.position.set(px, 0.52, 0);
+    p.castShadow = true;
+    g.add(p);
+  });
+
+  const net = new THREE.Mesh(
+    new THREE.BoxGeometry(COURT_W + 0.8, 0.86, 0.05),
+    new THREE.MeshLambertMaterial({ color: 0x111827, transparent: true, opacity: 0.84 })
+  );
+  net.position.set(0, 0.43, 0);
+  g.add(net);
+
+  const tape = new THREE.Mesh(new THREE.BoxGeometry(COURT_W + 0.86, 0.09, 0.07), lineMat);
+  tape.position.set(0, 0.88, 0);
+  g.add(tape);
+
+  scene.add(g);
+}
+buildCoreCourt();
+
+/* ============================================================================
+   DYNAMIC 3D VENUES & ANIMATED CROWD GENERATOR
+   ============================================================================ */
+const venueGroup = new THREE.Group();
+scene.add(venueGroup);
+let crowdActors = [];
+let oceanMesh = null;
+
+function makeSkyGradientTexture(topColor, midColor, botColor) {
+  const c = document.createElement('canvas');
+  c.width = 64;
+  c.height = 256;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, topColor);
+  grad.addColorStop(0.55, midColor);
+  grad.addColorStop(1, botColor);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 64, 256);
+  return new THREE.CanvasTexture(c);
+}
+
+// Spawn Animated 3D Spectators who watch the ball & jump when cheering!
+function populateAudience(rowsConfig) {
+  const shirtPalette = [0x00ffa3, 0x00e1ff, 0xff2e55, 0xffd000, 0xa855f7, 0xffffff, 0xf97316];
+  const skinPalette = [0xffcba4, 0xf1c27d, 0xe0ac69, 0x8d5524];
+
+  rowsConfig.forEach(cfg => {
+    const { count, startX, endX, y, z, rotY } = cfg;
+    for (let i = 0; i < count; i++) {
+      const t = count > 1 ? i / (count - 1) : 0.5;
+      const x = startX + (endX - startX) * t + (Math.random() - 0.5) * 0.3;
+
+      const spec = new THREE.Group();
+      spec.position.set(x, y, z);
+      spec.rotation.y = rotY;
+
+      const sColor = shirtPalette[Math.floor(Math.random() * shirtPalette.length)];
+      const kColor = skinPalette[Math.floor(Math.random() * skinPalette.length)];
+
+      const torso = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.22, 0.25, 0.55, 10),
+        new THREE.MeshLambertMaterial({ color: sColor })
+      );
+      torso.position.y = 0.28;
+      spec.add(torso);
+
+      const head = new THREE.Mesh(
+        new THREE.SphereGeometry(0.19, 12, 12),
+        new THREE.MeshLambertMaterial({ color: kColor })
+      );
+      head.position.y = 0.72;
+      spec.add(head);
+
+      // Cheering Arms
+      const armL = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.05, 0.42, 8),
+        new THREE.MeshLambertMaterial({ color: sColor })
+      );
+      armL.position.set(-0.26, 0.45, 0);
+      armL.rotation.z = 0.4;
+      spec.add(armL);
+
+      const armR = armL.clone();
+      armR.position.x = 0.26;
+      armR.rotation.z = -0.4;
+      spec.add(armR);
+
+      venueGroup.add(spec);
+      crowdActors.push({
+        group: spec,
+        head,
+        armL,
+        armR,
+        baseY: y,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  });
+}
+
+function buildVenueEnvironment(venueType = 'stadium') {
+  while (venueGroup.children.length > 0) {
+    venueGroup.remove(venueGroup.children[0]);
+  }
+  crowdActors = [];
+  oceanMesh = null;
+
+  if (venueType === 'stadium') {
+    // 1. GRAND SLAM ARENA (Bleachers, Floodlights, Jumbotron, 85 Spectators)
+    scene.background = makeSkyGradientTexture('#040814', '#0c1938', '#1e3a5f');
+    scene.fog = new THREE.FogExp2(0x0c1938, 0.008);
+    apronMat.color.setHex(0x162b4d);
+    courtSurfaceMat.color.setHex(0x0066cc);
+    kitchenMatYou.color.setHex(0xe63946);
+    kitchenMatCPU.color.setHex(0xe63946);
+    sunLight.color.setHex(0xf8fafc);
+
+    const tierMat = new THREE.MeshLambertMaterial({ color: 0x1e293b });
+    const wallMat = new THREE.MeshLambertMaterial({ color: 0x0f172a });
+
+    // Side & Back Bleacher Tiers
+    for (let step = 0; step < 4; step++) {
+      const h = 0.9 + step * 0.9;
+      const distZ = 17.5 + step * 1.6;
+      const backStand = new THREE.Mesh(new THREE.BoxGeometry(28, h, 1.5), tierMat);
+      backStand.position.set(0, h / 2, -distZ);
+      backStand.receiveShadow = true;
+      venueGroup.add(backStand);
+
+      // Side Bleachers Left & Right
+      const distX = 12.5 + step * 1.5;
+      const leftStand = new THREE.Mesh(new THREE.BoxGeometry(1.4, h, 30), tierMat);
+      leftStand.position.set(-distX, h / 2, 0);
+      venueGroup.add(leftStand);
+
+      const rightStand = leftStand.clone();
+      rightStand.position.x = distX;
+      venueGroup.add(rightStand);
+    }
+
+    // LED Perimeter Sponsor Boards
+    const ledMat = new THREE.MeshBasicMaterial({ color: 0x00e1ff });
+    const boardBack = new THREE.Mesh(new THREE.BoxGeometry(24, 0.85, 0.3), wallMat);
+    boardBack.position.set(0, 0.42, -16.2);
+    venueGroup.add(boardBack);
+    const trim = new THREE.Mesh(new THREE.BoxGeometry(24, 0.1, 0.34), ledMat);
+    trim.position.set(0, 0.85, -16.2);
+    venueGroup.add(trim);
+
+    // Giant 3D Jumbotron Screen above North Stand
+    const jumboFrame = new THREE.Mesh(
+      new THREE.BoxGeometry(11.5, 4.4, 0.5),
+      new THREE.MeshStandardMaterial({ color: 0x090d16, metalness: 0.8 })
+    );
+    jumboFrame.position.set(0, 8.2, -22.5);
+    venueGroup.add(jumboFrame);
+
+    const jumboScreen = new THREE.Mesh(
+      new THREE.PlaneGeometry(10.8, 3.9),
+      new THREE.MeshBasicMaterial({ map: jumboTexture })
+    );
+    jumboScreen.position.set(0, 8.2, -22.22);
+    venueGroup.add(jumboScreen);
+    updateJumbotronScreen('GRAND SLAM CENTER COURT');
+
+    // Stadium Light Towers
+    [-16, 16].forEach(lx => {
+      [-18, 14].forEach(lz => {
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 16, 10), wallMat);
+        pole.position.set(lx, 8, lz);
+        venueGroup.add(pole);
+        const lamp = new THREE.Mesh(
+          new THREE.BoxGeometry(2.8, 1.2, 0.6),
+          new THREE.MeshBasicMaterial({ color: 0xffffff })
+        );
+        lamp.position.set(lx, 16, lz);
+        lamp.lookAt(0, 0, 0);
+        venueGroup.add(lamp);
+      });
+    });
+
+    // Populate 80+ Stadium Spectators
+    populateAudience([
+      { count: 18, startX: -11, endX: 11, y: 0.9, z: -17.4, rotY: 0 },
+      { count: 18, startX: -11, endX: 11, y: 1.8, z: -19.0, rotY: 0 },
+      { count: 16, startX: -10, endX: 10, y: 2.7, z: -20.6, rotY: 0 },
+      { count: 14, startX: -12.4, endX: -12.4, y: 0.9, z: -10, rotY: Math.PI / 2 },
+      { count: 14, startX: 12.4, endX: 12.4, y: 0.9, z: -10, rotY: -Math.PI / 2 }
+    ]);
+    // Fix Z spread for side spectators
+    crowdActors.slice(-28).forEach((actor, idx) => {
+      const sideIdx = idx % 14;
+      actor.group.position.z = -11 + sideIdx * 1.65;
+    });
+
+  } else if (venueType === 'city') {
+    // 2. SUNSET CITY ROOFTOP (Lit Skyscrapers, Dusk Cyber Gradient, Rooftop Lounge)
+    scene.background = makeSkyGradientTexture('#1a0b2e', '#7b2cbf', '#ff6d00');
+    scene.fog = new THREE.FogExp2(0x240046, 0.007);
+    apronMat.color.setHex(0x1f2438);
+    courtSurfaceMat.color.setHex(0x3a0ca3);
+    kitchenMatYou.color.setHex(0xf72585);
+    kitchenMatCPU.color.setHex(0xf72585);
+    sunLight.color.setHex(0xffb703);
+
+    // Procedural Lit Window Skyscraper Texture
+    const bCanvas = document.createElement('canvas');
+    bCanvas.width = 128;
+    bCanvas.height = 256;
+    const bCtx = bCanvas.getContext('2d');
+    bCtx.fillStyle = '#0d1321';
+    bCtx.fillRect(0, 0, 128, 256);
+    for (let y = 8; y < 248; y += 14) {
+      for (let x = 8; x < 120; x += 16) {
+        if (Math.random() > 0.32) {
+          bCtx.fillStyle = Math.random() > 0.2 ? '#ffd166' : '#00f5d4';
+          bCtx.fillRect(x, y, 10, 8);
+        }
+      }
+    }
+    const bTex = new THREE.CanvasTexture(bCanvas);
+    const bMat = new THREE.MeshBasicMaterial({ map: bTex });
+
+    // Ring of City Skyscrapers around the Rooftop
+    for (let i = 0; i < 22; i++) {
+      const ang = (i / 22) * Math.PI * 2;
+      const rad = 28 + Math.random() * 18;
+      const bw = 5 + Math.random() * 5;
+      const bh = 18 + Math.random() * 34;
+      const bMesh = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bw), bMat);
+      bMesh.position.set(Math.cos(ang) * rad, bh / 2 - 12, Math.sin(ang) * rad - 4);
+      venueGroup.add(bMesh);
+    }
+
+    // Rooftop Neon Safety Glass Fencing
+    const glassMat = new THREE.MeshBasicMaterial({ color: 0x00e1ff, transparent: true, opacity: 0.22 });
+    const backGlass = new THREE.Mesh(new THREE.BoxGeometry(24, 2.2, 0.15), glassMat);
+    backGlass.position.set(0, 1.1, -17);
+    venueGroup.add(backGlass);
+
+    populateAudience([
+      { count: 16, startX: -10, endX: 10, y: 0, z: -15.8, rotY: 0 }
+    ]);
+
+  } else if (venueType === 'park') {
+    // 3. EMERALD CENTRAL PARK (Pine & Oak Trees, Lush Grass, Daylight Sky)
+    scene.background = makeSkyGradientTexture('#0284c7', '#38bdf8', '#bae6fd');
+    scene.fog = new THREE.FogExp2(0xbae6fd, 0.006);
+    apronMat.color.setHex(0x15803d);
+    courtSurfaceMat.color.setHex(0x0284c7);
+    kitchenMatYou.color.setHex(0x16a34a);
+    kitchenMatCPU.color.setHex(0x16a34a);
+    sunLight.color.setHex(0xfffbeb);
+
+    // Park Lawn Surround
+    const lawn = new THREE.Mesh(
+      new THREE.PlaneGeometry(140, 140),
+      new THREE.MeshLambertMaterial({ color: 0x166534 })
+    );
+    lawn.rotation.x = -Math.PI / 2;
+    lawn.position.y = -0.02;
+    venueGroup.add(lawn);
+
+    // 3D Multi-Tiered Trees
+    const trunkMat = new THREE.MeshLambertMaterial({ color: 0x5c4033 });
+    const leafMat1 = new THREE.MeshLambertMaterial({ color: 0x22c55e });
+    const leafMat2 = new THREE.MeshLambertMaterial({ color: 0x15803d });
+
+    for (let i = 0; i < 32; i++) {
+      const ang = (i / 32) * Math.PI * 2;
+      if (Math.sin(ang) > 0.65 && Math.abs(Math.cos(ang)) < 0.5) continue; // Keep camera view open
+      const r = 17 + Math.random() * 16;
+      const tree = new THREE.Group();
+      tree.position.set(Math.cos(ang) * r, 0, Math.sin(ang) * r);
+
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.4, 2.4, 8), trunkMat);
+      trunk.position.y = 1.2;
+      trunk.castShadow = true;
+      tree.add(trunk);
+
+      const c1 = new THREE.Mesh(new THREE.ConeGeometry(1.9, 3.2, 9), leafMat1);
+      c1.position.y = 3.2;
+      c1.castShadow = true;
+      tree.add(c1);
+
+      const c2 = new THREE.Mesh(new THREE.ConeGeometry(1.4, 2.6, 9), leafMat2);
+      c2.position.y = 4.6;
+      tree.add(c2);
+
+      const s = 0.85 + Math.random() * 0.5;
+      tree.scale.setScalar(s);
+      venueGroup.add(tree);
+    }
+
+    populateAudience([
+      { count: 14, startX: -9, endX: 9, y: 0, z: -15.5, rotY: 0 }
+    ]);
+
+  } else if (venueType === 'beach') {
+    // 4. MALIBU BEACH CLUB (Palm Trees, Shimmering Ocean Water, Golden Sand)
+    scene.background = makeSkyGradientTexture('#0ea5e9', '#f59e0b', '#fef08a');
+    scene.fog = new THREE.FogExp2(0xfde68a, 0.006);
+    apronMat.color.setHex(0xfde047);
+    courtSurfaceMat.color.setHex(0x06b6d4);
+    kitchenMatYou.color.setHex(0xf97316);
+    kitchenMatCPU.color.setHex(0xf97316);
+    sunLight.color.setHex(0xfef08a);
+
+    const sand = new THREE.Mesh(
+      new THREE.PlaneGeometry(140, 140),
+      new THREE.MeshLambertMaterial({ color: 0xfacc15 })
+    );
+    sand.rotation.x = -Math.PI / 2;
+    sand.position.y = -0.02;
+    venueGroup.add(sand);
+
+    // Animated Ocean Plane behind North Baseline
+    oceanMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(160, 60),
+      new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.15, metalness: 0.4 })
+    );
+    oceanMesh.rotation.x = -Math.PI / 2;
+    oceanMesh.position.set(0, 0.02, -46);
+    venueGroup.add(oceanMesh);
+
+    // Curved Palm Trees with Fronds
+    const barkMat = new THREE.MeshLambertMaterial({ color: 0x78350f });
+    const frondMat = new THREE.MeshLambertMaterial({ color: 0x65a30d, side: THREE.DoubleSide });
+    [-14, -10, -5, 5, 10, 14].forEach(px => {
+      const palm = new THREE.Group();
+      palm.position.set(px, 0, -17.5 - Math.abs(px) * 0.2);
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.32, 6.2, 8), barkMat);
+      t.position.y = 3.1;
+      t.rotation.z = px > 0 ? -0.12 : 0.12;
+      palm.add(t);
+
+      for (let f = 0; f < 6; f++) {
+        const frond = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.08, 0.55), frondMat);
+        frond.position.set(0, 6.1, 0);
+        frond.rotation.y = (f / 6) * Math.PI * 2;
+        frond.rotation.z = 0.35;
+        palm.add(frond);
+      }
+      venueGroup.add(palm);
+    });
+
+    populateAudience([
+      { count: 14, startX: -9, endX: 9, y: 0, z: -15.5, rotY: 0 }
+    ]);
+  }
+}
+
+/* ============================================================================
+   4. STYLIZED MALE & FEMALE 3D PRO ATHLETES (JOINT-WELDED + FACIAL TEXTURES)
+   ============================================================================ */
+function createProPaddleMesh(accentHex = 0x00ffa3) {
+  const g = new THREE.Group();
+  const handle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.035, 0.04, 0.26, 10),
+    new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 })
+  );
+  g.add(handle);
+
+  const w = 0.22, h = 0.28, r = 0.08;
+  const s = new THREE.Shape();
+  s.moveTo(-w + r, -h);
+  s.lineTo(w - r, -h);
+  s.quadraticCurveTo(w, -h, w, -h + r);
+  s.lineTo(w, h - r);
+  s.quadraticCurveTo(w, h, w - r, h);
+  s.lineTo(-w + r, h);
+  s.quadraticCurveTo(-w, h, -w, h - r);
+  s.lineTo(-w, -h + r);
+  s.quadraticCurveTo(-w, -h, -w + r, -h);
+
+  const bladeGeo = new THREE.ExtrudeGeometry(s, {
+    depth: 0.024, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 0.012, bevelThickness: 0.012
+  });
+  bladeGeo.center();
+
+  const faceMat = new THREE.MeshStandardMaterial({ map: paddleTex, roughness: 0.3, metalness: 0.2 });
+  const rimMat = new THREE.MeshStandardMaterial({ color: accentHex, emissive: accentHex, emissiveIntensity: 0.25 });
+  const blade = new THREE.Mesh(bladeGeo, [faceMat, rimMat]);
+  blade.position.y = 0.42;
+  blade.castShadow = true;
+  g.add(blade);
+
+  g.rotation.z = -Math.PI / 2;
+  g.position.set(0.1, -0.15, 0.14);
+  return g;
+}
+
+function buildStylizedAthlete(opts) {
+  const { gender, primaryHex, secondaryHex, skinHex, hairHex, isPlayerSide } = opts;
+  const root = new THREE.Group();
+  const bodyRoot = new THREE.Group();
+  bodyRoot.position.y = 0.80;
+  root.add(bodyRoot);
+
+  const isFemale = (gender === 'female');
+  const skinMat = new THREE.MeshStandardMaterial({ color: skinHex, roughness: 0.55 });
+  const topMat = new THREE.MeshStandardMaterial({ color: primaryHex, roughness: 0.45 });
+  const botMat = new THREE.MeshStandardMaterial({ color: secondaryHex, roughness: 0.6 });
+  const hairMat = new THREE.MeshStandardMaterial({ color: hairHex, roughness: 0.65 });
+  const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+
+  // 1. Smooth Welded Legs + Knee Spheres + Stylish Court Sneakers
+  function makeLeg(xPos) {
+    const hip = new THREE.Group();
+    hip.position.set(xPos, 0, 0);
+
+    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.095, 0.36, 14), skinMat);
+    thigh.position.y = -0.18;
+    thigh.castShadow = true;
+    hip.add(thigh);
+
+    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.092, 12, 12), skinMat);
+    knee.position.y = -0.36;
+    hip.add(knee);
+
+    const calf = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.072, 0.34, 14), skinMat);
+    calf.position.y = -0.52;
+    calf.castShadow = true;
+    hip.add(calf);
+
+    const sock = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.076, 0.15, 12), whiteMat);
+    sock.position.y = -0.62;
+    hip.add(sock);
+
+    // Sculpted Rounded Court Sneaker
+    const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.12, 14, 12), whiteMat);
+    shoe.scale.set(0.85, 0.65, 1.55);
+    shoe.position.set(0, -0.71, isPlayerSide ? -0.05 : 0.05);
+    shoe.castShadow = true;
+    hip.add(shoe);
+
+    const sole = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.035, 0.34), topMat);
+    sole.position.set(0, -0.77, isPlayerSide ? -0.05 : 0.05);
+    hip.add(sole);
+
+    return hip;
+  }
+
+  const legL = makeLeg(-0.15);
+  const legR = makeLeg(0.15);
+  bodyRoot.add(legL);
+  bodyRoot.add(legR);
+
+  // 2. Gender-Specific Lower Attire (Pleated Tennis Skirt vs Tailored Court Shorts)
+  const torso = new THREE.Group();
+  bodyRoot.add(torso);
+
+  if (isFemale) {
+    // Flared Pleated Tennis/Pickleball Skirt
+    const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.36, 0.28, 18), botMat);
+    skirt.position.y = -0.02;
+    skirt.castShadow = true;
+    torso.add(skirt);
+
+    const trimRing = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.015, 8, 24), topMat);
+    trimRing.rotation.x = Math.PI / 2;
+    trimRing.position.y = -0.14;
+    torso.add(trimRing);
+
+    // Sleek Fitted Racerback Tank Torso
+    const waist = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.24, 0.34, 16), topMat);
+    waist.scale.z = 0.74;
+    waist.position.y = 0.26;
+    waist.castShadow = true;
+    torso.add(waist);
+
+    const chest = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.23, 0.34, 16), topMat);
+    chest.scale.z = 0.76;
+    chest.position.y = 0.56;
+    chest.castShadow = true;
+    torso.add(chest);
+  } else {
+    // Male Tailored Athletic Shorts
+    const shortsHips = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.29, 0.24, 16), botMat);
+    shortsHips.scale.z = 0.78;
+    shortsHips.position.y = -0.02;
+    torso.add(shortsHips);
+
+    [-0.15, 0.15].forEach(sx => {
+      const sLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.135, 0.13, 0.24, 12), botMat);
+      sLeg.position.set(sx, -0.14, 0);
+      torso.add(sLeg);
+    });
+
+    // Athletic V-Taper Polo Jersey + Chest Stripe
+    const maleChest = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.26, 0.68, 16), topMat);
+    maleChest.scale.z = 0.74;
+    maleChest.position.y = 0.42;
+    maleChest.castShadow = true;
+    torso.add(maleChest);
+
+    const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.355, 0.33, 0.12, 16), whiteMat);
+    stripe.scale.z = 0.75;
+    stripe.position.y = 0.52;
+    torso.add(stripe);
+  }
+
+  // Neck + High-Resolution Expressive Head
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.10, 0.14, 12), skinMat);
+  neck.position.y = 0.80;
+  torso.add(neck);
+
+  const headPivot = new THREE.Group();
+  headPivot.position.y = 1.08;
+  torso.add(headPivot);
+
+  const faceTex = createStylizedFaceTexture(skinHex, isFemale);
+  const faceMat = new THREE.MeshStandardMaterial({ map: faceTex, roughness: 0.45 });
+  const headSphere = new THREE.Mesh(new THREE.SphereGeometry(0.28, 28, 28), faceMat);
+  // Orient UV center of texture toward the net!
+  headSphere.rotation.y = isPlayerSide ? Math.PI / 2 : -Math.PI / 2;
+  headSphere.castShadow = true;
+  headPivot.add(headSphere);
+
+  // Sculpted Hair + Physics Ponytail (Female) or Spiky Crown (Male) + Pro Visor
+  const hairCap = new THREE.Mesh(
+    new THREE.SphereGeometry(0.292, 20, 16, 0, Math.PI * 2, 0, Math.PI * 0.56),
+    hairMat
+  );
+  hairCap.position.y = 0.02;
+  headPivot.add(hairCap);
+
+  let ponytailPivot = null;
+  if (isFemale) {
+    ponytailPivot = new THREE.Group();
+    ponytailPivot.position.set(0, 0.08, isPlayerSide ? 0.26 : -0.26);
+    const scrunchy = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.022, 8, 14), topMat);
+    ponytailPivot.add(scrunchy);
+
+    const tail = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.42, 12), hairMat);
+    tail.rotation.x = isPlayerSide ? -Math.PI * 0.65 : Math.PI * 0.65;
+    tail.position.set(0, -0.10, isPlayerSide ? 0.16 : -0.16);
+    ponytailPivot.add(tail);
+    headPivot.add(ponytailPivot);
+  } else {
+    // Male Sculpted Hair Spikes
+    for (let s = -1; s <= 1; s++) {
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.22, 8), hairMat);
+      spike.position.set(s * 0.1, 0.30, isPlayerSide ? -0.08 : 0.08);
+      spike.rotation.x = isPlayerSide ? -0.35 : 0.35;
+      headPivot.add(spike);
+    }
+  }
+
+  // Pro Sun Visor
+  const visorBand = new THREE.Mesh(new THREE.CylinderGeometry(0.296, 0.296, 0.075, 22), whiteMat);
+  visorBand.position.y = 0.10;
+  headPivot.add(visorBand);
+
+  const visorBill = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.33, 0.33, 0.022, 20, 1, false, 0, Math.PI),
+    topMat
+  );
+  visorBill.position.set(0, 0.09, isPlayerSide ? -0.12 : 0.12);
+  visorBill.rotation.y = isPlayerSide ? Math.PI / 2 : -Math.PI / 2;
+  headPivot.add(visorBill);
+
+  // 3. Smooth Welded Arms + Shoulder/Elbow Spheres + Sweatbands
+  function makeArm(isRight) {
+    const sgn = isRight ? 1 : -1;
+    const shoulder = new THREE.Group();
+    shoulder.position.set(sgn * (isFemale ? 0.31 : 0.38), 0.68, 0);
+
+    const deltoid = new THREE.Mesh(new THREE.SphereGeometry(0.095, 12, 12), isFemale ? skinMat : topMat);
+    shoulder.add(deltoid);
+
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.068, 0.28, 12), skinMat);
+    upper.position.y = -0.15;
+    shoulder.add(upper);
+
+    const elbow = new THREE.Group();
+    elbow.position.y = -0.30;
+    shoulder.add(elbow);
+
+    const elbowBall = new THREE.Mesh(new THREE.SphereGeometry(0.068, 10, 10), skinMat);
+    elbow.add(elbowBall);
+
+    const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.066, 0.056, 0.26, 12), skinMat);
+    forearm.position.y = -0.14;
+    elbow.add(forearm);
+
+    const sweatband = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.065, 12), topMat);
+    sweatband.position.y = -0.22;
+    elbow.add(sweatband);
+
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.068, 12, 12), skinMat);
+    hand.position.y = -0.29;
+    elbow.add(hand);
+
+    return { shoulder, elbow, hand };
+  }
+
+  const armR = makeArm(true);
+  const armL = makeArm(false);
+  torso.add(armR.shoulder);
+  torso.add(armL.shoulder);
+
+  const domArm = isPlayerSide ? armR : armL;
+  const offArm = isPlayerSide ? armL : armR;
+  const paddle = createProPaddleMesh(primaryHex);
+  if (!isPlayerSide) paddle.rotation.z = Math.PI / 2;
+  domArm.hand.add(paddle);
+
+  // Ready Athletic Split-Step Pose
+  const dir = isPlayerSide ? 1 : -1;
+  domArm.shoulder.rotation.x = dir * 0.45;
+  domArm.elbow.rotation.x = dir * 0.65;
+  offArm.shoulder.rotation.x = dir * 0.35;
+  offArm.shoulder.rotation.z = dir * 0.25;
+
+  // Glowing Player Turf Ring
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.45, 0.58, 32),
+    new THREE.MeshBasicMaterial({
+      color: isPlayerSide ? 0x00ffa3 : 0xff2e55,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.8
+    })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.035;
+  root.add(ring);
+
+  scene.add(root);
+  return {
+    mesh: root,
+    bodyRoot,
+    torso,
+    legL,
+    legR,
+    domArm,
+    offArm,
+    ponytailPivot,
+    isPlayerSide,
+    cycle: 0,
+    swing: 0,
+    swingType: 'drive',
+    prevVx: 0
+  };
+}
+
+let pUser, pPartner, pCPU1, pCPU2;
+const userConfig = {
+  gender: 'female',
+  primaryHex: 0x00ffa3,
+  secondaryHex: 0x0f172a,
+  skinHex: 0xffcba4,
+  hairHex: 0x3b2314
+};
+
+function rebuildAthletes() {
+  [pUser, pPartner, pCPU1, pCPU2].forEach(p => {
+    if (p && p.mesh) scene.remove(p.mesh);
+  });
+
+  pUser = buildStylizedAthlete({
+    gender: userConfig.gender,
+    primaryHex: userConfig.primaryHex,
+    secondaryHex: userConfig.secondaryHex,
+    skinHex: userConfig.skinHex,
+    hairHex: userConfig.hairHex,
+    isPlayerSide: true
+  });
+
+  pPartner = buildStylizedAthlete({
+    gender: userConfig.gender === 'female' ? 'male' : 'female',
+    primaryHex: 0x00e1ff,
+    secondaryHex: 0x0f172a,
+    skinHex: 0xe0ac69,
+    hairHex: 0x1e1b18,
+    isPlayerSide: true
+  });
+
+  pCPU1 = buildStylizedAthlete({
+    gender: 'male',
+    primaryHex: 0xff2e55,
+    secondaryHex: 0x18181b,
+    skinHex: 0xf1c27d,
+    hairHex: 0x271c19,
+    isPlayerSide: false
+  });
+
+  pCPU2 = buildStylizedAthlete({
+    gender: 'female',
+    primaryHex: 0xffd000,
+    secondaryHex: 0x18181b,
+    skinHex: 0xffdbac,
+    hairHex: 0x7c2d12,
+    isPlayerSide: false
+  });
+
+  if (window.gameState) resetServePositions();
+}
+
+/* ============================================================================
+   5. BALL, MOTION RIBBON TRAIL, CONFETTI & PARTICLE BURSTS
+   ============================================================================ */
+const ballMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(0.21, 24, 24),
+  new THREE.MeshStandardMaterial({ map: ballTex, emissive: 0x557700, emissiveIntensity: 0.25, roughness: 0.3 })
+);
+ballMesh.castShadow = true;
+scene.add(ballMesh);
+
+const targetRing = new THREE.Mesh(
+  new THREE.RingGeometry(0.28, 0.50, 28),
+  new THREE.MeshBasicMaterial({ color: 0xffd000, side: THREE.DoubleSide })
+);
+targetRing.rotation.x = -Math.PI / 2;
+targetRing.position.y = 0.04;
+scene.add(targetRing);
+
+const fxParticles = [];
+const pGeo = new THREE.SphereGeometry(0.065, 8, 8);
+
+function spawnBurst(pos, colorHex = 0x00ffa3, count = 16) {
+  for (let i = 0; i < count; i++) {
+    const mat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 1 });
+    const m = new THREE.Mesh(pGeo, mat);
+    m.position.copy(pos);
+    const a = Math.random() * Math.PI * 2;
+    const spd = 1.6 + Math.random() * 4.8;
+    fxParticles.push({
+      mesh: m,
+      vel: new THREE.Vector3(Math.cos(a) * spd, 2.0 + Math.random() * 4.2, Math.sin(a) * spd),
+      life: 0.48
+    });
+    scene.add(m);
+  }
+}
+
+/* ============================================================================
+   6. PICKLEBALL TOUR RULES, CAMERA SYSTEM & GAMEPLAY STATE
+   ============================================================================ */
+window.gameState = {
+  active: false,
+  venue: 'stadium',
+  format: 'doubles',
+  diff: 'pro',
+  autoRun: true,
+  camMode: 0, // 0=Broadcast, 1=Low Player View, 2=Overhead Tactical
+  camShake: 0,
+  cheerTimer: 0,
+  scoreYou: 0,
+  scoreCPU: 0,
+  servingTeam: 'you',
+  serverNum: 2,
+  phase: 'pre-serve',
+  shotCount: 0,
+  bounces: 0,
+  lastHitter: 'you',
+  smashMeter: 0,
+  ball: {
+    pos: new THREE.Vector3(2.2, 1.1, 10.2),
+    vel: new THREE.Vector3(),
+    spinX: 0,
+    tx: 0,
+    tz: 0
+  }
+};
+const gs = window.gameState;
+const inputDir = { up: false, down: false, left: false, right: false };
+
+function showCallout(big, small = '', ms = 1650) {
+  const el = document.getElementById('callout');
+  document.getElementById('callout-big').textContent = big;
+  document.getElementById('callout-small').textContent = small;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), ms);
+  updateJumbotronScreen(big);
+}
+
+function getScoreString() {
+  const s = gs.servingTeam === 'you' ? gs.scoreYou : gs.scoreCPU;
+  const r = gs.servingTeam === 'you' ? gs.scoreCPU : gs.scoreYou;
+  return gs.format === 'doubles' ? `${s} - ${r} - ${gs.serverNum}` : `${s} - ${r}`;
+}
+
+function refreshHUD() {
+  document.getElementById('hud-pts-you').textContent = gs.scoreYou;
+  document.getElementById('hud-pts-cpu').textContent = gs.scoreCPU;
+
+  const sTag = gs.servingTeam === 'you'
+    ? (gs.format === 'doubles' ? `YOUR SERVE #${gs.serverNum}` : 'YOUR SERVE')
+    : (gs.format === 'doubles' ? `CPU SERVE #${gs.serverNum}` : 'CPU SERVE');
+
+  document.getElementById('hud-score-call').innerHTML = `${getScoreString()}<small>${sTag}</small>`;
+  document.getElementById('smash-fill').style.width = `${gs.smashMeter}%`;
+  document.getElementById('btn-erne').style.display = gs.smashMeter >= 100 ? 'flex' : 'none';
+
+  const bEl = document.getElementById('badge-bounce');
+  if (gs.phase === 'pre-serve') {
+    bEl.textContent = 'Underhand Serve Ready';
+    bEl.className = 'rule-badge';
+  } else if (gs.shotCount < 2) {
+    bEl.textContent = `2-Bounce Rule: Let Bounce (${gs.shotCount + 1}/2)`;
+    bEl.className = 'rule-badge danger';
+  } else {
+    bEl.textContent = '2-Bounce Cleared • Volleys OPEN!';
+    bEl.className = 'rule-badge clear';
+  }
+
+  const kEl = document.getElementById('badge-kitchen');
+  const inNVZ = pUser && Math.abs(pUser.mesh.position.z) <= KITCHEN_Z + 0.14;
+  if (inNVZ) {
+    kEl.textContent = '⚠️ IN KITCHEN: Must Bounce!';
+    kEl.className = 'rule-badge danger';
+  } else {
+    kEl.textContent = 'Kitchen: Clear';
+    kEl.className = 'rule-badge';
+  }
+}
+
+function resetServePositions() {
+  if (!pUser) return;
+  gs.phase = 'pre-serve';
+  gs.shotCount = 0;
+  gs.bounces = 0;
+
+  pPartner.mesh.visible = (gs.format === 'doubles');
+  pCPU2.mesh.visible = (gs.format === 'doubles');
+
+  const srvScore = gs.servingTeam === 'you' ? gs.scoreYou : gs.scoreCPU;
+  const side = (srvScore % 2 === 0) ? 1 : -1;
+
+  if (gs.servingTeam === 'you') {
+    pUser.mesh.position.set(2.3 * side, 0, 10.4);
+    pPartner.mesh.position.set(-2.3 * side, 0, 3.9);
+    pCPU1.mesh.position.set(-2.3 * side, 0, -10.4);
+    pCPU2.mesh.position.set(2.3 * side, 0, -3.9);
+    gs.ball.pos.set(pUser.mesh.position.x + 0.35, 1.0, pUser.mesh.position.z - 0.45);
+  } else {
+    pCPU1.mesh.position.set(-2.3 * side, 0, -10.4);
+    pCPU2.mesh.position.set(2.3 * side, 0, -3.9);
+    pUser.mesh.position.set(2.3 * side, 0, 10.4);
+    pPartner.mesh.position.set(-2.3 * side, 0, 3.9);
+    gs.ball.pos.set(pCPU1.mesh.position.x, 1.0, pCPU1.mesh.position.z + 0.45);
+
+    setTimeout(() => {
+      if (gs.active && gs.phase === 'pre-serve' && gs.servingTeam === 'cpu') {
+        strikeBall(pCPU1, 'drive', true, 1.0);
+      }
+    }, 1150);
+  }
+
+  gs.ball.vel.set(0, 0, 0);
+  gs.ball.spinX = 0;
+  ballMesh.position.copy(gs.ball.pos);
+  targetRing.visible = false;
+  refreshHUD();
+}
+
+const GRAV = 19.8;
+function launchTo(startPos, tx, tz, flightT, spinX = 0) {
+  gs.ball.pos.copy(startPos);
+  gs.ball.vel.x = (tx - startPos.x) / flightT;
+  gs.ball.vel.z = (tz - startPos.z) / flightT;
+  gs.ball.vel.y = ((0.21 - startPos.y) + 0.5 * GRAV * flightT * flightT) / flightT;
+  gs.ball.spinX = spinX;
+  gs.ball.tx = tx;
+  gs.ball.tz = tz;
+  targetRing.position.set(tx, 0.04, tz);
+  targetRing.visible = true;
+}
+
+function strikeBall(athlete, type, isServe = false, quality = 1.0) {
+  const isUserTeam = athlete.isPlayerSide;
+  athlete.swing = 1.0;
+  athlete.swingType = type;
+
+  sfx.playPaddlePop(type, quality);
+  const zDir = isUserTeam ? -1 : 1;
+  const hitPos = athlete.mesh.position.clone().add(new THREE.Vector3(0, 1.05, zDir * 0.5));
+  spawnBurst(hitPos, type === 'erne' ? 0xffd000 : (type === 'dink' ? 0x00e1ff : 0x00ffa3), 18);
+
+  let tx = (Math.random() - 0.5) * 6.8;
+  let tz = zDir * (5.2 + Math.random() * 4.5);
+  let dur = 0.88;
+  let spin = 0;
+
+  if (isServe) {
+    const diag = athlete.mesh.position.x >= 0 ? -1 : 1;
+    tx = diag * (1.4 + Math.random() * 2.5);
+    tz = zDir * (5.4 + Math.random() * 4.3);
+    dur = 1.0;
+    gs.phase = 'rally';
+    gs.shotCount = 0;
+  } else {
+    gs.shotCount++;
+    if (isUserTeam) {
+      if (inputDir.left) { tx = -3.6; spin = -1.8; }
+      else if (inputDir.right) { tx = 3.6; spin = 1.8; }
+    }
+
+    if (type === 'dink') {
+      tz = zDir * (1.35 + Math.random() * 1.85);
+      tx = Math.max(-3.9, Math.min(3.9, tx * 0.85));
+      dur = 0.86;
+      if (isUserTeam) showCallout('KITCHEN DINK!', 'Soft NVZ Drop Shot', 850);
+    } else if (type === 'lob') {
+      tz = zDir * (8.8 + Math.random() * 1.6);
+      dur = 1.35;
+      if (isUserTeam) showCallout('HIGH LOB!', 'Deep Baseline Arc', 850);
+    } else if (type === 'erne') {
+      tz = zDir * (4.1 + Math.random() * 3.6);
+      tx = (athlete.mesh.position.x > 0 ? -1 : 1) * 4.2;
+      dur = 0.50;
+      gs.smashMeter = 0;
+      gs.camShake = 0.35;
+      showCallout('🔥 ERNE SMASH!', 'Unstoppable Sideline Winner!', 1200);
+    } else {
+      tz = zDir * (5.2 + Math.random() * 4.6);
+      dur = quality > 1.05 ? 0.65 : 0.74;
+      if (isUserTeam && quality > 1.05) {
+        gs.camShake = 0.14;
+        showCallout('⚡ PERFECT DRIVE!', 'Sweet-Spot Carbon Rip', 850);
+      }
+    }
+  }
+
+  gs.lastHitter = isUserTeam ? 'you' : 'cpu';
+  gs.bounces = 0;
+
+  if (isUserTeam && type !== 'erne') {
+    gs.smashMeter = Math.min(100, gs.smashMeter + (type === 'dink' ? 25 : 20));
+  }
+
+  launchTo(hitPos, tx, tz, dur, spin);
+  refreshHUD();
+}
+
+function userSwing(type = 'drive') {
+  if (!gs.active) return;
+  sfx.init();
+
+  if (type === 'erne' && gs.smashMeter < 100) type = 'drive';
+
+  if (gs.phase === 'pre-serve' && gs.servingTeam === 'you') {
+    strikeBall(pUser, 'drive', true, 1.0);
+    return;
+  }
+
+  if (gs.phase !== 'rally' || gs.lastHitter === 'you') return;
+
+  let hitter = pUser;
+  const flatB = new THREE.Vector3(gs.ball.pos.x, 0, gs.ball.pos.z);
+  let dist = pUser.mesh.position.distanceTo(flatB);
+
+  if (gs.format === 'doubles') {
+    const pDist = pPartner.mesh.position.distanceTo(flatB);
+    if (pDist < dist && pDist < 3.15) {
+      hitter = pPartner;
+      dist = pDist;
+    }
+  }
+
+  if (dist <= 3.45 && gs.ball.pos.z > -0.5) {
+    const isVolley = (gs.bounces === 0);
+
+    if (isVolley && gs.shotCount < 2) {
+      sfx.speak('Two bounce fault!');
+      finishRally('cpu', '2-BOUNCE FAULT!', 'Return of serve must bounce before volleying!');
+      return;
+    }
+
+    const inKitchen = Math.abs(hitter.mesh.position.z) <= KITCHEN_Z + 0.12;
+    if (isVolley && inKitchen) {
+      sfx.speak('Kitchen foot fault!');
+      finishRally('cpu', 'KITCHEN FOOT FAULT!', 'Cannot volley while standing in the Kitchen!');
+      return;
+    }
+
+    const quality = (dist > 1.0 && dist < 2.2) ? 1.12 : 0.96;
+    if (type === 'erne') hitter.bodyRoot.position.y = 1.48;
+    strikeBall(hitter, type, false, quality);
+  } else {
+    pUser.swing = 0.75;
+  }
+}
+
+function finishRally(winner, title, reason) {
+  if (gs.phase === 'dead') return;
+  gs.phase = 'dead';
+  gs.cheerTimer = 1.8;
+  targetRing.visible = false;
+  sfx.playCrowdRoar(winner === 'you');
+
+  // Celebratory Confetti Blast near Net!
+  spawnBurst(new THREE.Vector3(0, 2.2, 0), winner === 'you' ? 0x00ffa3 : 0xff2e55, 28);
+
+  if (winner === gs.servingTeam) {
+    if (winner === 'you') gs.scoreYou++;
+    else gs.scoreCPU++;
+    showCallout(title, `${reason} • Point ${winner === 'you' ? 'YOU' : 'CPU'}!`, 2100);
+  } else {
+    if (gs.format === 'doubles' && gs.serverNum === 1) {
+      gs.serverNum = 2;
+      showCallout('SECOND SERVER!', `${reason} • Server #2 Up`, 2100);
+    } else {
+      gs.servingTeam = winner;
+      gs.serverNum = 1;
+      showCallout('SIDE OUT!', `${reason} • Serve Changes Sides`, 2100);
+    }
+  }
+
+  refreshHUD();
+
+  const top = Math.max(gs.scoreYou, gs.scoreCPU);
+  const diff = Math.abs(gs.scoreYou - gs.scoreCPU);
+  if (top >= 11 && diff >= 2) {
+    const msg = gs.scoreYou > gs.scoreCPU ? '🏆 CHAMPIONSHIP VICTORY!' : 'MATCH COMPLETE!';
+    sfx.speak(`Game and Match! ${gs.scoreYou} to ${gs.scoreCPU}`);
+    showCallout(msg, `Final Score: ${gs.scoreYou} - ${gs.scoreCPU}`, 3800);
+    setTimeout(() => {
+      gs.scoreYou = 0;
+      gs.scoreCPU = 0;
+      gs.servingTeam = 'you';
+      gs.serverNum = 2;
+      resetServePositions();
+    }, 3600);
+  } else {
+    setTimeout(() => {
+      resetServePositions();
+      const s = gs.servingTeam === 'you' ? gs.scoreYou : gs.scoreCPU;
+      const r = gs.servingTeam === 'you' ? gs.scoreCPU : gs.scoreYou;
+      sfx.speak(gs.format === 'doubles' ? `${s}, ${r}, ${gs.serverNum}` : `${s}, ${r}`);
+    }, 1900);
+  }
+}
+
+/* ============================================================================
+   7. WEBCAM HAND-RAISE MOTION SENSOR
+   ============================================================================ */
+const camState = { on: false, stream: null, prev: null, cd: 0 };
+const cTiny = document.createElement('canvas');
+cTiny.width = 80;
+cTiny.height = 60;
+const ctxTiny = cTiny.getContext('2d', { willReadFrequently: true });
+
+async function toggleWebcam() {
+  const widget = document.getElementById('cam-widget');
+  const bTop = document.getElementById('btn-webcam');
+  const bMod = document.getElementById('modal-cam-btn');
+
+  if (camState.on) {
+    if (camState.stream) camState.stream.getTracks().forEach(t => t.stop());
+    camState.on = false;
+    widget.style.display = 'none';
+    bTop.textContent = '📷 Webcam: OFF';
+    bTop.classList.remove('active');
+    bMod.textContent = 'Enable Camera';
+    bMod.classList.remove('active');
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 160, height: 120, facingMode: 'user' },
+      audio: false
+    });
+    document.getElementById('cam-video').srcObject = stream;
+    camState.stream = stream;
+    camState.on = true;
+    widget.style.display = 'block';
+    bTop.textContent = '📷 Webcam: ON';
+    bTop.classList.add('active');
+    bMod.textContent = 'Camera Active ✓';
+    bMod.classList.add('active');
+    showCallout('WEBCAM SENSOR ON!', 'Raise Hand into Top Green Box to Swing!', 1800);
+  } catch (e) {
+    showCallout('CAMERA BLOCKED', 'Use HTTPS and allow camera permission', 2200);
+  }
+}
+
+function updateWebcam(dt) {
+  if (!camState.on) return;
+  if (camState.cd > 0) camState.cd -= dt;
+  const v = document.getElementById('cam-video');
+  if (v.readyState < 2) return;
+
+  ctxTiny.drawImage(v, 0, 0, 80, 60);
+  const frame = ctxTiny.getImageData(0, 0, 80, 60).data;
+
+  let motion = 0;
+  if (camState.prev) {
+    for (let y = 0; y < 28; y++) {
+      for (let x = 0; x < 80; x++) {
+        const i = (y * 80 + x) * 4;
+        if (Math.abs(frame[i] - camState.prev[i]) + Math.abs(frame[i + 1] - camState.prev[i + 1]) > 52) {
+          motion++;
+        }
+      }
+    }
+  }
+  camState.prev = new Uint8ClampedArray(frame);
+
+  const ov = document.getElementById('cam-overlay');
+  const octx = ov.getContext('2d');
+  octx.clearRect(0, 0, 160, 120);
+
+  const thresh = 78 - parseInt(document.getElementById('cam-sens').value, 10);
+  const triggered = motion > thresh;
+
+  octx.strokeStyle = triggered ? '#ffd000' : '#00ffa3';
+  octx.lineWidth = triggered ? 4 : 2;
+  octx.strokeRect(4, 4, 152, 54);
+  octx.fillStyle = triggered ? 'rgba(255, 208, 0, 0.28)' : 'rgba(0, 255, 163, 0.12)';
+  octx.fillRect(4, 4, 152, 54);
+
+  if (triggered && camState.cd <= 0) {
+    camState.cd = 0.36;
+    const nearNVZ = pUser.mesh.position.z < KITCHEN_Z + 1.45;
+    if (gs.smashMeter >= 100) userSwing('erne');
+    else if (nearNVZ && gs.shotCount >= 2) userSwing('dink');
+    else userSwing('drive');
+  }
+}
+
+/* ============================================================================
+   8. SKELETAL ANIMATION, CROWD CHEERING & MAIN SIMULATION LOOP
+   ============================================================================ */
+function animateAthlete(a, dt, vel) {
+  const spd = Math.hypot(vel.x, vel.z);
+  if (Math.abs(vel.x - a.prevVx) > 11 && Math.random() < 0.35) {
+    sfx.playSneakerSqueak();
+  }
+  a.prevVx = vel.x;
+
+  if (spd > 0.3) {
+    a.cycle += dt * spd * 2.5;
+    const stride = Math.sin(a.cycle) * 0.68;
+    a.legL.rotation.x = stride;
+    a.legR.rotation.x = -stride;
+    a.bodyRoot.position.y = Math.max(0.80, a.bodyRoot.position.y) + Math.abs(Math.cos(a.cycle)) * 0.06;
+    a.torso.rotation.z = -vel.x * 0.025;
+    if (a.ponytailPivot) {
+      a.ponytailPivot.rotation.x = Math.sin(a.cycle * 2) * 0.35;
+      a.ponytailPivot.rotation.z = -vel.x * 0.05;
+    }
+  } else {
+    a.cycle += dt * 3.2;
+    a.legL.rotation.x *= 0.85;
+    a.legR.rotation.x *= 0.85;
+    a.torso.rotation.z *= 0.85;
+    if (a.bodyRoot.position.y <= 0.84) {
+      a.bodyRoot.position.y = 0.80 + Math.sin(a.cycle) * 0.022;
+    }
+    if (a.ponytailPivot) {
+      a.ponytailPivot.rotation.x = Math.sin(a.cycle) * 0.08;
+    }
+  }
+
+  if (a.bodyRoot.position.y > 0.84) {
+    a.bodyRoot.position.y = Math.max(0.80, a.bodyRoot.position.y - dt * 2.2);
+  }
+
+  const sgn = a.isPlayerSide ? 1 : -1;
+  if (a.swing > 0) {
+    a.swing = Math.max(0, a.swing - dt * 4.6);
+    const w = Math.sin(a.swing * Math.PI);
+    a.torso.rotation.y = sgn * w * 0.9;
+    if (a.swingType === 'dink') {
+      a.domArm.shoulder.rotation.x = sgn * (0.4 + w * 0.95);
+      a.domArm.elbow.rotation.x = sgn * (0.6 + w * 0.55);
+    } else if (a.swingType === 'erne' || a.swingType === 'lob') {
+      a.domArm.shoulder.rotation.x = sgn * (0.4 + w * 1.95);
+      a.domArm.shoulder.rotation.z = -sgn * w * 0.5;
+    } else {
+      a.domArm.shoulder.rotation.y = sgn * w * 1.55;
+      a.domArm.shoulder.rotation.x = sgn * (0.45 + w * 0.8);
+    }
+  } else {
+    a.torso.rotation.y *= 0.82;
+    a.domArm.shoulder.rotation.set(sgn * 0.45, 0, 0);
+    a.domArm.elbow.rotation.set(sgn * 0.65, 0, 0);
+  }
+}
+
+function animateAudienceAndWorld(dt, now) {
+  if (gs.cheerTimer > 0) gs.cheerTimer = Math.max(0, gs.cheerTimer - dt);
+
+  crowdActors.forEach(c => {
+    if (gs.cheerTimer > 0) {
+      // Erupt into jumping & waving arms!
+      const jump = Math.abs(Math.sin(now * 0.012 + c.phase)) * 0.35;
+      c.group.position.y = c.baseY + jump;
+      c.armL.rotation.z = 2.5 + Math.sin(now * 0.02 + c.phase) * 0.4;
+      c.armR.rotation.z = -2.5 - Math.sin(now * 0.02 + c.phase) * 0.4;
+    } else {
+      c.group.position.y = c.baseY + Math.sin(now * 0.003 + c.phase) * 0.03;
+      c.armL.rotation.z = 0.4;
+      c.armR.rotation.z = -0.4;
+      // Spectators turn heads to follow the pickleball!
+      c.head.rotation.y = (gs.ball.pos.x * 0.06);
+    }
+  });
+
+  if (oceanMesh) {
+    oceanMesh.position.y = 0.02 + Math.sin(now * 0.002) * 0.08;
+  }
+
+  for (let i = fxParticles.length - 1; i >= 0; i--) {
+    const p = fxParticles[i];
+    p.life -= dt;
+    if (p.life <= 0) {
+      scene.remove(p.mesh);
+      p.mesh.material.dispose();
+      fxParticles.splice(i, 1);
+    } else {
+      p.vel.y -= 12 * dt;
+      p.mesh.position.addScaledVector(p.vel, dt);
+      p.mesh.scale.setScalar(p.life * 2.3);
+      p.mesh.material.opacity = p.life * 2;
+    }
+  }
+}
+
+function updateGame(dt, now) {
+  updateWebcam(dt);
+  animateAudienceAndWorld(dt, now);
+
+  // Locker Room Showcase Camera Orbit when Menu is Open
+  if (!gs.active) {
+    [pUser, pPartner, pCPU1, pCPU2].forEach(a => animateAthlete(a, dt, { x: 0, z: 0 }));
+    const ang = now * 0.00045;
+    camera.position.set(Math.sin(ang) * 5.5 + 1.8, 2.6, 14.2);
+    camera.lookAt(pUser.mesh.position.x - 1.2, 1.15, pUser.mesh.position.z - 1.5);
+    return;
+  }
+
+  // Player Movement
+  const maxSpd = 8.3;
+  let vx = ((inputDir.right ? 1 : 0) - (inputDir.left ? 1 : 0)) * maxSpd;
+  let vz = ((inputDir.down ? 1 : 0) - (inputDir.up ? 1 : 0)) * maxSpd;
+
+  if (gs.autoRun && gs.phase === 'rally' && gs.lastHitter === 'cpu' && vx === 0 && vz === 0) {
+    const partnerTakes = gs.format === 'doubles' &&
+      Math.abs(gs.ball.tx - pPartner.mesh.position.x) < Math.abs(gs.ball.tx - pUser.mesh.position.x);
+
+    if (!partnerTakes) {
+      const tx = gs.ball.tx;
+      let tz = Math.max(KITCHEN_Z + 0.35, gs.ball.tz + 0.55);
+      if (gs.ball.tz < KITCHEN_Z && gs.bounces >= 1) {
+        tz = Math.max(1.1, gs.ball.tz + 0.25);
+      }
+      const dx = tx - pUser.mesh.position.x;
+      const dz = tz - pUser.mesh.position.z;
+      if (Math.hypot(dx, dz) > 0.2) {
+        vx = Math.sign(dx) * Math.min(Math.abs(dx) / dt, maxSpd);
+        vz = Math.sign(dz) * Math.min(Math.abs(dz) / dt, maxSpd);
+      }
+    }
+  }
+
+  pUser.mesh.position.x = Math.max(-HALF_W - 1.3, Math.min(HALF_W + 1.3, pUser.mesh.position.x + vx * dt));
+  pUser.mesh.position.z = Math.max(0.55, Math.min(HALF_L + 1.8, pUser.mesh.position.z + vz * dt));
+  animateAthlete(pUser, dt, { x: vx, z: vz });
+
+  // Partner AI
+  if (gs.format === 'doubles') {
+    const hx = pUser.mesh.position.x > 0 ? -2.35 : 2.35;
+    const hz = gs.shotCount >= 2 ? KITCHEN_Z + 0.42 : 7.6;
+    const tx = (gs.lastHitter === 'cpu' && gs.ball.tx * hx > 0) ? gs.ball.tx : hx;
+    const tz = (gs.lastHitter === 'cpu' && gs.ball.tz < 5.5) ? Math.max(KITCHEN_Z + 0.32, gs.ball.tz) : hz;
+    const pvx = (tx - pPartner.mesh.position.x) * 4.5;
+    const pvz = (tz - pPartner.mesh.position.z) * 4.5;
+    pPartner.mesh.position.x += pvx * dt;
+    pPartner.mesh.position.z += pvz * dt;
+    animateAthlete(pPartner, dt, { x: pvx, z: pvz });
+  }
+
+  // CPU AI
+  const cpuSpd = gs.diff === 'rookie' ? 5.5 : (gs.diff === 'pro' ? 7.6 : 9.8);
+  if (gs.phase === 'rally') {
+    const mainCPU = (gs.format === 'doubles' && gs.ball.tx > 0.2) ? pCPU2 : pCPU1;
+    const subCPU = mainCPU === pCPU1 ? pCPU2 : pCPU1;
+
+    let cvx = 0, cvz = 0;
+    if (gs.lastHitter === 'you') {
+      let dzTarget = Math.min(-(KITCHEN_Z + 0.35), gs.ball.tz - 0.4);
+      if (gs.ball.tz > -KITCHEN_Z && gs.bounces >= 1) dzTarget = gs.ball.tz - 0.2;
+      const dx = gs.ball.tx - mainCPU.mesh.position.x;
+      const dz = dzTarget - mainCPU.mesh.position.z;
+      cvx = Math.sign(dx) * Math.min(Math.abs(dx) / dt, cpuSpd);
+      cvz = Math.sign(dz) * Math.min(Math.abs(dz) / dt, cpuSpd);
+      mainCPU.mesh.position.x += cvx * dt;
+      mainCPU.mesh.position.z += cvz * dt;
+
+      const dBall = mainCPU.mesh.position.distanceTo(new THREE.Vector3(gs.ball.pos.x, 0, gs.ball.pos.z));
+      const inNVZ = Math.abs(mainCPU.mesh.position.z) <= KITCHEN_Z + 0.1;
+      const canVolley = gs.shotCount >= 2 && !inNVZ;
+
+      if (dBall < 2.3 && gs.ball.pos.z < -0.55 && (gs.bounces >= 1 || canVolley)) {
+        let sType = 'drive';
+        if (Math.abs(mainCPU.mesh.position.z) < KITCHEN_Z + 1.6 && Math.random() < 0.72) sType = 'dink';
+        else if (Math.random() < 0.16) sType = 'lob';
+        strikeBall(mainCPU, sType, false, 1.0);
+      }
+    }
+    animateAthlete(mainCPU, dt, { x: cvx, z: cvz });
+
+    if (gs.format === 'doubles') {
+      const bx = mainCPU === pCPU1 ? 2.35 : -2.35;
+      const bz = gs.shotCount >= 2 ? -(KITCHEN_Z + 0.42) : -8.5;
+      const bvx = (bx - subCPU.mesh.position.x) * 3.8;
+      const bvz = (bz - subCPU.mesh.position.z) * 3.8;
+      subCPU.mesh.position.x += bvx * dt;
+      subCPU.mesh.position.z += bvz * dt;
+      animateAthlete(subCPU, dt, { x: bvx, z: bvz });
+    }
+  }
+
+  // Ball Flight Physics
+  if (gs.phase === 'rally') {
+    gs.ball.vel.y -= GRAV * dt;
+    gs.ball.vel.x += gs.ball.spinX * dt;
+    gs.ball.pos.addScaledVector(gs.ball.vel, dt);
+    ballMesh.position.copy(gs.ball.pos);
+
+    if (gs.ball.pos.y <= 0.21 && gs.ball.vel.y < 0) {
+      gs.ball.pos.y = 0.21;
+      gs.ball.vel.y = Math.abs(gs.ball.vel.y) * 0.61;
+      gs.bounces++;
+      sfx.playBounce();
+      spawnBurst(gs.ball.pos, 0xffd000, 10);
+
+      if (gs.bounces === 1) {
+        const ax = Math.abs(gs.ball.pos.x);
+        const az = Math.abs(gs.ball.pos.z);
+        const out = ax > HALF_W + 0.22 || az > HALF_L + 0.22;
+        const shortSrv = (gs.shotCount === 0 && az <= KITCHEN_Z + 0.08);
+        if (out || shortSrv) {
+          const w = gs.lastHitter === 'you' ? 'cpu' : 'you';
+          sfx.speak(shortSrv ? 'Short Serve Fault!' : 'Out!');
+          finishRally(w, shortSrv ? 'SERVE IN KITCHEN!' : 'BALL OUT!', shortSrv ? 'Serve must clear Kitchen' : 'Landed outside lines');
+          return;
+        }
+      } else if (gs.bounces >= 2) {
+        const w = gs.lastHitter;
+        sfx.speak(w === 'you' ? 'Point!' : 'Side out.');
+        finishRally(w, 'DOUBLE BOUNCE!', w === 'you' ? 'Clean winner!' : 'Bounced twice on your side');
+        return;
+      }
+    }
+  }
+
+  // Dynamic Camera Modes + Smash Screen Shake
+  if (gs.camShake > 0) gs.camShake = Math.max(0, gs.camShake - dt * 1.5);
+  const shakeX = (Math.random() - 0.5) * gs.camShake;
+  const shakeY = (Math.random() - 0.5) * gs.camShake;
+
+  if (gs.camMode === 0) {
+    // Broadcast TV View
+    const cx = pUser.mesh.position.x * 0.28;
+    camera.position.x += (cx - camera.position.x) * 4.5 * dt + shakeX;
+    camera.position.y += (13.6 - camera.position.y) * 4.5 * dt + shakeY;
+    camera.position.z += (23.2 - camera.position.z) * 4.5 * dt;
+    camera.lookAt(cx * 0.35, 0.8, -1.8);
+  } else if (gs.camMode === 1) {
+    // Low Action Player View (Switch Sports Close-Up)
+    const cx = pUser.mesh.position.x * 0.55;
+    camera.position.x += (cx - camera.position.x) * 5 * dt + shakeX;
+    camera.position.y += (6.2 - camera.position.y) * 5 * dt + shakeY;
+    camera.position.z += (17.8 - camera.position.z) * 5 * dt;
+    camera.lookAt(cx * 0.4, 1.2, -3.5);
+  } else {
+    // Overhead Tactical View
+    camera.position.set(shakeX, 26.5 + shakeY, 12.5);
+    camera.lookAt(0, 0, -1.0);
+  }
+
+  refreshHUD();
+}
+
+/* ============================================================================
+   9. UI customization & INPUT BINDINGS
+   ============================================================================ */
+function selectVenue(vId, vTitle, btnEl) {
+  gs.venue = vId;
+  document.getElementById('hud-venue-name').textContent = vTitle;
+  document.querySelectorAll('.venue-btn').forEach(b => b.classList.remove('selected'));
+  btnEl.classList.add('selected');
+  buildVenueEnvironment(vId);
+}
+
+function setGender(g, el) {
+  userConfig.gender = g;
+  document.getElementById('hud-avatar-you').textContent = g === 'female' ? '👩' : '👨';
+  el.parentElement.querySelectorAll('.seg-pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  rebuildAthletes();
+}
+
+function setOutfit(pHex, sHex, el) {
+  userConfig.primaryHex = pHex;
+  userConfig.secondaryHex = sHex;
+  el.parentElement.querySelectorAll('.seg-pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  rebuildAthletes();
+}
+
+function setFormat(fmt, el) {
+  gs.format = fmt;
+  el.parentElement.querySelectorAll('.seg-pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  resetServePositions();
+}
+
+function setDiff(d, el) {
+  gs.diff = d;
+  el.parentElement.querySelectorAll('.seg-pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function cycleCameraAngle() {
+  gs.camMode = (gs.camMode + 1) % 3;
+  const names = ['Broadcast', 'Player Pro', 'Overhead'];
+  document.getElementById('btn-cam-view').textContent = `🎥 Cam: ${names[gs.camMode]}`;
+}
+
+function toggleVoice() {
+  sfx.voice = !sfx.voice;
+  const b = document.getElementById('btn-voice');
+  b.textContent = `🔊 Umpire: ${sfx.voice ? 'ON' : 'OFF'}`;
+  b.classList.toggle('active', sfx.voice);
+}
+
+function toggleAutoRun() {
+  gs.autoRun = !gs.autoRun;
+  const b = document.getElementById('btn-assist');
+  b.textContent = `Auto-Run: ${gs.autoRun ? 'ON' : 'OFF'}`;
+  b.classList.toggle('active', gs.autoRun);
+}
+
+function openLockerRoom() {
+  gs.active = false;
+  document.getElementById('locker-modal').style.display = 'flex';
+}
+
+function startMatch() {
+  sfx.init();
+  document.getElementById('locker-modal').style.display = 'none';
+  gs.active = true;
+  resetServePositions();
+  showCallout('0 - 0 - 2!', 'Play Ball • Watch the Kitchen Line!', 1800);
+  sfx.speak('Zero, zero, two. Play ball!');
+}
+
+window.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (k === 'w' || e.key === 'ArrowUp') inputDir.up = true;
+  if (k === 's' || e.key === 'ArrowDown') inputDir.down = true;
+  if (k === 'a' || e.key === 'ArrowLeft') inputDir.left = true;
+  if (k === 'd' || e.key === 'ArrowRight') inputDir.right = true;
+  if (k === ' ') { e.preventDefault(); userSwing('drive'); }
+  if (k === 'e' || k === 'x') userSwing('dink');
+  if (k === 'q' || k === 'z') userSwing('lob');
+  if (e.key === 'Shift') userSwing('erne');
+});
+
+window.addEventListener('keyup', e => {
+  const k = e.key.toLowerCase();
+  if (k === 'w' || e.key === 'ArrowUp') inputDir.up = false;
+  if (k === 's' || e.key === 'ArrowDown') inputDir.down = false;
+  if (k === 'a' || e.key === 'ArrowLeft') inputDir.left = false;
+  if (k === 'd' || e.key === 'ArrowRight') inputDir.right = false;
+});
+
+document.querySelectorAll('[data-dir]').forEach(btn => {
+  const dir = btn.getAttribute('data-dir');
+  const on = ev => { ev.preventDefault(); inputDir[dir] = true; btn.classList.add('pressed'); };
+  const off = ev => { ev.preventDefault(); inputDir[dir] = false; btn.classList.remove('pressed'); };
+  btn.addEventListener('pointerdown', on);
+  btn.addEventListener('pointerup', off);
+  btn.addEventListener('pointerleave', off);
+  btn.addEventListener('pointercancel', off);
+});
+
+let swipeY = null;
+canvas.addEventListener('pointerdown', e => { swipeY = e.clientY; });
+canvas.addEventListener('pointerup', e => {
+  if (swipeY === null) return;
+  const dy = swipeY - e.clientY;
+  swipeY = null;
+  if (dy > 45) userSwing('lob');
+  else if (dy < -45) userSwing('dink');
+  else userSwing('drive');
+});
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Initialize World Venue + Athletes + Loop
+buildVenueEnvironment('stadium');
+rebuildAthletes();
+resetServePositions();
+
+let lastT = performance.now();
+function loop(now) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(0.05, (now - lastT) / 1000);
+  lastT = now;
+  updateGame(dt, now);
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

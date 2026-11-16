@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Pocket Arcade</title>
-<meta name="description" content="Five free browser arcade games for phones and computers: Dagger Raid, a side-scrolling commando knife fighter, Ace Rally Tennis, with webcam, keyboard and touch swings, Dragon Pagoda, a kung fu climb through five guarded floors, Redline Coast, an open-road racer, and Iron Alley, a two-player street brawler.">
+<meta name="description" content="Six free browser games for phones and computers: Dagger Raid, a side-scrolling commando knife fighter, Ace Rally Tennis, with webcam, keyboard and touch swings, Dragon Pagoda, a kung fu climb through five guarded floors, Redline Coast, an open-road racer, Iron Alley, a two-player street brawler, and Pickleball Tour Pro 3D.">
 <meta property="og:title" content="Pocket Arcade">
-<meta property="og:description" content="Five free browser arcade games: Dagger Raid, Ace Rally Tennis, Dragon Pagoda, Redline Coast and Iron Alley. No download, no sign up.">
+<meta property="og:description" content="Six free browser games: Dagger Raid, Ace Rally Tennis, Dragon Pagoda, Redline Coast, Iron Alley and Pickleball Tour Pro 3D. No download, no sign up.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#0b0e17">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600&family=Press+Start+2P&display=swap">
 <style>
-/* Layout: an arcade marquee over five "cabinets" (screen bezel + game card) that stack on phones.
+/* Layout: an arcade marquee over six "cabinets" (screen bezel + game card) that stack on phones.
    One deliberate look: a dark arcade hall, so the palette is fixed rather than theme-switched. */
 :root {
   --bg: #0b0e17;
@@ -84,6 +84,7 @@ h1 span { color: var(--red); }
 .cab--pagoda { --acc: var(--gold); --acc-deep: var(--gold-deep); --acc-ink: #2a1400; }
 .cab--redline { --acc: #ff3d5a; --acc-deep: #a8143a; --acc-ink: #ffffff; }
 .cab--iron { --acc: #ff8a1a; --acc-deep: #a84a08; --acc-ink: #1a0a00; }
+.cab--pickle { --acc: #00ffa3; --acc-deep: #00a86a; --acc-ink: #00241a; }
 .screen {
   display: block; position: relative; border-radius: 10px; overflow: hidden;
   background: var(--bezel); padding: 10px; border: 1px solid #1b2234;
@@ -95,7 +96,7 @@ h1 span { color: var(--red); }
   box-shadow: 0 0 28px color-mix(in srgb, var(--acc) 30%, transparent);
   transition: transform 0.25s ease, filter 0.25s ease;
 }
-.cab--tennis .screen img, .cab--pagoda .screen img, .cab--redline .screen img, .cab--iron .screen img { image-rendering: auto; }
+.cab--tennis .screen img, .cab--pagoda .screen img, .cab--redline .screen img, .cab--iron .screen img, .cab--pickle .screen img { image-rendering: auto; }
 .screen:hover img, .screen:focus-visible img { transform: scale(1.015); filter: brightness(1.08); }
 .screen::after {
   content: "PLAY"; position: absolute; right: 18px; bottom: 18px;
@@ -146,7 +147,7 @@ footer p { margin: 0; max-width: 62ch; }
   <header class="marquee">
     <p class="freeplay">FREE PLAY</p>
     <h1>POCKET <span>ARCADE</span></h1>
-    <p class="lede">Five original arcade games that run right in your browser, on a phone or a computer.</p>
+    <p class="lede">Six original games that run right in your browser, on a phone or a computer.</p>
   </header>
 
   <section class="cabinets" aria-label="Games">
@@ -246,6 +247,26 @@ footer p { margin: 0; max-width: 62ch; }
           <li><kbd>C</kbd> jump</li>
         </ul>
         <a class="play" href="iron-alley/">PLAY IRON ALLEY</a>
+      </div>
+    </article>
+
+    <article class="cab cab--pickle">
+      <a class="screen" href="pickleball/" aria-label="Play Pickleball Tour Pro 3D">
+        <img src="assets/pickleball-tour-pro.webp" width="1152" height="648" alt="Pickleball Tour Pro 3D gameplay: a doubles rally at the Grand Slam Arena with a full crowd in the stands">
+      </a>
+      <div class="card">
+        <h2>PICKLEBALL TOUR PRO 3D</h2>
+        <p>Championship pickleball in 3D. Play doubles or singles against a rated AI tour across four venues, from the Grand Slam Arena to a Malibu beach club: drive, dink and lob, mind the kitchen and the two-bounce rule, and swing with your webcam if you like.</p>
+        <ul class="facts" aria-label="Ways to play">
+          <li>Doubles or singles</li><li>4 venues</li><li>3 AI ratings</li><li>Webcam swing</li><li>Phone touch</li>
+        </ul>
+        <ul class="keys" aria-label="Keyboard controls">
+          <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</li>
+          <li><kbd>Space</kbd> drive</li>
+          <li><kbd>E</kbd> dink</li>
+          <li><kbd>Q</kbd> lob</li>
+        </ul>
+        <a class="play" href="pickleball/">PLAY PICKLEBALL</a>
       </div>
     </article>
   </section>

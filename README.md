@@ -1,15 +1,15 @@
 # Pocket Arcade
 
-Five original arcade games that run in the browser on phones and computers. No install, no account.
+Six original games that run in the browser on phones and computers. No install, no account.
 
 **Play online:** https://pocket-arcade-rouge.vercel.app/
 
-Direct links: [Dagger Raid](https://pocket-arcade-rouge.vercel.app/dagger-raid), [Ace Rally Tennis](https://pocket-arcade-rouge.vercel.app/tennis), [Dragon Pagoda](https://pocket-arcade-rouge.vercel.app/dragon-pagoda), [Redline Coast](https://pocket-arcade-rouge.vercel.app/redline-coast) and [Iron Alley](https://pocket-arcade-rouge.vercel.app/iron-alley)
+Direct links: [Dagger Raid](https://pocket-arcade-rouge.vercel.app/dagger-raid), [Ace Rally Tennis](https://pocket-arcade-rouge.vercel.app/tennis), [Dragon Pagoda](https://pocket-arcade-rouge.vercel.app/dragon-pagoda), [Redline Coast](https://pocket-arcade-rouge.vercel.app/redline-coast) [Iron Alley](https://pocket-arcade-rouge.vercel.app/iron-alley) and [Pickleball Tour Pro 3D](https://pocket-arcade-rouge.vercel.app/pickleball)
 
-| Dagger Raid | Ace Rally Tennis | Dragon Pagoda | Redline Coast | Iron Alley |
-| --- | --- | --- | --- | --- |
-| [![Dagger Raid gameplay](assets/dagger-raid.webp)](https://pocket-arcade-rouge.vercel.app/dagger-raid) | [![Ace Rally Tennis gameplay](assets/ace-rally-tennis.webp)](https://pocket-arcade-rouge.vercel.app/tennis) | [![Dragon Pagoda gameplay](assets/dragon-pagoda.webp)](https://pocket-arcade-rouge.vercel.app/dragon-pagoda) | [![Redline Coast gameplay](assets/redline-coast.webp)](https://pocket-arcade-rouge.vercel.app/redline-coast) | [![Iron Alley gameplay](assets/iron-alley.webp)](https://pocket-arcade-rouge.vercel.app/iron-alley) |
-| Side-scrolling commando raid with a combat knife | Stadium tennis you can swing with your webcam | Kung fu climb through five guarded pagoda floors | Open-road racer against the clock and a rival | Two-player street brawler through four districts |
+| Dagger Raid | Ace Rally Tennis | Dragon Pagoda | Redline Coast | Iron Alley | Pickleball Tour Pro 3D |
+| --- | --- | --- | --- | --- | --- |
+| [![Dagger Raid gameplay](assets/dagger-raid.webp)](https://pocket-arcade-rouge.vercel.app/dagger-raid) | [![Ace Rally Tennis gameplay](assets/ace-rally-tennis.webp)](https://pocket-arcade-rouge.vercel.app/tennis) | [![Dragon Pagoda gameplay](assets/dragon-pagoda.webp)](https://pocket-arcade-rouge.vercel.app/dragon-pagoda) | [![Redline Coast gameplay](assets/redline-coast.webp)](https://pocket-arcade-rouge.vercel.app/redline-coast) | [![Iron Alley gameplay](assets/iron-alley.webp)](https://pocket-arcade-rouge.vercel.app/iron-alley) | [![Pickleball Tour Pro 3D gameplay](assets/pickleball-tour-pro.webp)](https://pocket-arcade-rouge.vercel.app/pickleball) |
+| Side-scrolling commando raid with a combat knife | Stadium tennis you can swing with your webcam | Kung fu climb through five guarded pagoda floors | Open-road racer against the clock and a rival | Two-player street brawler through four districts | 3D doubles or singles across four world venues |
 
 ## Dagger Raid
 
@@ -164,3 +164,17 @@ The script bundles each game's `src/` files into a single HTML page and copies i
 ## Credits
 
 Ace Rally Tennis renders its 3D court with [three.js](https://threejs.org) (MIT License, see `source/ace-rally-tennis/vendor/package/LICENSE`). Dagger Raid and Dragon Pagoda mix recorded blade, footstep, metal, cloth and impact clips from Kenney's RPG Audio pack (CC0, kenney.nl) with sound synthesized in code. Fonts load from Google Fonts: Press Start 2P, Chakra Petch, Fredoka, M PLUS Rounded 1c, Barlow Condensed, Black Ops One, Cinzel and Ma Shan Zheng.
+
+## Pickleball Tour Pro 3D
+
+Play at `/pickleball/`. Championship pickleball in 3D (three.js r128), imported from the
+[Pickleball-Tour-Pro](https://github.com/nadeemkhawaja/Pickleball-Tour-Pro) repository and kept as written.
+
+- Doubles or singles against an AI tour rated 3.5 Club, 4.5 Pro or 5.5+ Master
+- Four venues: Grand Slam Arena, Sunset City Rooftop, Emerald Central Park and Malibu Beach Club
+- Female or male pro, three outfit colourways, a live umpire calling the kitchen and the two-bounce rule
+- Optional webcam swing: raise your hand in the green box
+- Controls: W A S D or arrows move, Space drive, E or X dink, Q or Z lob, Shift Erne; on a phone, the touch pad and the LOB, DINK and DRIVE buttons
+
+Source: `source/pickleball-tour-pro/src/index.html`. Its build inlines three.js r128
+(MIT licence, `source/pickleball-tour-pro/vendor/LICENSE-three.txt`) in place of the CDN link, so the page needs no outside requests.
