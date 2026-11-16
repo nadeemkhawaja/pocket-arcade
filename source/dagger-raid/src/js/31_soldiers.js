@@ -138,15 +138,38 @@ function drawArmV(g, d, sh, el, hd, k, back, fist) {
   if (d.bracers && !d.tint) {
     limbs(g, [[lerp(el[0], wx, 0.3), lerp(el[1], wy, 0.3), lerp(el[0], wx, 0.9), lerp(el[1], wy, 0.9), 1.2 * k, 1.05 * k, '#4e535c', back ? '#6b7079' : '#8a909a']], d);
   }
-  // the fist: a rounded block turned along the forearm
-  const r = (fist ? 1.38 : 1.2) * k;
+  // the hand, turned along the forearm (+x runs toward the fingertips):
+  // a fist shows four finger knuckles with the thumb wrapped across them;
+  // an open hand shows a palm, four fingers and a thumb
+  const r = (fist ? 1.3 : 1.15) * k;
   g.save(); g.translate(hd[0], hd[1]); g.rotate(Math.atan2(uy, ux));
-  g.lineJoin = 'round';
-  const build = () => roundRectPath(g, -r, -r * 0.92, r * 2, r * 1.84, r * 0.7);
-  build(); g.lineWidth = OLW * 2; g.strokeStyle = d.ink; g.stroke(); g.fillStyle = d.tint ? d.ink : skinS; g.fill();
-  if (!d.tint) {
-    g.fillStyle = skin; roundRectPath(g, -r * 0.85, -r * 0.92, r * 1.6, r * 1.3, r * 0.55); g.fill();
-    line(g, r * 0.55, -r * 0.45, r * 0.55, r * 0.6, 0.22 * k, rgba(shade(skin, -0.45), 0.8));
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  const part = (path, fill) => { path(); g.lineWidth = OLW * 2; g.strokeStyle = d.ink; g.stroke(); g.fillStyle = d.tint ? d.ink : fill; g.fill(); };
+  const lit = skin, mid = d.tint ? d.ink : shade(skin, -0.12), crease = d.tint ? d.ink : rgba(shade(skin, -0.5), 0.85);
+  if (fist) {
+    // back of the hand
+    part(() => roundRectPath(g, -r, -r * 0.9, r * 1.45, r * 1.8, r * 0.55), skinS);
+    if (!d.tint) { g.fillStyle = lit; roundRectPath(g, -r * 0.85, -r * 0.9, r * 1.2, r * 1.25, r * 0.45); g.fill(); }
+    // four curled fingers, one knuckle each
+    const fh = (r * 1.8) / 4;
+    for (let i = 0; i < 4; i++) {
+      const y0 = -r * 0.9 + i * fh;
+      part(() => roundRectPath(g, r * 0.2, y0 + 0.04 * k, r * 0.78, fh - 0.08 * k, fh * 0.45), i === 0 ? lit : mid);
+      if (!d.tint) { g.fillStyle = rgba('#ffffff', 0.18); roundRectPath(g, r * 0.32, y0 + 0.12 * k, r * 0.4, fh * 0.35, fh * 0.17); g.fill(); }
+    }
+    // the thumb, wrapped across the front of the fingers
+    part(() => capsulePath(g, -r * 0.45, -r * 0.82, r * 0.62, -r * 0.42, r * 0.32, r * 0.27), lit);
+    if (!d.tint) line(g, r * 0.48, -r * 0.62, r * 0.6, -r * 0.3, 0.14 * k, crease);
+  } else {
+    // open hand: palm, four fingers fanned slightly, thumb out to the side
+    const tips = [[-0.62, -0.18], [-0.2, -0.04], [0.22, 0.08], [0.6, 0.22]];
+    tips.forEach(([fy, fan], i) => {
+      const len = i === 0 || i === 3 ? 1.05 : 1.25;
+      part(() => capsulePath(g, r * 0.3, fy * r, r * (0.3 + len), (fy + fan) * r, r * 0.21, r * 0.17), i < 2 ? lit : mid);
+    });
+    part(() => roundRectPath(g, -r * 0.95, -r * 0.85, r * 1.55, r * 1.7, r * 0.5), lit);
+    if (!d.tint) line(g, -r * 0.2, -r * 0.2, r * 0.45, r * 0.15, 0.12 * k, crease);
+    part(() => capsulePath(g, -r * 0.35, -r * 0.7, r * 0.45, -r * 1.25, r * 0.27, r * 0.2), lit);
   }
   g.restore();
 }

@@ -187,7 +187,7 @@ function boot() {
   // hooks for automated testing
   const blank = () => ({ left: false, right: false, up: false, down: false, jump: false, punch: false, kick: false, special: false, start: false, pause: false, back: false, any: false });
   window.__pagoda = {
-    game, input, chip, settings, FLOORS, ETYPES, BOSS_DEFS, Chip, SONGS, parseTrack, DIFFS,
+    game, input, chip, settings, FLOORS, ETYPES, BOSS_DEFS, Chip, SONGS, parseTrack, DIFFS, drawSprite, CHARS,
     setManual(v) { manual = v; game.skipPerks = !!v; },
     step(n, held, pressed, quiet) {
       const H0 = Object.assign(blank(), held || {});

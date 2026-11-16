@@ -177,7 +177,7 @@ function boot() {
   // hooks for automated testing
   const blank = () => Object.assign({}, NO_PRESS);
   window.__iron = {
-    game, input, chip, settings, stageTile, TILES, STAGES, DIFFS, HEROES, FOES, ATK, MEDALS, PROG, SONGS, DBG, QUALITY, view, SV, ITEM_DEF,
+    game, input, chip, settings, stageTile, TILES, STAGES, DIFFS, HEROES, FOES, ATK, MEDALS, PROG, SONGS, DBG, QUALITY, view, SV, ITEM_DEF, drawSprite, CHARS,
     setManual(v) { manual = v; },
     step(n, held, pressed, quiet, held2, pressed2) {
       for (let i = 0; i < n; i++) {

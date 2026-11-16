@@ -2268,10 +2268,23 @@ function buildStylizedAthlete(opts) {
     const wrist = new THREE.Mesh(new THREE.CylinderGeometry(0.039, 0.039, 0.05, 10), sockMat);
     wrist.position.y = -0.22;
     elbow.add(wrist);
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.042, 10, 8), skinMat);
-    hand.scale.set(0.9, 1.15, 0.8);
+    // the hand: a palm with four fingers curled round the grip and the thumb laid along it
+    const hand = new THREE.Group();
     hand.position.y = -0.28;
     elbow.add(hand);
+    const palm = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.075, 0.04), skinMat);
+    hand.add(palm);
+    for (let f = 0; f < 4; f++) {
+      const finger = new THREE.Mesh(new THREE.TorusGeometry(0.026, 0.0105, 6, 10, Math.PI * 1.25), skinMat);
+      finger.rotation.y = Math.PI / 2;
+      finger.rotation.x = -Math.PI * 0.35;
+      finger.position.set(-0.026 + f * 0.0175, -0.045, 0.012);
+      hand.add(finger);
+    }
+    const thumb = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.012, 0.055, 6), skinMat);
+    thumb.rotation.z = Math.PI / 2 - 0.4;
+    thumb.position.set(-0.03, -0.035, 0.03);
+    hand.add(thumb);
     return { shoulder, elbow, hand };
   }
   const armR = makeArm(true);

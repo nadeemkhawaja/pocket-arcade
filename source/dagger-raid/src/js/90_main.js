@@ -187,7 +187,7 @@ function boot() {
   // hooks for automated testing
   const blank = () => ({ left: false, right: false, up: false, down: false, jump: false, knife: false, special: false, dash: false, start: false, pause: false, back: false, any: false });
   window.__dagger = {
-    game, input, chip, settings, STAGES, ETYPES, Chip, SONGS, parseTrack, DIFFS, MEDALS, PROG, MELEE, HERO_OUTFITS, ART, DBG, QUALITY,
+    game, input, chip, settings, STAGES, ETYPES, Chip, SONGS, parseTrack, DIFFS, MEDALS, PROG, MELEE, HERO_OUTFITS, ART, DBG, QUALITY, drawSprite, CHARS,
     setManual(v) { manual = v; game.skipPerks = !!v; },
     step(n, held, pressed, quiet) {
       const H0 = Object.assign(blank(), held || {});
