@@ -118,3 +118,17 @@ Object.assign(CHARS, {
   forge: { pal: PAL.forge, poses: 'street', k: 3.42 },
   warden: { pal: PAL.warden, poses: 'street', k: 2.88 }
 });
+
+/* Wrestler-style kit for the cast, read by 33_anatomy.js. All original designs. */
+Object.assign(PAL.kade, { muscle: 1.3, shirtless: true, openVest: '#c8283a', legwear: 'tights', pants: '#1f2a4a', pants2: '#161e36', stripe: '#f2f2f2',
+  kneepad: '#1a1a20', boot: '#9a1426', boot2: '#d8283a', lace: '#ffffff', tape: '#f4f2ec', stubble: true });
+Object.assign(PAL.suki, { muscle: 0.85, legwear: 'tights', pants: '#1a1c26', pants2: '#12131a', stripe: '#ff4a8a', kneepad: '#ff4a8a', lace: '#ffffff', tape: '#f4f2ec' });
+Object.assign(PAL.punk, { muscle: 0.8, tape: '#3a3a44' });
+Object.assign(PAL.punk2, { muscle: 0.8 });
+Object.assign(PAL.blade, { muscle: 0.75 });
+Object.assign(PAL.biker, { muscle: 0.95 });
+Object.assign(PAL.bruiser, { muscle: 1.5, singlet: '#1e2026', legwear: 'tights', pants: '#2a2a32', pants2: '#1c1c22', stripe: '#c0392b', kneepad: '#2a2a32', tape: '#f4f2ec', stubble: true });
+Object.assign(PAL.tank, { muscle: 1.6, shirtless: true, legwear: 'trunks', pants: '#4a5a3a', pants2: '#34402a', stripe: '#d8a030', kneepad: '#1a1a20', tape: '#f4f2ec', chestHair: true });
+Object.assign(PAL.ratchet, { muscle: 1.0 });
+Object.assign(PAL.forge, { muscle: 1.45, shirtless: true, openVest: '#5a3a24', stache: 'goatee', tape: '#3a2a20' });
+Object.assign(PAL.warden, { muscle: 1.0 });

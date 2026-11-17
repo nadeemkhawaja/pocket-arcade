@@ -8,8 +8,8 @@ const OUTLINE = '#120a10';
 
 const PAL = {
   tao: {
-    skin: '#efbb92', skin2: '#c98d66', hair: '#1d1418', top: '#f3f1ea', top2: '#c9c4b6', trim: '#d6312a', inner: '#2a2030',
-    pants: '#ebe8df', pants2: '#bdb7a8', shoe: '#1c1820', sash: '#d6312a', band: '#d6312a', head: 'band', style: 'gi', cuff: '#d6312a'
+    skin: '#efbb92', skin2: '#c98d66', hair: '#1d1418', top: '#24406e', top2: '#182c4e', trim: '#e8b23a', inner: '#f3f1ea',
+    pants: '#24406e', pants2: '#182c4e', shoe: '#1c1820', sash: '#e8b23a', band: '#e8b23a', head: 'band', style: 'gi', cuff: '#e8b23a'
   },
   lian: {
     skin: '#f0c19e', skin2: '#c99573', hair: '#17111a', top: '#1f9a8a', top2: '#167267', trim: '#f2d16b', inner: '#f2d16b',
